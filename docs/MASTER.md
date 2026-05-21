@@ -57,7 +57,12 @@ class PlayerRole(StrEnum):
 ## 3. Возможности мастера (чит-консоль)
 
 Это **полный список** того, что мастер может сделать. Каждая операция —
-`MasterIntent`-объект (см. `ENGINE.md` §6).
+отдельный pydantic-DTO, член discriminated union `MasterIntent` (см.
+`ENGINE.md` §6.1). Имена DTO в коде — `RerollIntent`, `SetHpIntent`,
+`SpawnCreatureIntent` и так далее.
+
+**Этот раздел — единственный источник истины по списку операций.** В
+`ENGINE.md` §6.1 ссылается сюда.
 
 ### 3.1 Кости и броски
 

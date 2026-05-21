@@ -384,25 +384,30 @@ PIN-код.
 UI слушает события из `EventBus` и подписывается на запросы от движка
 через `UserInterface`. Никогда не вызывает domain напрямую.
 
-```python
-class UserInterface(Protocol):
-    # вывод (push от EventBus)
-    def on_event(self, event: EngineEvent) -> None: ...
+**Канонический контракт `UserInterface`** — в
+[`ARCHITECTURE.md` §3.3](ARCHITECTURE.md). Здесь — UI-специфичные
+особенности и заметки.
 
-    # запросы (движок просит игрока ответить)
-    def request_turn_intent(self, ctx: TurnContext) -> TurnIntent: ...
-    def request_choice(self, prompt: str, options: list[Choice]) -> Choice: ...
-    def request_target(self, ctx: TargetContext) -> Target: ...
-    def request_confirm(self, prompt: str) -> bool: ...
+Ключевые правила, которым обязан подчиняться **любой** адаптер
+(`TextualUserInterface`, `CliUserInterface`, тестовый `RecordingUI`):
 
-    # широковещание
-    def show_text(self, text_key: str, /, **vars: Any) -> None: ...
-    def show_view(self, view: AnyView) -> None: ...
-```
+1. **Все строки подаются по ключам i18n**, не готовыми текстами. Поля
+   запросов называются `prompt_key`, `description_key` и т.п. — никаких
+   `prompt: str`. См. `I18N.md` §3 правило 1.
+2. **`AnyView`** — union DTO представления (`BattleView`,
+   `ExplorationView`, `CharacterSheetView`, `InventoryView`, ...). UI
+   знает, как нарисовать каждый. `EngineStateView` оборачивает их
+   вместе с режимом движка.
+3. **Никакой бизнес-логики в UI.** Адаптеры — только рисуют и собирают
+   ввод. Любые проверки правил — на стороне движка.
+4. **i18n через порт `Translator`**, не глобальный `_`. Адаптер
+   получает Translator при создании.
+5. **TUI обязан корректно отрабатывать `on_resize`** и пересобирать
+   раскладку без потери состояния.
 
-`text_key` — ключ локализации, не готовая строка (см. `I18N.md`).
-`AnyView` — union DTO (`CharacterSheetView`, `BattleView`, …); UI знает,
-как нарисовать каждый.
+Если в будущем понадобится — `UserInterface` будет разбит на узкие
+`InputPort` / `OutputPort` (см. `OPEN_QUESTIONS.md` Q21). На MVP —
+один порт.
 
 ---
 

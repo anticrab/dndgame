@@ -260,19 +260,60 @@ class Action(Protocol):
 
 ## 5. EventBus, GameLog, история партии
 
-`EventBus` — синхронный, in-memory. Каждое событие пишется в `GameLog`
-(append-only список объектов pydantic).
+### 5.1 Контракт EventBus
+
+```python
+class EventBus(Protocol):
+    def publish(self, event: EngineEvent) -> None: ...
+    def subscribe(
+        self,
+        event_type: type[E],
+        handler: Callable[[E], None],
+    ) -> Unsubscribe: ...
+```
+
+Реализация по умолчанию — `InMemoryEventBus` в `infrastructure/events/`.
+
+### 5.2 Семантика (явный контракт)
+
+1. **Синхронность.** `publish()` обрабатывает событие в текущем потоке,
+   возвращает управление после того, как все подписчики отработали.
+2. **FIFO порядок.** Все события движка ставятся в **очередь FIFO**. Если
+   подписчик внутри своего обработчика делает `bus.publish(other_event)`,
+   `other_event` ставится **в хвост** текущей очереди, а не выполняется
+   рекурсивно. Это даёт детерминированный обход «волнами».
+3. **Подписки во время dispatch.** Изменения списка подписчиков (`subscribe`
+   или `unsubscribe`) во время `dispatch` применяются **с следующей**
+   публикации, а не задним числом к текущей.
+4. **Исключения подписчиков.** Если handler-подписчик кидает исключение —
+   оно ловится `EventBus`, логируется как `ERROR` через `logging`, и
+   обработка **продолжается** для остальных подписчиков. `publish()`
+   снаружи ничего не raise-ит.
+5. **Подписчик не получает свои же события.** Тех. деталь:
+   `bus.publish(e)` внутри handler-а на `e2` не доставит `e` обратно
+   тому же handler-у (если он подписан только на тип `e2`). Никаких
+   циклов между «своими» событиями.
+
+Эта семантика тестируется в `tests/unit/application/test_event_bus.py`
+(будет добавлен в коммите Test-набора). При нарушении любого пункта —
+тест падает; реализация исправляется, а не контракт.
+
+### 5.3 GameLog и сейв
+
+Каждое событие, прошедшее через `EventBus`, пишется в `GameLog`
+(append-only список pydantic-моделей `EngineEvent`).
 
 **Решение по сейвам:**
 - `GameLog` сериализуется в сейв **целиком**. История партии не теряется.
 - Хранение — JSON в BLOB-поле SQLite. Сжатие zlib опционально, если
   лог разрастётся.
-- Удалили сейв — потеряли историю (этого хотел архитектор).
+- Удалили сейв — потеряли историю (это сознательное решение архитектора,
+  см. `OPEN_QUESTIONS.md` Q10).
 
 Это даёт:
 - **Replay** — пересоздать UI-картинку по событиям.
 - **Тесты** — проверка последовательности событий.
-- **Открадку** — `dnd replay save:N` (пост-MVP).
+- **Отладку** — `dnd replay save:N` (пост-MVP).
 - **Аудит вмешательств мастера** (см. §6).
 
 ---
@@ -283,30 +324,52 @@ class Action(Protocol):
 добавить без ломающих изменений. Описано подробно в `MASTER.md`;
 здесь — только что движок должен уже сейчас поддерживать.
 
-### 6.1 `MasterIntent` — отдельный тип команды
+### 6.1 `MasterIntent` — discriminated union DTO
 
 В отличие от `PlayerCommand` (заявка хода обычного игрока),
 `MasterIntent` — команда «сверху», которую обрабатывает движок
-**в любой момент** (не только в свой ход):
+**в любой момент** (не только в свой ход).
+
+`MasterIntent` — это **discriminated union** на pydantic v2: каждая
+операция мастера — отдельная типизированная модель с разделителем `kind`.
+Это даёт mypy-полноту, IDE-автокомплит, валидацию по схеме и невозможность
+ошибиться с полями payload.
 
 ```python
-class MasterIntent(BaseModel):
-    kind: Literal[
-        "reroll", "set_roll", "set_hp", "deal_damage", "heal",
-        "apply_condition", "remove_condition",
-        "grant_advantage", "grant_disadvantage",
-        "spawn_creature", "remove_creature", "move_creature",
-        "set_flag", "give_item", "take_item",
-        "force_start_encounter", "force_end_encounter",
-        "narrate",
-    ]
-    payload: dict
-    reason: str           # короткая причина, идёт в лог
-    issued_by: PlayerId   # кто из мастер-аккаунтов
+class _MasterIntentBase(BaseModel):
+    reason: str                        # обязателен, идёт в лог
+    issued_by: PlayerId                # автор вмешательства
+
+class RerollIntent(_MasterIntentBase):
+    kind: Literal["reroll"] = "reroll"
+    roll_id: UUID
+
+class SetRollIntent(_MasterIntentBase):
+    kind: Literal["set_roll"] = "set_roll"
+    roll_id: UUID
+    raw_value: int                     # новое «выпавшее» d-X значение
+
+class SetHpIntent(_MasterIntentBase):
+    kind: Literal["set_hp"] = "set_hp"
+    creature_id: CreatureId
+    value: int
+
+# ... аналогично для каждой операции из MASTER.md §3.
+# Канонический полный список — в MASTER.md §3; ENGINE.md ссылается.
+
+MasterIntent = Annotated[
+    RerollIntent | SetRollIntent | SetHpIntent | ...,
+    Field(discriminator="kind"),
+]
 ```
 
+Каноничный список **всех** операций мастера, их полей и поведения —
+в [`MASTER.md`](MASTER.md) §3. ENGINE.md не дублирует список — он
+является источником истины только для контракта `MasterIntent` как
+типа и для семантики метода `apply_master_intent`.
+
 Каждое применение пишется в `GameLog` с тегом `master_intervention` и
-причиной, заданной мастером (или пустой, если она не обязательна).
+причиной (`reason`), заданной мастером.
 
 ### 6.2 Точки воздействия
 
@@ -314,24 +377,29 @@ class MasterIntent(BaseModel):
 **снаружи** (через `apply_master_intent`) можно было:
 
 1. **Перебросить любой бросок до момента, пока его результат ещё не
-   повлиял на состояние.** Для этого каждый бросок сначала записывается
-   как `RollIssued(roll_id, dice, raw, modifiers)`, отдельно — как
-   `RollApplied(roll_id, outcome)`. Между ними мастер может
-   `reroll(roll_id)` или `set_roll(roll_id, new_value)`. Без мастера —
-   эти два события следуют подряд без зазора.
+   повлиял на состояние.** Реализуется через двухфазную модель
+   `RollIssued` → `RollApplied` (см. §7.4). Между двумя событиями мастер
+   может прислать `RerollIntent(roll_id=...)` или
+   `SetRollIntent(roll_id=..., raw_value=...)`. Без мастера эти два
+   события следуют подряд без зазора.
 
 2. **Менять HP/состояние существа** в любое время. Реализуется уже сейчас:
    `Creature.set_hp(value, source="master")`, метод доступен в ядре
    (для тестов), наружу — только через `apply_master_intent`.
 
-3. **Накладывать преимущество/помеху** на следующий бросок. Очередь
-   модификаторов: `pending_advantage_flags: dict[CreatureId, list[Mod]]`,
-   первый же бросок цели применяет и съедает флаг.
+3. **Накладывать преимущество/помеху** на следующий бросок — через
+   создание модификатора с `effect: AdvantageEffect` и
+   `duration: UntilNextRoll(creature_id)` (см. `MODIFIERS.md`). Очередь
+   таких модификаторов живёт в `GameState.modifiers`. Первый же подходящий
+   бросок применяет и снимает модификатор.
 
-4. **Начать/закончить бой принудительно**: `force_start_encounter`,
-   `force_end_encounter(victor=…)`.
+4. **Начать/закончить бой принудительно**: `ForceStartEncounterIntent`,
+   `ForceEndEncounterIntent`.
 
-5. **Спавнить/убирать существ** на карте.
+5. **Спавнить/убирать существ** на карте: `SpawnCreatureIntent`,
+   `RemoveCreatureIntent`.
+
+6. **Прочие операции** — полный список в [`MASTER.md`](MASTER.md) §3.
 
 ### 6.3 Видимость
 
@@ -367,29 +435,113 @@ class MasterIntent(BaseModel):
 
 Над портом `RNG` стоит слой **`DiceRoller`** (`application/engine/dice_roller.py`).
 
+### 7.1 Контракт DiceRoller (канон)
+
 ```python
 class DiceRoller(Protocol):
-    def roll(self, expr: DiceExpr, ctx: RollContext) -> RollResult: ...
+    def roll(self, expr: DiceExpr, ctx: RollContext) -> EngineRollResult: ...
 ```
 
-`RollContext` несёт смысл броска (`attack`, `damage`, `save`, …), участников
-(attacker/target), флаги (`advantage`, `disadvantage`, `crit`).
+`DiceRoller` живёт в `application/engine/dice_roller.py`. Это **единственная
+точка** бросков для правил движка: ни одно правило (`attack_roll`, `save`,
+`ability_check`, `damage_roll`) не вызывает `DiceExpr.roll(rng)` напрямую.
 
-Реализации:
+Прямой `DiceExpr.roll(rng)` остаётся доступным только для случаев, где
+выпуск событий не требуется:
+
+- генерация характеристик при создании персонажа (4d6kh3 в `CharacterBuilder`);
+- внутренние unit-тесты домена;
+- внутри реализации `ComputerDiceRoller`.
+
+### 7.2 RollContext (DTO)
+
+```python
+class RollContext(BaseModel):
+    purpose: Literal[
+        "attack", "damage", "save", "ability_check",
+        "initiative", "hit_dice", "death_save", "loot",
+        "stats_gen", "other",
+    ]
+    actor_id: CreatureId | None = None
+    target_id: CreatureId | None = None
+    advantage: bool = False
+    disadvantage: bool = False
+    crit: bool = False
+    extra_dice: list[DiceExpr] = []        # для добавочных кубов (Bless +1d4 и т.п.)
+    tags: list[str] = []                   # для master_intervention и аудита
+```
+
+`extra_dice` — список выражений, которые добавляются к итоговому броску
+(см. `MODIFIERS.md` §2.2 «DiceBonusEffect»). Кладёт их `ModifierApplier`
+из списка активных модификаторов.
+
+### 7.3 EngineRollResult (DTO)
+
+```python
+class EngineRollResult(BaseModel):
+    roll_id: UUID                          # для master-перебросов
+    expr: str                              # сериализованное DiceExpr
+    raw: tuple[int, ...]                   # сырые броски d-X
+    kept: tuple[int, ...]
+    modifier: int                          # сумма numeric bonus + базовый mod
+    extra_dice_rolls: tuple[int, ...] = () # отдельно — кости от extra_dice
+    total: int                             # итог с учётом всего
+    advantage: bool = False
+    disadvantage: bool = False
+    crit: bool = False
+    context: RollContext
+```
+
+`roll_id` — единственная новинка относительно доменного `RollResult`.
+Через него мастер делает `MasterIntent: reroll(roll_id)` или
+`set_roll(roll_id, new_value)` — пока событие ещё не «применилось»
+(см. §6.2 двухфазная модель).
+
+### 7.4 Двухфазная модель бросков (RollIssued → RollApplied)
+
+```
+правило вызывает roller.roll(...)
+        │
+        ▼
+  ┌──────────────────────────────────────┐
+  │ ComputerDiceRoller:                  │
+  │   raw = rng.roll(...)                │
+  │   result = EngineRollResult(roll_id) │
+  │   bus.publish(RollIssued(result))    │
+  └──────────────────────────────────────┘
+        │
+        │  (между RollIssued и RollApplied —
+        │   мастер может вмешаться через
+        │   apply_master_intent(reroll/set_roll))
+        ▼
+  ┌──────────────────────────────────────┐
+  │ возвращаемый результат, который      │
+  │ правило применяет (attack vs AC,     │
+  │ save vs DC, ...)                     │
+  │   bus.publish(RollApplied(result))   │
+  └──────────────────────────────────────┘
+```
+
+Без мастера эти два события следуют сразу одно за другим; всё работает
+прозрачно. С мастером — он может вклиниться, и тогда правило получит
+изменённый `EngineRollResult` (с тем же `roll_id`, но другим `total`).
+
+### 7.5 Реализации DiceRoller
+
 - **`ComputerDiceRoller`** — использует `RNG`. По умолчанию.
-- **`LiveDiceRoller`** — спрашивает значение у игрока (пост-MVP, для
-  настольных партий).
+- **`LiveDiceRoller`** — спрашивает значение у игрока через
+  `UserInterface.request_dice_input(ctx)` (пост-MVP, для настольных
+  партий).
 
-Все броски проходят через `DiceRoller`, не напрямую через `RNG`. Это:
-- даёт мастеру возможность вмешаться (см. §6);
-- даёт **статистику** — каждый бросок публикует `RollIssued`-событие
-  с `raw` (значение d20 без бонусов), которое подбирает наблюдатель.
+### 7.6 DiceStatisticsService
 
 `DiceStatisticsService` (модуль `application/engine/dice_stats.py`)
-слушает события и считает:
-- среднее по текущей сессии (только d20, только `raw`);
+слушает `RollIssued`-события и считает:
+
+- среднее по текущей сессии (только d20, только `raw[0]`);
 - среднее за всё время по сейву;
-- мини-гистограмму по граням 1..20.
+- мини-гистограмму по граням 1..20;
+- счётчики nat-20 и nat-1.
 
 UI показывает «удачу» (`current_session_avg − 10.5`) рядом с листом
 персонажа.

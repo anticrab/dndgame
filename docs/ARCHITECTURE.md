@@ -69,7 +69,7 @@
 | **Observer / EventBus** | `EventBus.publish(event)` + подписчики: сценарий, состояния, журнал, UI, статистика бросков. |
 | **State** | `GameEngine` режимы, `Encounter` (Setup→InProgress→Ended), `Creature.status_tracker`, спасброски от смерти. |
 | **Specification** | условия в сценариях (`HasFlag("x") & AbilityCheckPassed("STR", 15)`). |
-| **Plugin / Registry** | `FeatureRegistry`, `ConditionRegistry`, `ActionRegistry`, `MonsterAIRegistry`. Регистрация по имени через декоратор. |
+| **Plugin / Registry** | `FeatureRegistry`, `ConditionRegistry`, `ActionRegistry` (Actions+Reactions с полем `category`), `MonsterAIRegistry`. Это **module-level dict-объекты в `domain/`**, не порты. Регистрация — **явная** в composition root через `Registry.register(name, cls)`; декораторы при импорте не используются (плохо взаимодействует с DI). См. §3.12. |
 | **Adapter** | YAML-схема → доменный объект, CLI-аргументы → команды use-case. |
 | **Hexagonal / Ports & Adapters** | базовая макро-структура. |
 | **DTO** | `application/dto/` — pydantic-модели для пересечения границы (UI/CLI/будущий сетевой клиент). |
@@ -92,6 +92,8 @@ bmstu/dndgame/
 │   ├── PROGRESSION.md
 │   ├── MASTER.md
 │   ├── I18N.md
+│   ├── MODIFIERS.md
+│   ├── GLOSSARY.md
 │   ├── SCENARIO_DEMO.md
 │   ├── OPEN_QUESTIONS.md
 │   └── ADR/
@@ -306,26 +308,163 @@ class UserInterface(Protocol):
 
 `text_key` / `prompt_key` — ключи локализации (см. `I18N.md`).
 
-### 3.4 `RNG`, `EventBus`
+### 3.4 `CharacterRepository`
 
-`RNG` уже реализован (`RealRNG`, `ScriptedRNG`). Над ним — `DiceRoller`
-(см. `ENGINE.md` §7), который ядро правил вызывает напрямую.
+```python
+class CharacterRepository(Protocol):
+    def list(self) -> list[CharacterMeta]: ...
+    def save(self, character: Character) -> CharacterId: ...
+    def load(self, character_id: CharacterId) -> Character: ...
+    def delete(self, character_id: CharacterId) -> None: ...
+```
 
-`EventBus` — синхронная in-memory publish/subscribe. Подписчики:
+Хранит отдельных персонажей вне сессии (для пункта меню «Create
+character» в главном меню). Это **отдельный** репозиторий от сейвов:
+сейв привязан к сценарию и партии, а персонаж — самостоятельная сущность,
+которую можно использовать в разных партиях. Реализуется поверх той же
+SQLite-базы, что и `SaveRepository`.
+
+### 3.5 `RNG` и порт `DiceRoller`
+
+`RNG` (`domain/ports/rng.py` — driven-port; см. ADR-0003) уже
+реализован (`RealRNG`, `ScriptedRNG`).
+
+**Над `RNG`** живёт слой `DiceRoller`
+(`application/engine/dice_roller.py`):
+
+```python
+class DiceRoller(Protocol):
+    def roll(self, expr: DiceExpr, ctx: RollContext) -> EngineRollResult: ...
+```
+
+Ни одно правило домена не вызывает `DiceExpr.roll(rng)` напрямую — только
+через `DiceRoller`. Это даёт мастеру возможность вмешаться (см.
+`MASTER.md`) и поток `RollIssued`/`RollApplied` событий (см. `ENGINE.md`
+§7.4).
+
+### 3.6 `EventBus`
+
+```python
+class EventBus(Protocol):
+    def publish(self, event: EngineEvent) -> None: ...
+    def subscribe(
+        self,
+        event_type: type[E],
+        handler: Callable[[E], None],
+    ) -> Unsubscribe: ...
+```
+
+Синхронная in-memory publish/subscribe с FIFO-семантикой. Полный
+контракт (порядок, реентерабельность, поведение при исключениях) —
+в `ENGINE.md` §5.2.
+
+Подписчики:
 - `ScenarioRuntime` (триггеры сценария);
-- `DiceStatisticsService` (статистика);
+- `DiceStatisticsService` (статистика бросков);
 - `UserInterface` (отображение);
 - `GameLog` writer (история партии для сейва).
 
-### 3.5 `MonsterAI`
+### 3.7 `TurnIntentProvider`
+
+```python
+class TurnIntentProvider(Protocol):
+    def request_intent(self, ctx: TurnContext) -> TurnIntent: ...
+```
+
+Единый контракт «получить интент существа на ход». Реализации —
+адаптеры:
+
+- `UITurnIntentProvider` — оборачивает `UserInterface.request_turn_intent`
+  (для PC под управлением локального игрока);
+- `MonsterAITurnIntentProvider` — оборачивает `MonsterAI.pick_intent`
+  (для NPC под управлением стратегии).
+
+В будущем — `RemoteTurnIntentProvider` для сетевого клиента.
+
+`TurnContext` содержит `actor_id`, поэтому отдельный параметр `actor`,
+как в исходной сигнатуре `MonsterAI.pick_intent(actor, ctx)`, не нужен.
+
+### 3.8 `MonsterAI`
 
 ```python
 class MonsterAI(Protocol):
-    def pick_intent(self, actor: Creature, ctx: TurnContext) -> TurnIntent: ...
+    def pick_intent(self, ctx: TurnContext) -> TurnIntent: ...
 ```
 
 Реализаций несколько. По умолчанию — `default_brawler` (атакует ближайшую
-видимую цель с наименьшим HP).
+видимую цель с наименьшим HP). Используется через
+`MonsterAITurnIntentProvider`-адаптер.
+
+### 3.9 `Translator`
+
+```python
+class Translator(Protocol):
+    def gettext(self, key: str, /, **vars: Any) -> str: ...
+    def ngettext(self, key_sg: str, key_pl: str, n: int, /, **vars: Any) -> str: ...
+```
+
+Локализация — через порт, **не** через глобальный singleton `_`. UI-адаптер
+получает `Translator` при создании через composition root. См. `I18N.md`.
+
+Реализации:
+- `BabelTranslator` (`infrastructure/i18n/babel_translator.py`) — поверх
+  Babel/gettext.
+- `DictTranslator` (`tests/_doubles/`) — для тестов (статический dict
+  ключ→строка).
+
+### 3.10 `Clock`
+
+```python
+class Clock(Protocol):
+    def now(self) -> datetime: ...
+```
+
+Все временные метки (timestamps событий, `created_at` сейвов, отметки
+для master-аудита) идут через `Clock`. Прямой `datetime.now()` в коде
+правил/сервисов запрещён — иначе теряется детерминизм replay/тестов.
+
+Реализации:
+- `SystemClock` (`infrastructure/`) — системное время.
+- `FrozenClock(start, tick=timedelta)` (тесты) — детерминированное.
+
+### 3.11 `ConfigService`
+
+```python
+class ConfigService(Protocol):
+    def get_str(self, key: str, default: str | None = None) -> str: ...
+    def get_int(self, key: str, default: int | None = None) -> int: ...
+    def get_path(self, key: str) -> Path: ...
+    def section(self, name: str) -> Mapping[str, Any]: ...
+```
+
+Чтение конфигурации (TOML + флаги CLI + env). Composition root читает
+файл, конструирует `ConfigService` и раздаёт его остальным сервисам.
+
+Реализации:
+- `TomlConfigService` (`infrastructure/`) — основная.
+- `DictConfigService` (тесты) — из словаря в коде.
+
+### 3.12 Граница `ContentRepository` vs `*Registry`
+
+Это два разных мира — формально разделены:
+
+| | `ContentRepository` | `*Registry` |
+|---|---|---|
+| Что хранит | **Данные** (`Species`, `CharacterClass`, `Monster`, `Item`, `Spell`, `Scenario`, ...) — pydantic-объекты, загруженные из YAML в SQLite. | **Python-классы** (`Feature`, `Condition`, `Action`, `MonsterAI`) — поведение, написанное программистом. |
+| Где живёт | Порт в `application/ports/`, реализация в `infrastructure/db/`. | Module-level dict-объект в `domain/` (`domain/features/registry.py` и т.д.). **Не порт.** |
+| Как наполняется | Сидером (`infrastructure/content/seeder.py`) из YAML при `dnd db seed`. | Явной регистрацией в composition root (`Registry.register("rage", RageFeature)`). |
+| Когда валидируется | При загрузке (pydantic-схема). | При старте (composition root проверяет, что все `id`, на которые ссылаются YAML-объекты, есть в Registry). |
+| Связь между мирами | YAML говорит `feature_id: darkvision`. `ContentRepository.get_species("elf")` возвращает `Species(features=["darkvision", ...])`. При активации `Creature.add_feature("darkvision")` движок берёт **класс** из `FeatureRegistry.get("darkvision")` и инстанцирует. | |
+
+Это значит: «добавить новую расу» = новый YAML; «добавить новое
+поведение» (например, нетривиальное состояние) = новый Python-класс +
+явная регистрация в composition root. Никогда — «декоратор-побочка
+импорта».
+
+При несоответствии (`feature_id` в YAML без зарегистрированного класса) —
+явная ошибка с указанием, что именно не зарегистрировано. Это
+происходит в `ContentService.validate()` **до** старта игры, а не на
+лету.
 
 ---
 
