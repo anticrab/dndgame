@@ -95,7 +95,8 @@ bmstu/dndgame/
 │   ├── SCENARIO_DEMO.md
 │   ├── OPEN_QUESTIONS.md
 │   └── ADR/
-│       └── 0001-hexagonal-architecture.md
+│       ├── 0001-hexagonal-architecture.md
+│       └── 0002-square-grid.md
 ├── content/
 │   ├── core/
 │   │   ├── species/*.yaml
@@ -177,8 +178,9 @@ bmstu/dndgame/
 │       │   ├── services/
 │       │   │   ├── content_service.py
 │       │   │   ├── character_creation_service.py
-│       │   │   ├── save_service.py
-│       │   │   └── game_session.py
+│       │   │   └── save_service.py
+│       │   │   # тонкого «GameSession» больше нет — все сценарии входят
+│       │   │   # в GameEngine.new_session()/load_session() напрямую
 │       │   └── dto/
 │       │       ├── player_command.py
 │       │       ├── master_intent.py      # есть с MVP, дёргается из тестов
@@ -456,7 +458,13 @@ DI — простой: «руками собрать в `main`». Без кон�
 
 ## 11. ADR
 
-Решения с обоснованием — в `docs/ADR/NNNN-title.md`. Сейчас один:
-`0001-hexagonal-architecture.md`. Изменение сетки с гексов на квадраты
-заслуживает отдельной ADR — добавится при первой имплементации
-`Battlefield`.
+Решения с обоснованием — в `docs/ADR/NNNN-title.md`. Принятые на текущий
+момент:
+
+- [`ADR/0001-hexagonal-architecture.md`](ADR/0001-hexagonal-architecture.md) —
+  гексагональная архитектура и SQLite через Repository.
+- [`ADR/0002-square-grid.md`](ADR/0002-square-grid.md) — квадратная боевая
+  сетка (1 клетка = 5 фут, 8 соседей, Chebyshev-дистанция).
+
+Дополнительные ADR будут заводиться при принятии решений, которые
+затрагивают несколько модулей и не очевидны из чтения кода.
