@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import ConditionId, CreatureId
+from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.creature_size import CreatureSize
@@ -189,6 +189,20 @@ def test_only_specified_damage_type_affected() -> None:
     assert res.final_amount == 8
 
 
+@pytest.mark.rules
+def test_resistance_and_vulnerability_apply_independently_per_type() -> None:
+    """CR-010: сопротивление огнём + уязвимость холодом — раздельно по типу."""
+    c = make_creature(
+        max_hp=80,
+        resistances=frozenset({DamageType.FIRE.value}),
+        vulnerabilities=frozenset({DamageType.COLD.value}),
+    )
+    fire = c.take_damage(DamageInstance(10, DamageType.FIRE))
+    assert fire.final_amount == 5
+    cold = c.take_damage(DamageInstance(7, DamageType.COLD))
+    assert cold.final_amount == 14
+
+
 # -- temp HP буфер -------------------------------------------------------
 
 
@@ -222,7 +236,7 @@ def test_damage_to_zero_marks_was_lethal() -> None:
     c = make_creature(max_hp=10)
     res = c.take_damage(DamageInstance(10, DamageType.SLASHING))
     assert c.hit_points.current == 0
-    assert c.is_unconscious is True
+    assert c.is_at_zero_hp is True
     assert res.was_lethal is True
     assert res.killed_outright is False  # overflow ровно равен max → не больше
 
@@ -249,6 +263,19 @@ def test_exact_max_damage_does_not_trigger_outright() -> None:
     assert res.was_lethal is True
     assert res.killed_outright is False
     assert res.overflow == 0
+
+
+@pytest.mark.rules
+def test_book_scenario_massive_damage_when_partially_wounded() -> None:
+    """Книжный сценарий (стр. 27): max=12, current=6 (частично ранен),
+    ловит 18 урона → overflow=18-6=12, 12>=max(12) → killed_outright."""
+    c = make_creature(max_hp=12)
+    c.take_damage(DamageInstance(6, DamageType.SLASHING))  # current=6
+    assert c.hit_points.current == 6
+    res = c.take_damage(DamageInstance(18, DamageType.SLASHING))
+    assert res.was_lethal is True
+    assert res.killed_outright is True
+    assert res.overflow == 12
 
 
 def test_overflow_zero_when_not_dropped_to_zero() -> None:
@@ -297,7 +324,7 @@ def test_heal_from_zero_marks_revived() -> None:
     DeathSaveState; этот флаг — сигнал вызывающему слою."""
     c = make_creature(max_hp=10)
     c.take_damage(DamageInstance(15, DamageType.SLASHING))
-    assert c.is_unconscious is True
+    assert c.is_at_zero_hp is True
     res = c.heal(3)
     assert c.hit_points.current == 3
     assert res.revived is True
@@ -308,7 +335,19 @@ def test_heal_zero_at_zero_does_not_revive() -> None:
     c.take_damage(DamageInstance(15, DamageType.SLASHING))
     res = c.heal(0)
     assert res.revived is False
-    assert c.is_unconscious is True
+    assert c.is_at_zero_hp is True
+
+
+def test_heal_revives_creature_unconditionally() -> None:
+    """CR-008: Creature не различает PC/NPC. Любое существо с current=0
+    при положительном лечении становится `revived`. Семантика
+    «NPC мёртв навсегда» — на уровне Character/Monster, не Creature."""
+    c = make_creature(max_hp=10)
+    c.take_damage(DamageInstance(50, DamageType.SLASHING))
+    assert c.is_at_zero_hp is True
+    res = c.heal(1)
+    assert res.revived is True
+    assert c.hit_points.current == 1
 
 
 def test_heal_rejects_negative() -> None:
@@ -406,6 +445,19 @@ def test_remove_exhaustion_floors_at_zero() -> None:
     assert c.exhaustion == 0
 
 
+def test_add_exhaustion_zero_is_noop() -> None:
+    """CR-009: levels=0 валидно, ничего не меняет."""
+    c = make_creature()
+    c.add_exhaustion(3)
+    assert c.add_exhaustion(0) == 3
+
+
+def test_remove_exhaustion_zero_is_noop() -> None:
+    c = make_creature()
+    c.add_exhaustion(2)
+    assert c.remove_exhaustion(0) == 2
+
+
 def test_add_exhaustion_rejects_negative() -> None:
     c = make_creature()
     with pytest.raises(ValueError, match=">= 0"):
@@ -427,23 +479,85 @@ def test_creature_starts_without_concentration() -> None:
 
 
 @pytest.mark.rules
-def test_concentration_broken_signal_when_damage_arrived() -> None:
-    """При уроне на существо с концентрацией ставится сигнал
-    `concentration_broken`. Реальный CON-save — на уровне выше.
-    В MVP-классах concentration=None, поэтому сигнал не выставляется."""
+def test_concentration_save_dc_returned_on_nonlethal_damage() -> None:
+    """Книга стр. 352, «Концентрация»: при уроне нужен CON-save.
+
+    Реальный бросок — на DiceRoller; Creature возвращает DC:
+    min(30, max(10, damage // 2)). Сама `self.concentration` пока
+    держится — Encounter решает по результату броска."""
+    c = make_creature(max_hp=50)
+    c.concentration = SpellId("bless")
+    res = c.take_damage(DamageInstance(8, DamageType.SLASHING))
+    # damage=8 → 8//2 = 4 → max(10, 4) = 10
+    assert res.concentration_save_dc == 10
+    assert res.concentration_ended_automatically is False
+    # Concentration ПОКА не очищена — это решит Encounter после save.
+    assert c.concentration == SpellId("bless")
+
+
+@pytest.mark.rules
+def test_concentration_save_dc_uses_half_damage_when_higher() -> None:
+    """damage=40 → 40//2 = 20 → max(10, 20) = 20."""
+    c = make_creature(max_hp=100)
+    c.concentration = SpellId("bless")
+    res = c.take_damage(DamageInstance(40, DamageType.SLASHING))
+    assert res.concentration_save_dc == 20
+
+
+@pytest.mark.rules
+def test_concentration_save_dc_capped_at_30() -> None:
+    """Книга: «но не более Сл. 30». damage=100 → 50, cap → 30."""
+    c = make_creature(max_hp=500)
+    c.concentration = SpellId("bless")
+    res = c.take_damage(DamageInstance(100, DamageType.SLASHING))
+    assert res.concentration_save_dc == 30
+
+
+def test_concentration_no_dc_when_no_concentration() -> None:
     c = make_creature()
-    c.concentration = ConditionId("bless")
-    res = c.take_damage(DamageInstance(3, DamageType.SLASHING))
-    assert res.concentration_broken is True
+    res = c.take_damage(DamageInstance(8, DamageType.SLASHING))
+    assert res.concentration_save_dc is None
+    assert res.concentration_ended_automatically is False
 
 
-def test_concentration_not_broken_by_zero_damage() -> None:
-    """Иммунитет: урон 0 → концентрация не срывается."""
+def test_concentration_no_dc_when_zero_damage() -> None:
+    """Иммунитет: final=0 → нет save и нет автоматического срыва."""
     c = make_creature(immunities=frozenset({DamageType.POISON.value}))
-    c.concentration = ConditionId("bless")
+    c.concentration = SpellId("bless")
     res = c.take_damage(DamageInstance(10, DamageType.POISON))
     assert res.final_amount == 0
-    assert res.concentration_broken is False
+    assert res.concentration_save_dc is None
+    assert res.concentration_ended_automatically is False
+    assert c.concentration == SpellId("bless")  # удерживается
+
+
+@pytest.mark.rules
+def test_concentration_ends_automatically_at_zero_hp() -> None:
+    """Книга стр. 352, «Концентрация»: при падении в 0 HP концентрация
+    обрывается АВТОМАТИЧЕСКИ, без save."""
+    c = make_creature(max_hp=10)
+    c.concentration = SpellId("bless")
+    res = c.take_damage(DamageInstance(15, DamageType.SLASHING))
+    assert res.was_lethal is True
+    assert res.concentration_ended_automatically is True
+    assert res.concentration_save_dc is None  # save не требуется
+    assert c.concentration is None  # уже очищена движком
+
+
+@pytest.mark.rules
+def test_concentration_test_dc_calculation_helper() -> None:
+    """Прямой тест формулы concentration_save_dc."""
+    from dnd.domain.entities.creature import concentration_save_dc
+
+    assert concentration_save_dc(0) == 10  # floor 10
+    assert concentration_save_dc(15) == 10  # 15//2=7, max(10,7)=10
+    assert concentration_save_dc(20) == 10  # 20//2=10
+    assert concentration_save_dc(21) == 10  # 21//2=10
+    assert concentration_save_dc(22) == 11  # 22//2=11
+    assert concentration_save_dc(60) == 30  # 60//2=30, cap=30
+    assert concentration_save_dc(100) == 30  # capped
+    with pytest.raises(ValueError):
+        concentration_save_dc(-1)
 
 
 # -- vision / size (smoke) -----------------------------------------------

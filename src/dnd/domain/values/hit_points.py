@@ -51,8 +51,10 @@ class HitPoints:
     # --- состояния ---------------------------------------------------------
 
     @property
-    def is_unconscious(self) -> bool:
-        """Существо в 0 HP считается бессознательным (см. книгу, стр. 27)."""
+    def is_at_zero(self) -> bool:
+        """Текущие HP = 0. Это **триггер** правил «Падение до 0 хитов»
+        и Condition Unconscious (Книга 2024, стр. 27), но не сам Condition.
+        """
         return self.current == 0
 
     @property

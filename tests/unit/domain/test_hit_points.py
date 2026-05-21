@@ -59,8 +59,8 @@ def test_constructor_rejects_negative_temp() -> None:
 
 def test_unconscious_at_zero() -> None:
     hp = HitPoints(current=0, maximum=10)
-    assert hp.is_unconscious is True
-    assert HitPoints(current=1, maximum=10).is_unconscious is False
+    assert hp.is_at_zero is True
+    assert HitPoints(current=1, maximum=10).is_at_zero is False
 
 
 def test_at_full() -> None:

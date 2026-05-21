@@ -336,19 +336,29 @@ PC. Состояние:
 
 **Затронуто:** `domain/entities/character.py`, новый раздел `DESIGN.md` §2.5.
 
-### ✅ Q27. Concentration — **поле на `Creature` заложить сейчас**
+### ✅ Q27. Concentration — **`Creature.concentration: SpellId | None`**
 
-В `Creature` будет поле `concentration: ConcentrationState | None`,
-где `ConcentrationState` хранит `spell_id`, `applied_modifiers: list[ModifierId]`.
+В `Creature` поле `concentration: SpellId | None` — связь с
+удерживаемым заклинанием, не Condition. По умолчанию `None`.
 
-В MVP-классах (Воин/Плут) — заклинаний нет, поле всегда `None`. Но
-**метод** `take_damage()` уже сейчас вызывает `_concentration_check()`
-с `CON-save DC = max(10, damage // 2)`; реализация
-`_concentration_check` пока no-op (только assert), переписывается в
-один файл при добавлении первого заклинания концентрации.
+**Реализовано в Creature.take_damage()** по правилам книги
+(стр. 352, глоссарий «Концентрация»):
 
-Это «5-минутная заготовка», которая сэкономит час рефакторинга в
-будущем.
+* При **ненулевом** уроне → `DamageResult.concentration_save_dc =
+  min(30, max(10, damage // 2))`. Реальный CON-save делает
+  DiceRoller / Encounter; они же снимают `self.concentration` при
+  провале.
+* При **падении в 0 HP** → концентрация снимается **автоматически
+  без save**; `DamageResult.concentration_ended_automatically = True`,
+  `self.concentration = None` уже очищена.
+* При **уроне 0** (иммунитет) → концентрация сохраняется без save.
+
+В MVP-классах (Воин/Плут) — заклинаний нет, поле всегда `None`,
+но логика тестируется.
+
+`ConcentrationState` (с `applied_modifiers: list[ModifierId]`)
+появится при первом заклинании концентрации, как расширение текущего
+поля — без ломающих изменений.
 
 **Затронуто:** `domain/entities/creature.py`.
 
@@ -497,3 +507,35 @@ class CreatureSize(StrEnum):
 
 Если архитектор хочет — могу свести в отдельный раздел Q24…Q40 этого
 файла. Пока оставляю в mockup-файлах для контекстной близости.
+
+---
+
+## Отложенные решения (привязаны к появлению соответствующих фич)
+
+Эти вопросы поднял аудит 05 (Creature vs book rules) как S2. Решены
+**не сейчас**, а в момент появления соответствующей фичи; здесь —
+чтобы не забыть.
+
+### Q36. `gain_temporary_hp(amount, *, prefer="larger"|"new"|"old")` — выбор стратегии
+
+**Когда:** при первом классе с temp HP (Barbarian — Rage HP буфер;
+Warlock-Fiend — temp HP при kill).
+**Текущее:** автоматический `max(старые, новые)` — безопасный дефолт.
+**Что делать тогда:** добавить параметр в `Creature.gain_temporary_hp`
+и `HitPoints.with_temporary`, прокидывать выбор из UI/AI.
+
+### Q37. `apply_condition` → `ConditionApplyResult` enum
+
+**Когда:** в task #28 при реализации Condition-плагинов.
+**Текущее:** возвращает `bool` (True = добавлено, False = было или иммунитет).
+**Что делать тогда:** заменить на enum
+`APPLIED | ALREADY_HAD | IMMUNE` для явной диагностики в логе и UI.
+
+### Q38. Раздельные источники одного и того же Condition
+
+**Когда:** при первом случае «два источника одного состояния с разной
+длительностью» (например, Frightened от двух разных мобов).
+**Текущее:** `conditions: set[ConditionId]` — без источников, без длительностей.
+**Что делать тогда:** заменить на `dict[ConditionId, list[ConditionInstance]]`,
+где `ConditionInstance` хранит source/duration/dc-чтобы-снять. Полноценная
+ConditionRegistry-логика — task #28.

@@ -20,9 +20,12 @@ EventBus.
 * HP с временными хитами и переход в 0 HP (Книга 2024 стр. 26-27).
 * Применение урона по типу с учётом сопротивления/уязвимости/
   иммунитета (Книга 2024 стр. 26 «Сопротивление и Уязвимость»).
-* Concentration check при получении урона
-  (DC = max(10, damage // 2)) — заглушка для MVP (см. Q27).
-* Истощение (Exhaustion) как отдельное поле 0..6, не Condition (Q34).
+* Конкуррентность с правилом «Концентрация» (Книга 2024 стр. 352,
+  глоссарий): при ненулевом уроне требуется CON-save с
+  ``DC = min(30, max(10, damage // 2))``; при падении в 0 HP или
+  смерти концентрация **обрывается автоматически без save**.
+* Истощение (Exhaustion) как отдельное поле 0..6, не Condition (Q34;
+  Книга 2024 стр. 352, глоссарий «Истощённый»).
 * Состояния как множество ConditionId — реальное поведение Condition
   будет в отдельной задаче #28; здесь только трекер.
 * CreatureSize — для размера, занимаемого на карте (в MVP всегда MEDIUM).
@@ -40,7 +43,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from dnd.application.dto.ids import ConditionId, CreatureId
+from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.creature_size import CreatureSize
 from dnd.domain.values.damage import (
@@ -53,6 +56,20 @@ from dnd.domain.values.hit_points import HitPoints
 from dnd.domain.values.vision import NORMAL_VISION, Vision
 
 _MAX_EXHAUSTION = 6
+_CONCENTRATION_DC_FLOOR = 10
+_CONCENTRATION_DC_CAP = 30
+
+
+def concentration_save_dc(damage: int) -> int:
+    """Сложность спасброска CON на сохранение концентрации.
+
+    Книга 2024, стр. 352, глоссарий «Концентрация»: «Сложность равна
+    10 или половине полученного урона (округляется в меньшую сторону),
+    в зависимости от того, какое число больше, **но не более Сл. 30**».
+    """
+    if damage < 0:
+        raise ValueError(f"damage must be >= 0, got {damage}")
+    return min(_CONCENTRATION_DC_CAP, max(_CONCENTRATION_DC_FLOOR, damage // 2))
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,8 +92,15 @@ class DamageResult:
     killed_outright: bool
     """Massive damage: overflow >= maximum — мгновенная смерть NPC."""
 
-    concentration_broken: bool = False
-    """Сорвалась ли концентрация (если была)."""
+    concentration_save_dc: int | None = None
+    """Сложность CON-save, который вызывающий слой должен сделать через
+    DiceRoller, чтобы решить, сохранилась ли концентрация. ``None``,
+    если у существа не было концентрации или урон был 0."""
+
+    concentration_ended_automatically: bool = False
+    """Концентрация **закончилась без save**. По книге так происходит,
+    когда существо падает в 0 HP или умирает (стр. 352). Если этот флаг
+    True, то ``self.concentration`` уже очищена методом take_damage."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,9 +159,12 @@ class Creature:
     """Активные состояния. Полноценная Condition-логика — в отдельном
     регистре (task #28); здесь только трекинг наложен/снят."""
 
-    concentration: ConditionId | None = None
-    """ID заклинания концентрации, которое поддерживает существо.
-    None для MVP-классов (Воин/Плут) и большинства NPC. См. Q27."""
+    concentration: SpellId | None = None
+    """ID **заклинания**, которое существо удерживает концентрацией.
+
+    Концентрация — это связь с конкретным spell-эффектом, не Condition
+    (см. Книгу 2024, стр. 352, глоссарий «Концентрация»; ADR Q27).
+    None для MVP-классов (Воин/Плут) и большинства NPC."""
 
     # --- фабрика --------------------------------------------------------
 
@@ -194,9 +221,18 @@ class Creature:
         return self.hit_points.current > 0
 
     @property
-    def is_unconscious(self) -> bool:
-        """0 HP. У NPC это эквивалент смерти; у PC начинаются death saves."""
-        return self.hit_points.is_unconscious
+    def is_at_zero_hp(self) -> bool:
+        """HP == 0 (механический факт), но **не** Condition Unconscious.
+
+        Состояние Unconscious — это отдельный Condition с эффектами
+        (Incapacitated, лежит, атаки в 5 фт — крит, провал STR/DEX-saves;
+        Книга 2024 стр. 27 и стр. 367). Оно **накладывается** на PC при
+        is_at_zero_hp, но для NPC просто означает смерть, и Condition
+        не накладывается.
+
+        Этот геттер — лишь индикатор «HP исчерпаны»; решение, нужен ли
+        Condition и DeathSaveState, принимается в Character/Monster."""
+        return self.hit_points.current == 0
 
     # --- damage --------------------------------------------------------
 
@@ -226,11 +262,16 @@ class Creature:
            превысил его на N, то N — это overflow.
         5. Massive damage: если overflow >= maximum, ставится флаг
            ``killed_outright`` (книга, стр. 27).
-        6. Если была концентрация и existed_damage > 0, ставится флаг
-           ``concentration_broken``. Реальный спасбросок CON — на
-           уровне DiceRoller; этот метод лишь сообщает «надо проверить».
-           В MVP, где у Creature всегда concentration=None, флаг
-           остаётся False.
+        6. Концентрация (книга 2024 стр. 352, глоссарий «Концентрация»):
+           a) ``was_lethal=True`` + ``concentration is not None`` →
+              концентрация обрывается **автоматически, без save**;
+              ``self.concentration = None`` сразу;
+              ``concentration_ended_automatically=True``.
+           b) Иначе если урон > 0 + ``concentration is not None`` →
+              требуется CON-save; ``concentration_save_dc`` несёт
+              ``min(30, max(10, final // 2))``. Реальный бросок —
+              на DiceRoller уровнем выше.
+           c) Урон 0 (иммунитет) — концентрация сохраняется без save.
 
         Возвращает :class:`DamageResult` для последующей публикации
         событий вызывающим слоем (Encounter).
@@ -246,8 +287,10 @@ class Creature:
         final = apply_damage_multiplier(damage.amount, multiplier)
 
         # Снимок состояния ДО удара — нужен, чтобы посчитать overflow
-        # (temp HP «съедают» урон первыми) и `was_lethal`.
+        # (temp HP «съедают» урон первыми), was_lethal и решить,
+        # обрывается ли концентрация автоматически.
         was_alive = self.is_alive
+        had_concentration = self.concentration is not None
         before_buffer = self.hit_points.current + self.hit_points.temporary
 
         self.hit_points = self.hit_points.take_damage(final)
@@ -257,13 +300,17 @@ class Creature:
         # и оставшийся урон (overflow) >= maximum — мгновенная смерть.
         # Overflow = сколько «не уместилось» в (current + temp) до удара.
         overflow = max(0, final - before_buffer)
-        killed_outright = self.is_unconscious and overflow >= self.hit_points.maximum
+        killed_outright = self.is_at_zero_hp and overflow >= self.hit_points.maximum
 
-        # Реальный CON-save на DC = max(10, final // 2) — на уровне выше
-        # (DiceRoller). Здесь только сигнал «была концентрация, пришёл
-        # ненулевой урон — вызывающему нужно сделать спасбросок».
-        # Урон 0 (иммунитет) концентрацию не срывает.
-        concentration_broken = self.concentration is not None and final > 0
+        # Концентрация (см. docstring пункт 6).
+        concentration_ended_automatically = False
+        save_dc: int | None = None
+        if had_concentration:
+            if was_lethal:
+                self.concentration = None
+                concentration_ended_automatically = True
+            elif final > 0:
+                save_dc = concentration_save_dc(final)
 
         return DamageResult(
             raw_amount=damage.amount,
@@ -271,7 +318,8 @@ class Creature:
             overflow=overflow,
             was_lethal=was_lethal,
             killed_outright=killed_outright,
-            concentration_broken=concentration_broken,
+            concentration_save_dc=save_dc,
+            concentration_ended_automatically=concentration_ended_automatically,
         )
 
     # --- heal ----------------------------------------------------------
@@ -285,14 +333,14 @@ class Creature:
         """
         if amount < 0:
             raise ValueError(f"heal amount must be >= 0, got {amount}")
-        was_unconscious = self.is_unconscious
+        was_at_zero = self.is_at_zero_hp
         before = self.hit_points.current
         self.hit_points = self.hit_points.heal(amount)
         final = self.hit_points.current - before
         return HealResult(
             raw_amount=amount,
             final_amount=final,
-            revived=was_unconscious and not self.is_unconscious,
+            revived=was_at_zero and not self.is_at_zero_hp,
         )
 
     def gain_temporary_hp(self, amount: int) -> int:
