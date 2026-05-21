@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+*.sqlite
+*.sqlite3
+*.db
+
+.idea/
+.vscode/
+*.swp
+
+# локальные настройки Claude Code (permissions, MCP-серверы и т.д.) — не в репо
+.claude/
+
+# не коммитим саму книгу-источник (большая, авторская)
+Книга Игрока 2024.pdf

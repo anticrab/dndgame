@@ -1,0 +1,18 @@
+{
+  "_comment": "Шаблон разрешений Claude Code для этого проекта. Скопируйте содержимое (без поля _comment) в '.claude/settings.local.json' в корне репозитория, ИЛИ откройте `/permissions` в Claude Code → вкладка Allow → Add rule и добавьте правила вручную.",
+  "_comment_scope": "Все правила локальные для этого репозитория. Сетевые git-операции (push/pull/fetch) намеренно не включены — потребуют отдельного подтверждения.",
+  "permissions": {
+    "allow": [
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git restore:*)",
+      "Bash(git switch:*)",
+      "Bash(git stash:*)",
+      "Bash(git apply:*)"
+    ]
+  }
+}

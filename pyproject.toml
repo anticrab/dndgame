@@ -1,0 +1,102 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dnd"
+version = "0.1.0"
+description = "Консольная D&D 5e (2024): эталонный учебный проект с гексагональной архитектурой"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Кирилл Лотков", email = "lokotkov.cyril@gmail.com" }]
+keywords = ["dnd", "rpg", "cli", "tui", "5e"]
+
+dependencies = [
+  "typer>=0.12,<1.0",
+  "questionary>=2.0,<3.0",
+  "textual>=0.78,<1.0",
+  "pyyaml>=6.0,<7.0",
+  "pydantic>=2.7,<3.0",
+  "rich>=13.7,<14.0",
+  "platformdirs>=4.2,<5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "pytest>=8.2",
+  "pytest-cov>=5.0",
+  "hypothesis>=6.100",
+  "pre-commit>=3.7",
+  "types-PyYAML",
+]
+
+[project.scripts]
+dnd = "dnd.interfaces.cli.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dnd"]
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "W",     # pycodestyle / pyflakes
+  "I",                # isort
+  "B",                # flake8-bugbear
+  "UP",               # pyupgrade
+  "SIM",              # simplify
+  "RUF",
+]
+ignore = [
+  "E501",             # длинные строки — иногда нужны (ASCII-арт, тексты)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["dnd"]
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_decorators = false
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["textual.*", "questionary.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+markers = [
+  "slow: медленные интеграционные/e2e",
+  "rules: проверки правил по книге",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/dnd"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_empty = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "\\.\\.\\.",
+]
