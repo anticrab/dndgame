@@ -43,9 +43,51 @@ def _root(
 
 
 @app.command("play")
-def play() -> None:
-    """Start a new game or continue."""
-    typer.echo("[play] not implemented yet — needs GameEngine + UI.")
+def play(
+    scenario_id: str = typer.Argument(
+        "mvp_skirmish",
+        help="Scenario id from data/content/scenarios.yaml.",
+    ),
+    content_dir: str = typer.Option(
+        "data/content",
+        "--content-dir",
+        help="Path to YAML content directory.",
+    ),
+) -> None:
+    """Запустить сценарий боя в интерактивном CLI-режиме."""
+    from pathlib import Path
+
+    from rich.console import Console
+
+    from dnd.application.engine.game_runner import GameRunner
+    from dnd.application.engine.scenario_builder import (
+        build_encounter_from_scenario,
+    )
+    from dnd.composition import build_default_dependencies
+    from dnd.domain.entities.battlefield import Battlefield
+    from dnd.infrastructure.content.yaml_repository import (
+        YamlContentRepository,
+    )
+    from dnd.interfaces.cli.console_provider import ConsoleIntentProvider
+    from dnd.interfaces.cli.event_printer import EventPrinter
+
+    repo = YamlContentRepository(Path(content_dir))
+    try:
+        scenario = repo.scenario_by_id(scenario_id)
+    except KeyError:
+        typer.echo(f"Scenario not found: {scenario_id}", err=True)
+        raise typer.Exit(code=2) from None
+
+    console = Console()
+    console.print(f"[bold]{scenario.name}[/]\n")
+
+    deps = build_default_dependencies(battlefield=Battlefield(1, 1))
+    enc = build_encounter_from_scenario(scenario, content=repo, deps=deps)
+    printer = EventPrinter(console)
+    printer.subscribe(enc.deps.event_bus)
+
+    runner = GameRunner(intent_provider=ConsoleIntentProvider())
+    runner.run(enc)
 
 
 @app.command("character")

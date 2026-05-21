@@ -32,7 +32,7 @@ def test_version_flag() -> None:
 @pytest.mark.parametrize(
     "cmd,marker",
     [
-        ("play", "[play]"),
+        # `play` теперь реализован — тестируется в tests/e2e/test_cli_play.py.
         ("character", "[character]"),
         ("content", "[content]"),
         ("settings", "[settings]"),
