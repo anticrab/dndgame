@@ -59,11 +59,21 @@ class ComputerDiceRoller(DiceRoller):
             crit=ctx.crit,
         )
 
+        # Книга 2024 стр. 12 «Критические попадания»: «все кости урона
+        # удваиваются». Это включает доп. кости (Sneak Attack, Divine
+        # Smite, дополнительные кости от заклинаний-баффов). На
+        # purpose != DAMAGE значение `ctx.crit` обычно False, так что
+        # для атак/спасбросков extra_dice (Bless +1d4, Guidance +1d4)
+        # пройдут с `crit=False` — это правильно, к атаке крит не
+        # применяется.
+        # Advantage/disadvantage в extra_dice НЕ пробрасываются: они
+        # применимы только к одиночному d20 основного броска (Bless'овский
+        # d4 не получает преимущества).
         extra_rolls: list[int] = []
         extra_total = 0
         for extra_expr_text in ctx.extra_dice:
             extra_expr = DiceExpr.parse(extra_expr_text)
-            extra_result = extra_expr.roll(self._rng)
+            extra_result = extra_expr.roll(self._rng, crit=ctx.crit)
             extra_rolls.extend(extra_result.kept)
             extra_total += extra_result.total
 

@@ -1,11 +1,22 @@
-"""Тесты ``ComputerDiceRoller`` — двухфазная модель, контракт ENGINE.md §7.
+"""Тесты ``ComputerDiceRoller`` — контракт ENGINE.md §7.
 
-Каждый пункт контракта (events FIFO, roll_id, advantage/disadvantage,
-crit, extra_dice, tags, прямая привязка к ``DiceExpr``) — отдельный
-тест-доказательство.
+Уровень тестирования — **надстройка** над ``DiceExpr.roll``: двухфазная
+модель (RollIssued → RollApplied), ``roll_id``, ``extra_dice``,
+проброс флагов из ``RollContext`` в ``DiceExpr.roll`` и обратно в
+``EngineRollResult``, теги, изоляция между бросками.
+
+Сама механика костей (advantage = max(2k20), crit удваивает кости и
+не модификатор, нат-20/1, advantage только для одиночного d20)
+проверяется в ``tests/unit/domain/test_dice.py`` — здесь от неё
+проверяем только проброс «флаги в expr и обратно в result».
+
+DTO-валидация (``frozen``, ``extra="forbid"``) — в
+``tests/unit/application/test_rolls.py``.
 """
 
 from __future__ import annotations
+
+import logging
 
 import pytest
 
@@ -14,7 +25,7 @@ from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.rolls import EngineRollResult, RollContext, RollPurpose
 from dnd.application.engine.dice_roller import ComputerDiceRoller
 from dnd.application.ports.event_bus import EventBus
-from dnd.domain.values.dice import DiceExpr
+from dnd.domain.values.dice import DiceExpr, DiceParseError
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.infrastructure.rng.scripted_rng import ScriptedRNG
 
@@ -30,10 +41,12 @@ def make_roller(rolls: list[int], bus: EventBus) -> ComputerDiceRoller:
     return ComputerDiceRoller(rng=ScriptedRNG(rolls), event_bus=bus)
 
 
-# -- базовый бросок --------------------------------------------------------
+# -- 1. Базовый бросок: пробрасывание данных --------------------------
 
 
 def test_basic_d20_attack_roll(bus: EventBus) -> None:
+    """Простой 1d20+5: основные поля EngineRollResult заполняются из
+    DiceExpr.roll, context копируется без изменений."""
     roller = make_roller([15], bus)
     ctx = RollContext(purpose=RollPurpose.ATTACK)
     result = roller.roll(DiceExpr.parse("1d20+5"), ctx)
@@ -49,6 +62,8 @@ def test_basic_d20_attack_roll(bus: EventBus) -> None:
 
 
 def test_result_carries_actor_and_target(bus: EventBus) -> None:
+    """actor/target из context живут в result.context — это нужно
+    DiceStatistics и аудит-логу."""
     roller = make_roller([10], bus)
     ctx = RollContext(
         purpose=RollPurpose.ATTACK,
@@ -60,29 +75,36 @@ def test_result_carries_actor_and_target(bus: EventBus) -> None:
     assert result.context.target_id == "goblin-1"
 
 
-# -- двухфазная модель: события ------------------------------------------
+# -- 2. Двухфазная модель: события ------------------------------------
 
 
 def test_publishes_issued_then_applied_in_order(bus: EventBus) -> None:
-    """Книга-контракт ENGINE.md §7.4: сначала RollIssued, затем RollApplied
-    с одинаковым roll_id."""
+    """Контракт ENGINE.md §7.4: сначала RollIssued, затем RollApplied
+    с одинаковым roll_id. Это сердце контракта DiceRoller."""
     timeline: list[str] = []
-    issued_events: list[RollIssued] = []
-    applied_events: list[RollApplied] = []
+    issued: list[RollIssued] = []
+    applied: list[RollApplied] = []
 
-    bus.subscribe(RollIssued, lambda e: (timeline.append("issued"), issued_events.append(e)))
-    bus.subscribe(RollApplied, lambda e: (timeline.append("applied"), applied_events.append(e)))
+    def on_issued(e: RollIssued) -> None:
+        timeline.append("issued")
+        issued.append(e)
+
+    def on_applied(e: RollApplied) -> None:
+        timeline.append("applied")
+        applied.append(e)
+
+    bus.subscribe(RollIssued, on_issued)
+    bus.subscribe(RollApplied, on_applied)
 
     roller = make_roller([12], bus)
     roller.roll(DiceExpr.parse("1d20"), RollContext(purpose=RollPurpose.SAVE))
 
     assert timeline == ["issued", "applied"]
-    assert len(issued_events) == 1
-    assert len(applied_events) == 1
-    assert issued_events[0].result.roll_id == applied_events[0].result.roll_id
+    assert issued[0].result.roll_id == applied[0].result.roll_id
 
 
 def test_each_roll_has_unique_roll_id(bus: EventBus) -> None:
+    """Мастеру нужны разные roll_id для адресации (MASTER.md §3)."""
     roller = make_roller([10, 11, 12], bus)
     ctx = RollContext(purpose=RollPurpose.ABILITY_CHECK)
     r1 = roller.roll(DiceExpr.parse("d20"), ctx)
@@ -92,7 +114,8 @@ def test_each_roll_has_unique_roll_id(bus: EventBus) -> None:
 
 
 def test_returned_result_equals_published_one(bus: EventBus) -> None:
-    """То, что возвращает roll(), идентично тому, что лежит в RollApplied."""
+    """Инвариант: то, что возвращает roll(), идентично тому, что
+    лежит в RollApplied. Легко сломать рефактором — поэтому тест."""
     applied: list[EngineRollResult] = []
     bus.subscribe(RollApplied, lambda e: applied.append(e.result))
 
@@ -101,96 +124,127 @@ def test_returned_result_equals_published_one(bus: EventBus) -> None:
     assert applied[0] == result
 
 
-# -- advantage / disadvantage / crit -------------------------------------
+def test_consecutive_rolls_are_independent(bus: EventBus) -> None:
+    """TR-G003: два бросков подряд на одном roller'е — отдельные события
+    и независимые результаты, состояние между ними не утекает."""
+    issued: list[RollIssued] = []
+    applied: list[RollApplied] = []
+    bus.subscribe(RollIssued, issued.append)
+    bus.subscribe(RollApplied, applied.append)
+
+    roller = make_roller([5, 17], bus)
+    ctx = RollContext(purpose=RollPurpose.ATTACK)
+    r1 = roller.roll(DiceExpr.parse("d20"), ctx)
+    r2 = roller.roll(DiceExpr.parse("d20"), ctx)
+
+    assert r1.kept == (5,)
+    assert r2.kept == (17,)
+    assert r1.roll_id != r2.roll_id
+    # 4 события: пара на каждый roll, попарно одинаковые roll_id
+    assert len(issued) == 2
+    assert len(applied) == 2
+    assert issued[0].result.roll_id == applied[0].result.roll_id
+    assert issued[1].result.roll_id == applied[1].result.roll_id
 
 
-@pytest.mark.rules
-def test_advantage_picks_higher_of_two_d20(bus: EventBus) -> None:
+# -- 3. Проброс флагов из RollContext в DiceExpr.roll -----------------
+#
+# Сама механика advantage/disadvantage/crit покрыта в test_dice.py.
+# Здесь — только что DiceRoller правильно прокидывает флаги туда и
+# обратно.
+
+
+def test_advantage_flag_passes_through(bus: EventBus) -> None:
+    """ctx.advantage=True → DiceExpr.roll получает advantage=True,
+    в результате advantage=True и брошены 2 кости."""
     roller = make_roller([7, 19], bus)
     result = roller.roll(
         DiceExpr.parse("d20+5"),
         RollContext(purpose=RollPurpose.ATTACK, advantage=True),
     )
-    assert result.raw == (7, 19)
-    assert result.kept == (19,)
-    assert result.total == 24
     assert result.advantage is True
+    assert len(result.raw) == 2  # двойной бросок d20
 
 
-@pytest.mark.rules
-def test_disadvantage_picks_lower(bus: EventBus) -> None:
+def test_disadvantage_flag_passes_through(bus: EventBus) -> None:
     roller = make_roller([7, 19], bus)
     result = roller.roll(
         DiceExpr.parse("d20"),
         RollContext(purpose=RollPurpose.SAVE, disadvantage=True),
     )
-    assert result.kept == (7,)
     assert result.disadvantage is True
+    assert len(result.raw) == 2
 
 
-@pytest.mark.rules
-def test_advantage_and_disadvantage_cancel(bus: EventBus) -> None:
-    """Книга стр. 11: «Если обстоятельства одновременно дают и преимущество,
-    и помеху, то бросок не имеет ни того, ни другого»."""
-    roller = make_roller([12], bus)
-    result = roller.roll(
-        DiceExpr.parse("d20"),
-        RollContext(purpose=RollPurpose.ATTACK, advantage=True, disadvantage=True),
-    )
-    assert result.kept == (12,)
-    assert result.advantage is False
-    assert result.disadvantage is False
-
-
-@pytest.mark.rules
-def test_crit_doubles_damage_dice(bus: EventBus) -> None:
-    """Книга стр. 12: «кости урона удваиваются»."""
+def test_crit_flag_passes_through_to_main_expr(bus: EventBus) -> None:
+    """ctx.crit=True → DiceExpr.roll(crit=True) → удваивает кости
+    основного выражения. Книга стр. 12."""
     roller = make_roller([6, 8], bus)
     result = roller.roll(
         DiceExpr.parse("1d8+3"),
         RollContext(purpose=RollPurpose.DAMAGE, crit=True),
     )
-    assert result.raw == (6, 8)
-    assert result.total == 6 + 8 + 3  # модификатор не удваивается
     assert result.crit is True
+    assert len(result.raw) == 2  # 1d8 → 2 кости при крите
+    assert result.modifier == 3  # сам модификатор не удваивается — забота DiceExpr
 
 
-def test_advantage_on_non_d20_raises(bus: EventBus) -> None:
-    """Контракт DiceExpr — advantage/disadvantage только для одиночного d20."""
+def test_advantage_on_non_d20_raises_and_does_not_publish_events(bus: EventBus) -> None:
+    """TR-G004 + контракт DiceExpr: advantage только на одиночном d20.
+
+    Дополнительно проверяем, что **не публикуется RollIssued/RollApplied**
+    при ошибке валидации — иначе остался бы «висящий» RollIssued без
+    RollApplied, что ломает учёт для DiceStatisticsService."""
+    issued: list[RollIssued] = []
+    applied: list[RollApplied] = []
+    bus.subscribe(RollIssued, issued.append)
+    bus.subscribe(RollApplied, applied.append)
+
     roller = make_roller([1, 2], bus)
     with pytest.raises(ValueError, match="single d20"):
         roller.roll(
             DiceExpr.parse("2d6"),
             RollContext(purpose=RollPurpose.DAMAGE, advantage=True),
         )
+    assert issued == []
+    assert applied == []
 
 
-# -- extra_dice (ModifierApplier prep) -----------------------------------
+# -- 4. extra_dice (DiceBonusEffect из MODIFIERS.md §2.2) -------------
 
 
-def test_extra_dice_are_added_to_total(bus: EventBus) -> None:
-    """Bless даёт +1d4 к атаке. ModifierApplier добавит это в context.extra_dice."""
-    # 15 — основной d20, 3 — d4 от Bless
-    roller = make_roller([15, 3], bus)
-    ctx = RollContext(
-        purpose=RollPurpose.ATTACK,
-        extra_dice=("1d4",),
-    )
+@pytest.mark.rules
+def test_extra_dice_added_to_total(bus: EventBus) -> None:
+    """MODIFIERS.md §2.2 DiceBonusEffect: дополнительные кости от
+    модификатора (например, +1d4 от заклинания Bless к броску атаки)
+    добавляются в total."""
+    # 15 — основной d20, 3 — d4 от Bless. Конкатенация подчёркивает
+    # деление «основной бросок vs extra_dice».
+    roller = make_roller([15] + [3], bus)  # noqa: RUF005
+    ctx = RollContext(purpose=RollPurpose.ATTACK, extra_dice=("1d4",))
     result = roller.roll(DiceExpr.parse("1d20+5"), ctx)
+
     assert result.kept == (15,)
     assert result.extra_dice_rolls == (3,)
     assert result.total == 15 + 5 + 3
 
 
-def test_multiple_extra_dice(bus: EventBus) -> None:
-    """Sneak Attack 2d6 + Bless 1d4 — две отдельные группы доп. костей."""
-    # основной 1d8: 5; 2d6: 4,6; 1d4: 2
-    roller = make_roller([5, 4, 6, 2], bus)
+@pytest.mark.rules
+def test_multiple_extra_dice_groups_summed(bus: EventBus) -> None:
+    """Несколько независимых DiceBonus от разных источников суммируются.
+
+    Реалистичный сценарий: бросок урона оружием + Divine Smite (Паладин)
+    с дополнительными костями. По правилам Sneak Attack — отдельный
+    кубик к урону этого же удара (Книга 2024).
+    """
+    # Основное оружие 1d8: 5; Divine Smite 2d8: 4,6; Hunter's Mark 1d6: 2.
+    roller = make_roller([5] + [4, 6] + [2], bus)  # noqa: RUF005
     ctx = RollContext(
         purpose=RollPurpose.DAMAGE,
-        extra_dice=("2d6", "1d4"),
+        extra_dice=("2d8", "1d6"),
     )
     result = roller.roll(DiceExpr.parse("1d8+3"), ctx)
+
     assert result.kept == (5,)
     assert result.extra_dice_rolls == (4, 6, 2)
     assert result.total == 5 + 3 + 4 + 6 + 2
@@ -202,102 +256,126 @@ def test_no_extra_dice_by_default(bus: EventBus) -> None:
     assert result.extra_dice_rolls == ()
 
 
-# -- tags -----------------------------------------------------------------
+@pytest.mark.rules
+def test_crit_doubles_extra_damage_dice(bus: EventBus) -> None:
+    """TR-G001: книга стр. 12 «все кости урона удваиваются» — включая
+    extra_dice (Sneak Attack 2d6 → 4d6 при крите).
+
+    Сценарий: 1d8+3 оружия + Sneak Attack 2d6, crit=True.
+    - Основное 1d8 → 2 кости (DiceExpr.roll(crit=True)).
+    - Extra 2d6 → 4 кости (DiceExpr.roll(crit=True)).
+    Итого 6 костей.
+    """
+    # Основное 1d8 (2 кости при крите): 5, 8.
+    # Extra 2d6 (4 кости при крите): 6, 4, 3, 2.
+    roller = make_roller([5, 8] + [6, 4, 3, 2], bus)  # noqa: RUF005
+    ctx = RollContext(
+        purpose=RollPurpose.DAMAGE,
+        extra_dice=("2d6",),
+        crit=True,
+    )
+    result = roller.roll(DiceExpr.parse("1d8+3"), ctx)
+
+    # Модификатор не удваивается (книга стр. 12).
+    assert result.total == 5 + 8 + 3 + 6 + 4 + 3 + 2
+    assert result.extra_dice_rolls == (6, 4, 3, 2)
+    assert result.crit is True
 
 
-def test_tags_propagate_to_events(bus: EventBus) -> None:
-    """tags из context копируются на оба события — нужно для аудита
-    master_intervention и фильтрации в логе."""
+@pytest.mark.rules
+def test_advantage_does_not_leak_into_extra_dice(bus: EventBus) -> None:
+    """TR-G002: преимущество применяется только к одиночному d20
+    основного броска. Bless'овский +1d4 НЕ получает advantage —
+    иначе DiceExpr.roll(advantage=True) на 1d4 упадёт с ValueError.
+
+    Сценарий: d20 с advantage (2 кости d20) + extra_dice=("1d4",).
+    Если advantage случайно протечёт в extra — `extra_expr.roll(advantage=True)`
+    упадёт. Если не протечёт (правильное поведение) — d4 бросится один раз.
+    """
+    roller = make_roller([7, 19, 3], bus)
+    ctx = RollContext(
+        purpose=RollPurpose.ATTACK,
+        advantage=True,
+        extra_dice=("1d4",),
+    )
+    result = roller.roll(DiceExpr.parse("d20+5"), ctx)
+
+    assert result.kept == (19,)  # advantage берёт max
+    assert result.extra_dice_rolls == (3,)  # одна d4, не две
+    assert result.total == 19 + 5 + 3
+
+
+def test_invalid_extra_dice_raises_dice_parse_error(bus: EventBus) -> None:
+    """TR-G005: невалидное extra_dice пробрасывается как DiceParseError,
+    не глотается. Контракт: ModifierApplier обязан передавать корректные
+    выражения; ошибка должна быть видна сразу в CI, не у игрока."""
+    roller = make_roller([10], bus)
+    ctx = RollContext(
+        purpose=RollPurpose.ATTACK,
+        extra_dice=("garbage",),
+    )
+    with pytest.raises(DiceParseError):
+        roller.roll(DiceExpr.parse("d20"), ctx)
+
+
+# -- 5. tags + d20_raw (нужно мастер-логу и статистике) ---------------
+
+
+def test_tags_propagate_to_both_events(bus: EventBus) -> None:
+    """tags из context попадают на оба события — для фильтрации
+    'master_intervention'-записей в логе и т.п."""
     captured_issued: list[RollIssued] = []
     captured_applied: list[RollApplied] = []
     bus.subscribe(RollIssued, captured_issued.append)
     bus.subscribe(RollApplied, captured_applied.append)
 
     roller = make_roller([10], bus)
-    ctx = RollContext(purpose=RollPurpose.ATTACK, tags=("master_intervention", "reroll"))
+    ctx = RollContext(
+        purpose=RollPurpose.ATTACK,
+        tags=("master_intervention", "reroll"),
+    )
     roller.roll(DiceExpr.parse("d20"), ctx)
 
     assert captured_issued[0].tags == ("master_intervention", "reroll")
     assert captured_applied[0].tags == ("master_intervention", "reroll")
 
 
-# -- d20_raw для статистики ----------------------------------------------
-
-
-def test_d20_raw_for_single_d20(bus: EventBus) -> None:
+def test_d20_raw_available_for_statistics(bus: EventBus) -> None:
     """DiceStatisticsService опирается на result.d20_raw для расчёта удачи."""
     roller = make_roller([14], bus)
     result = roller.roll(DiceExpr.parse("1d20+5"), RollContext(purpose=RollPurpose.ATTACK))
     assert result.d20_raw == 14
 
 
-def test_d20_raw_none_for_damage_roll(bus: EventBus) -> None:
+def test_d20_raw_none_for_non_d20(bus: EventBus) -> None:
+    """Бросок урона 2d6 — это не d20-тест, статистика «удачи» его игнорирует."""
     roller = make_roller([3, 5], bus)
     result = roller.roll(DiceExpr.parse("2d6"), RollContext(purpose=RollPurpose.DAMAGE))
     assert result.d20_raw is None
 
 
-def test_d20_raw_for_d20_with_advantage(bus: EventBus) -> None:
-    """Сырое значение — то, которое попало в kept (после max/min)."""
-    roller = make_roller([7, 18], bus)
-    result = roller.roll(
-        DiceExpr.parse("d20"), RollContext(purpose=RollPurpose.ATTACK, advantage=True)
-    )
-    assert result.d20_raw == 18
+# -- 6. Изоляция исключений в подписчиках -----------------------------
 
 
-@pytest.mark.rules
-def test_is_natural_20_and_1(bus: EventBus) -> None:
-    """Натуральная 20 для криков; натуральная 1 для автопромаха
-    (книга стр. 11)."""
-    roller = make_roller([20, 1], bus)
-    crit = roller.roll(DiceExpr.parse("d20+5"), RollContext(purpose=RollPurpose.ATTACK))
-    fumble = roller.roll(DiceExpr.parse("d20+5"), RollContext(purpose=RollPurpose.ATTACK))
-    assert crit.is_natural_20() is True
-    assert crit.is_natural_1() is False
-    assert fumble.is_natural_20() is False
-    assert fumble.is_natural_1() is True
+def test_crashing_issued_subscriber_does_not_block_applied(
+    bus: EventBus, caplog: pytest.LogCaptureFixture
+) -> None:
+    """TR-G006: контракт EventBus гарантирует изоляцию исключений
+    (§5.2 п.3). На стыке с DiceRoller это значит: если подписчик
+    RollIssued падает — RollApplied всё равно публикуется, roll()
+    возвращает нормальный результат, ошибка ловится логом."""
+    applied_received: list[RollApplied] = []
 
+    def crashing(_event: RollIssued) -> None:
+        raise RuntimeError("issued handler crash")
 
-# -- purpose проброс -----------------------------------------------------
+    bus.subscribe(RollIssued, crashing)
+    bus.subscribe(RollApplied, applied_received.append)
 
-
-@pytest.mark.parametrize(
-    "purpose",
-    [
-        RollPurpose.ATTACK,
-        RollPurpose.DAMAGE,
-        RollPurpose.SAVE,
-        RollPurpose.ABILITY_CHECK,
-        RollPurpose.INITIATIVE,
-        RollPurpose.HIT_DICE,
-        RollPurpose.DEATH_SAVE,
-        RollPurpose.STATS_GEN,
-        RollPurpose.LOOT,
-        RollPurpose.OTHER,
-    ],
-)
-def test_purpose_kinds_supported(bus: EventBus, purpose: RollPurpose) -> None:
     roller = make_roller([10], bus)
-    result = roller.roll(DiceExpr.parse("d20"), RollContext(purpose=purpose))
-    assert result.context.purpose is purpose
+    with caplog.at_level(logging.ERROR):
+        result = roller.roll(DiceExpr.parse("d20"), RollContext(purpose=RollPurpose.ATTACK))
 
-
-# -- иммутабельность и валидация DTO -------------------------------------
-
-
-def test_engine_roll_result_is_frozen(bus: EventBus) -> None:
-    roller = make_roller([10], bus)
-    result = roller.roll(DiceExpr.parse("d20"), RollContext(purpose=RollPurpose.ATTACK))
-    from pydantic import ValidationError
-
-    with pytest.raises(ValidationError):
-        result.total = 99  # type: ignore[misc]
-
-
-def test_roll_context_rejects_extra_fields() -> None:
-    """`extra='forbid'` защищает от опечаток (typo в имени поля)."""
-    from pydantic import ValidationError
-
-    with pytest.raises(ValidationError, match="Extra inputs"):
-        RollContext.model_validate({"purpose": "attack", "advantage": True, "typo_field": "what"})
+    assert result.kept == (10,)
+    assert len(applied_received) == 1
+    assert any("subscriber raised" in r.message for r in caplog.records)
