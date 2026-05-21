@@ -70,6 +70,11 @@ class TurnContext:
     reaction_used: bool = False  # переживает между ходами в раунде
     free_object_interaction_used: bool = False
 
+    # Флаг Disengage'а на этом ходу (PHB-2024 стр. 22): пока True,
+    # выход из threatens-зоны не провоцирует opportunity attacks.
+    # Устанавливается DisengageAction (E4); MoveAction (E3) уже читает.
+    disengaged: bool = False
+
     # для отладки/UI — что уже произошло на этом ходу
     history: list[str] = field(default_factory=list)
 

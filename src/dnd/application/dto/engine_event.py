@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from dnd.application.dto.ids import CreatureId, RollId
 from dnd.application.dto.rolls import EngineRollResult
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.square import Square
 
 
 class EngineEvent(BaseModel):
@@ -135,3 +136,54 @@ class AttackResolved(EngineEvent):
     is_critical: bool
     downed: bool = False
     concentration_save_dc: int | None = None
+
+
+# -- События движения --------------------------------------------------
+#
+# Публикует ``MoveAction.execute`` (этап E3). Поток одного шага:
+#
+#   (опц.) OpportunityAttackProvoked    — за каждого угрожающего, кому
+#                                         предоставился триггер
+#   MoveStepTaken                       — после фактического перемещения
+#
+# После последнего шага — MoveCompleted с агрегатами.
+
+
+class MoveStepTaken(EngineEvent):
+    """Один шаг движения по клетке. Публикуется ПОСЛЕ перемещения и
+    списания футов из бюджета."""
+
+    event_type: ClassVar[str] = "move.step_taken"
+    actor_id: CreatureId
+    frm: Square
+    to: Square
+    cost_ft: int  # 5 для обычной клетки, 10 для difficult terrain
+    difficult: bool
+
+
+class MoveCompleted(EngineEvent):
+    """Завершение MoveAction. ``steps`` — сколько клеток пройдено,
+    ``total_spent_ft`` — суммарная стоимость."""
+
+    event_type: ClassVar[str] = "move.completed"
+    actor_id: CreatureId
+    start_pos: Square
+    end_pos: Square
+    steps: int
+    total_spent_ft: int
+
+
+class OpportunityAttackProvoked(EngineEvent):
+    """Атакующий покидает клетку, на которой его удерживал в зоне
+    угрозы threatener. Само разрешение реакции — задача обработчиков
+    (E6 OpportunityAttack); это событие — триггер.
+
+    PHB-2024 стр. 22 («Перемещение около других существ»): провокация
+    случается ОДИН раз за движение per threatener (как только existo
+    впервые покидает его reach), не на каждый шаг внутри.
+    """
+
+    event_type: ClassVar[str] = "opportunity_attack.provoked"
+    actor_id: CreatureId  # тот, кто двигается
+    threatener_id: CreatureId  # тот, кто получает реакцию
+    leaving_square: Square  # клетка, из которой actor вышел из зоны

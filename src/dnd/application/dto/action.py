@@ -67,6 +67,8 @@ class ForbiddenReason(StrEnum):
     TARGET_HAS_TOTAL_COVER = "target_has_total_cover"
     NOT_ENOUGH_MOVEMENT = "not_enough_movement"
     CONDITION_BLOCKS_ACTION = "condition_blocks_action"
+    INVALID_PATH = "invalid_path"  # путь не соседний/вне границ/etc.
+    IMPASSABLE_TERRAIN = "impassable_terrain"  # стена/закрытая дверь на пути
     CUSTOM = "custom"
 
 
