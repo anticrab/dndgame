@@ -6,6 +6,7 @@
     1d20           то же самое
     2d6+3          две к6 плюс модификатор
     4d6kh3         четыре к6, оставить три старших (генерация stats)
+    4d6kl1         четыре к6, оставить один младший
     8d6            восемь к6 (например, урон Огненного шара)
     1k20+5         кириллическая «к» допускается синонимом
 
@@ -22,6 +23,10 @@
     d20.roll(rng, advantage=True)
     weapon = DiceExpr.parse("1d8+3")
     weapon.roll(rng, crit=True)  # кости удваиваются, модификатор — нет
+
+Этот модуль — низкоуровневая механика костей. Семантические броски движка
+(атака, спасбросок, проверка) делаются через ``DiceRoller`` поверх
+``RNG``, не через ``DiceExpr.roll(rng)`` напрямую — см. ``ENGINE.md`` §7.
 """
 
 from __future__ import annotations
@@ -30,7 +35,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Final
 
-from dnd.application.ports.rng import RNG
+from dnd.domain.ports.rng import RNG
 
 # Регулярка покрывает варианты "NdM", "NdMkhK"/"NdMklK", "+N"/"-N", "d20".
 _PATTERN: Final[re.Pattern[str]] = re.compile(
@@ -52,7 +57,7 @@ _PATTERN: Final[re.Pattern[str]] = re.compile(
 
 
 class DiceParseError(ValueError):
-    """Неверная нотация костей."""
+    """Raised when the dice expression syntax is invalid."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,14 +72,14 @@ class DiceExpr:
 
     def __post_init__(self) -> None:
         if self.count < 1:
-            raise ValueError("число костей должно быть ≥ 1")
+            raise ValueError(f"dice count must be >= 1, got {self.count}")
         if self.sides < 1:
-            raise ValueError("число граней должно быть ≥ 1")
+            raise ValueError(f"die sides must be >= 1, got {self.sides}")
         if self.keep_highest is not None and self.keep_lowest is not None:
-            raise ValueError("нельзя одновременно kh и kl")
+            raise ValueError("cannot combine keep_highest and keep_lowest")
         keep = self.keep_highest if self.keep_highest is not None else self.keep_lowest
         if keep is not None and not 1 <= keep <= self.count:
-            raise ValueError(f"keep={keep} вне диапазона 1..{self.count}")
+            raise ValueError(f"keep={keep} is out of range 1..{self.count}")
 
     # --- разбор / печать --------------------------------------------------
 
@@ -82,7 +87,7 @@ class DiceExpr:
     def parse(cls, text: str) -> DiceExpr:
         match = _PATTERN.match(text)
         if match is None:
-            raise DiceParseError(f"не удалось разобрать выражение костей: {text!r}")
+            raise DiceParseError(f"cannot parse dice expression: {text!r}")
         count = int(match.group("count") or 1)
         sides = int(match.group("sides"))
         modifier_str = match.group("mod")
@@ -91,7 +96,12 @@ class DiceExpr:
         keep = int(match.group("keep")) if match.group("keep") else None
         kh = keep if keep_mode and keep_mode.lower() == "kh" else None
         kl = keep if keep_mode and keep_mode.lower() == "kl" else None
-        return cls(count=count, sides=sides, modifier=mod, keep_highest=kh, keep_lowest=kl)
+        try:
+            return cls(count=count, sides=sides, modifier=mod, keep_highest=kh, keep_lowest=kl)
+        except ValueError as exc:
+            # Семантически невалидные значения (0d6, 1d0, 2d6kh5, ...) — это
+            # тоже разновидность parse-ошибки с точки зрения вызывающего.
+            raise DiceParseError(str(exc)) from exc
 
     def __str__(self) -> str:
         base = f"{self.count}d{self.sides}"
@@ -102,6 +112,20 @@ class DiceExpr:
         if self.modifier:
             base += f"{self.modifier:+d}"
         return base
+
+    @property
+    def is_single_d20(self) -> bool:
+        """Это одиночный k20 (без kh/kl)?
+
+        Преимущество/помеха применимы **только** к таким выражениям —
+        это требование правил книги.
+        """
+        return (
+            self.count == 1
+            and self.sides == 20
+            and self.keep_highest is None
+            and self.keep_lowest is None
+        )
 
     # --- бросок ----------------------------------------------------------
 
@@ -115,18 +139,29 @@ class DiceExpr:
     ) -> RollResult:
         """Бросить кости.
 
-        ``advantage``/``disadvantage`` применяются только к одиночному d20
-        (классическая семантика «двух к20, берём больший/меньший»). На
-        выражениях другого вида аргументы игнорируются — это удобно для
-        единообразного API.
+        ``advantage``/``disadvantage`` применимы **только** к одиночному
+        d20 (механика «двух к20, берём больший/меньший» из правил книги).
+        Применение этих флагов к другим выражениям (например, к броскам
+        урона) — программная ошибка вызывающего, поднимается
+        ``ValueError``.
 
-        ``crit`` удваивает кости (для бросков урона), модификатор остаётся
-        одиночным (см. книгу, «Критические попадания»).
+        Преимущество и помеха одновременно взаимно гасятся (правило книги).
+
+        ``crit`` удваивает количество брошенных костей; модификатор
+        остаётся одиночным (см. книгу, «Критические попадания»). Крит
+        применим к любому выражению и совместим с kh/kl: для ``4d6kh3``
+        с ``crit=True`` бросаем 8 костей и оставляем 3 старших.
         """
+        if (advantage or disadvantage) and not self.is_single_d20:
+            raise ValueError(
+                "advantage/disadvantage are applicable only to a single d20; "
+                f"got {self} — use a plain roll instead"
+            )
+
         if advantage and disadvantage:
             advantage = disadvantage = False  # взаимно гасятся
 
-        if self.count == 1 and self.sides == 20 and (advantage or disadvantage):
+        if self.is_single_d20 and (advantage or disadvantage):
             a = rng.roll(20)
             b = rng.roll(20)
             chosen = max(a, b) if advantage else min(a, b)
@@ -163,6 +198,7 @@ class DiceExpr:
             return rolls, ()
         sorted_desc = sorted(rolls, reverse=True)
         if self.keep_highest is not None:
+            # При crit количество костей удваивается; оставляем top-K от ВСЕХ.
             kept = tuple(sorted_desc[: self.keep_highest])
             dropped = tuple(sorted_desc[self.keep_highest :])
         else:
@@ -180,19 +216,23 @@ class RollResult:
     expr: DiceExpr
     rolls: tuple[int, ...]
     kept: tuple[int, ...]
+    modifier: int
+    total: int
     dropped: tuple[int, ...] = field(default_factory=tuple)
-    modifier: int = 0
-    total: int = 0
     advantage: bool = False
     disadvantage: bool = False
     crit: bool = False
 
     @property
     def is_natural_20(self) -> bool:
-        """Натуральная 20 на одиночном к20."""
+        """Натуральная 20 на одиночном d20 (с учётом преимущества/помехи).
+
+        Считаем натуральной 20 — выпадение 20 на оставленном к20.
+        ``kept`` для одиночного d20 — это итоговая к20 (одна, даже при
+        преимуществе); проверка `kept[0] == 20` корректна.
+        """
         return (
-            self.expr.sides == 20
-            and self.expr.count == 1
+            self.expr.is_single_d20
             and len(self.kept) == 1
             and self.kept[0] == 20
         )
@@ -200,25 +240,41 @@ class RollResult:
     @property
     def is_natural_1(self) -> bool:
         return (
-            self.expr.sides == 20
-            and self.expr.count == 1
+            self.expr.is_single_d20
             and len(self.kept) == 1
             and self.kept[0] == 1
         )
 
+    @property
+    def d20_raw(self) -> int | None:
+        """Сырой результат одиночного k20 без бонусов — для статистики.
+
+        Возвращает ``None`` для других выражений. Используется
+        ``DiceStatisticsService`` (см. ``ENGINE.md`` §7.6).
+        """
+        if self.expr.is_single_d20 and len(self.kept) == 1:
+            return self.kept[0]
+        return None
+
     def describe(self) -> str:
-        """Человекочитаемое описание (для логов и TUI)."""
+        """Debug-only человекочитаемое описание.
+
+        НЕ использовать для отображения игроку — UI-строки идут через
+        Translator (см. ``I18N.md``). Этот метод только для логов и
+        отладки; язык — английский, чтобы соответствовать правилу про
+        технические сообщения.
+        """
         parts = [f"{self.expr}"]
         rolls_text = ",".join(str(r) for r in self.rolls)
         parts.append(f"[{rolls_text}]")
         if self.dropped:
             dropped_text = ",".join(str(r) for r in self.dropped)
-            parts.append(f"(сброшено: {dropped_text})")
+            parts.append(f"(dropped: {dropped_text})")
         if self.advantage:
-            parts.append("с преимуществом")
+            parts.append("with advantage")
         if self.disadvantage:
-            parts.append("с помехой")
+            parts.append("with disadvantage")
         if self.crit:
-            parts.append("крит ×кости")
+            parts.append("crit x2 dice")
         parts.append(f"= {self.total}")
         return " ".join(parts)

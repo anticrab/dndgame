@@ -6,22 +6,32 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
+
 import typer
 
 from dnd import __version__
 
 app = typer.Typer(
     name="dnd",
-    help="Консольная D&D 5e — учебный проект.",
+    help="Console D&D 5e — educational project.",
     no_args_is_help=True,
     add_completion=False,
 )
 
 
+class DbAction(StrEnum):
+    """Подкоманды управления БД."""
+
+    INIT = "init"
+    SEED = "seed"
+    RESET = "reset"
+
+
 @app.callback()
 def _root(
     version: bool = typer.Option(
-        False, "--version", help="Показать версию и выйти.", is_eager=True
+        False, "--version", help="Show version and exit.", is_eager=True
     ),
 ) -> None:
     if version:
@@ -31,20 +41,32 @@ def _root(
 
 @app.command("play")
 def play() -> None:
-    """Начать новую игру или продолжить."""
-    typer.echo("[play] ещё не реализовано — будет после готовности GameSession.")
+    """Start a new game or continue."""
+    typer.echo("[play] not implemented yet — needs GameEngine + UI.")
 
 
 @app.command("character")
 def character() -> None:
-    """Создать или показать персонажа."""
-    typer.echo("[character] ещё не реализовано — будет после CharacterCreationService.")
+    """Create or show a character."""
+    typer.echo("[character] not implemented yet — needs CharacterCreationService.")
 
 
 @app.command("db")
-def db(action: str = typer.Argument(..., help="init | seed | reset")) -> None:
-    """Управление базой данных."""
-    typer.echo(f"[db {action}] ещё не реализовано — будет после слоя infrastructure/db.")
+def db(action: DbAction = typer.Argument(..., help="init | seed | reset")) -> None:
+    """Database management."""
+    typer.echo(f"[db {action.value}] not implemented yet — needs infrastructure/db.")
+
+
+@app.command("content")
+def content() -> None:
+    """List or validate loaded content packs."""
+    typer.echo("[content] not implemented yet — needs ContentService.")
+
+
+@app.command("settings")
+def settings() -> None:
+    """Show or edit settings (language, theme, paths)."""
+    typer.echo("[settings] not implemented yet — needs ConfigService.")
 
 
 def main() -> None:

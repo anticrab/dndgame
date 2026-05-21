@@ -1,7 +1,13 @@
-"""Характеристики и модификаторы (Глава 1 книги, «Шесть характеристик»)."""
+"""Характеристики и модификаторы (Глава 1 книги, «Шесть характеристик»).
+
+Этот модуль — pure domain: ни i18n-строк, ни UI-форматирования. Человеко-
+читаемые имена характеристик идут через i18n-ключи в interfaces-слое
+(`ability.str.label`, `ability.dex.label`, ...). См. `docs/I18N.md`.
+"""
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -16,20 +22,6 @@ class Ability(StrEnum):
     WIS = "WIS"
     CHA = "CHA"
 
-    @property
-    def label_ru(self) -> str:
-        return _RU_LABELS[self]
-
-
-_RU_LABELS = {
-    Ability.STR: "Сила",
-    Ability.DEX: "Ловкость",
-    Ability.CON: "Телосложение",
-    Ability.INT: "Интеллект",
-    Ability.WIS: "Мудрость",
-    Ability.CHA: "Харизма",
-}
-
 
 def modifier(score: int) -> int:
     """Модификатор характеристики = floor((score − 10) / 2).
@@ -37,7 +29,7 @@ def modifier(score: int) -> int:
     Формула из книги, эквивалентна табличному значению на все 1..30.
     """
     if score < 1:
-        raise ValueError(f"показатель характеристики не может быть < 1, получено {score}")
+        raise ValueError(f"ability score must be >= 1, got {score}")
     return (score - 10) // 2
 
 
@@ -55,7 +47,7 @@ class AbilityScore:
     def __post_init__(self) -> None:
         if not 1 <= self.score <= 30:
             raise ValueError(
-                f"{self.ability.label_ru}: {self.score} вне диапазона 1..30"
+                f"{self.ability.value}: score {self.score} is out of range 1..30"
             )
 
     @property
@@ -63,14 +55,25 @@ class AbilityScore:
         return modifier(self.score)
 
     def adjusted(self, delta: int, *, cap: int = 20) -> AbilityScore:
-        """Прибавить к показателю ``delta``, но не выше ``cap`` (по умолчанию 20)."""
+        """Прибавить к показателю ``delta``, но не выше ``cap`` (по умолчанию 20).
+
+        Понижение (``delta < 0``) игнорирует ``cap`` (понижать всегда
+        можно) и валидируется в ``__post_init__`` нового объекта — если
+        результат окажется ниже 1, будет ``ValueError``.
+        """
         new_score = min(self.score + delta, cap) if delta > 0 else self.score + delta
         return AbilityScore(self.ability, new_score)
 
 
 @dataclass(frozen=True, slots=True)
 class AbilityScores:
-    """Полный набор из шести характеристик."""
+    """Полный набор из шести характеристик.
+
+    Имена полей ``str_``/``int_`` — postfix-подчёркивание, чтобы избежать
+    конфликта со встроенными ``str``/``int``. Это стандартный приём
+    Python; в публичном API доступ — через :meth:`get` или индексацию
+    ``scores[Ability.STR]``.
+    """
 
     str_: AbilityScore
     dex: AbilityScore
@@ -111,3 +114,10 @@ class AbilityScores:
 
     def modifier(self, ability: Ability) -> int:
         return self.get(ability).modifier
+
+    def __getitem__(self, ability: Ability) -> AbilityScore:
+        return self.get(ability)
+
+    def __iter__(self) -> Iterator[AbilityScore]:
+        """Итерация в каноническом порядке STR/DEX/CON/INT/WIS/CHA."""
+        yield from (self.str_, self.dex, self.con, self.int_, self.wis, self.cha)
