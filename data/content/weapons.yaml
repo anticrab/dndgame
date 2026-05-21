@@ -1,0 +1,42 @@
+# Каталог оружия. Соответствует WeaponTemplate; читается
+# YamlContentRepository при старте.
+
+- id: longsword
+  name: Long Sword
+  kind: melee
+  damage_expr: "1d8"
+  damage_type: slashing
+  range_ft: 5
+  long_range_ft: 0
+  ability: STR
+  finesse: false
+
+- id: shortsword
+  name: Short Sword
+  kind: melee
+  damage_expr: "1d6"
+  damage_type: piercing
+  range_ft: 5
+  long_range_ft: 0
+  ability: STR
+  finesse: true
+
+- id: scimitar
+  name: Scimitar
+  kind: melee
+  damage_expr: "1d6"
+  damage_type: slashing
+  range_ft: 5
+  long_range_ft: 0
+  ability: STR
+  finesse: true
+
+- id: shortbow
+  name: Short Bow
+  kind: ranged
+  damage_expr: "1d6"
+  damage_type: piercing
+  range_ft: 80
+  long_range_ft: 320
+  ability: DEX
+  finesse: false

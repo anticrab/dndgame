@@ -1,0 +1,53 @@
+# Сценарии MVP. Соответствует ScenarioTemplate.
+#
+# Карта читается как сетка символов; каждый символ → terrain id из
+# легенды → канонический Terrain из domain/values/terrain.py.
+
+- id: mvp_skirmish
+  name: "MVP Skirmish"
+  map:
+    width: 5
+    height: 5
+    legend:
+      ".": floor
+      "#": wall
+    grid:
+      - "....."
+      - "....."
+      - "....."
+      - "....."
+      - "....."
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [2, 2]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [3, 2]
+      faction: monsters
+
+- id: mvp_room
+  name: "MVP Room with walls"
+  map:
+    width: 7
+    height: 5
+    legend:
+      ".": floor
+      "#": wall
+      "+": closed_door
+    grid:
+      - "#######"
+      - "#.....#"
+      - "#..+..#"
+      - "#.....#"
+      - "#######"
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [1, 1]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [5, 3]
+      faction: monsters
