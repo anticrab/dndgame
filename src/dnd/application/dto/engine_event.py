@@ -173,6 +173,30 @@ class MoveCompleted(EngineEvent):
     total_spent_ft: int
 
 
+class HelpGranted(EngineEvent):
+    """Help-action: ``helper`` готов содействовать ``ally`` в следующей
+    атаке по ``target`` (PHB-2024 стр. 22). Сам бонус — advantage на
+    следующую атаку ally — реализован читателем поля
+    ``Creature.helped_against`` в ``AttackAction``."""
+
+    event_type: ClassVar[str] = "help.granted"
+    helper_id: CreatureId
+    ally_id: CreatureId
+    target_id: CreatureId
+
+
+class SearchPerformed(EngineEvent):
+    """Search-action: бросок ABILITY_CHECK (Perception/Investigation).
+    Скрытие/обнаружение чего конкретно — решает сценарий (подписчик)
+    через сравнение ``total`` с DC."""
+
+    event_type: ClassVar[str] = "search.performed"
+    actor_id: CreatureId
+    skill_kind: str  # "perception" | "investigation"
+    roll_id: RollId
+    total: int
+
+
 class OpportunityAttackProvoked(EngineEvent):
     """Атакующий покидает клетку, на которой его удерживал в зоне
     угрозы threatener. Само разрешение реакции — задача обработчиков

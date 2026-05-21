@@ -159,6 +159,16 @@ class Creature:
     """Активные состояния. Полноценная Condition-логика — в отдельном
     регистре (task #28); здесь только трекинг наложен/снят."""
 
+    helped_against: CreatureId | None = None
+    """ID цели, на которую этому существу полагается advantage на
+    следующую атаку (PHB-2024 стр. 22, Help action).
+
+    One-shot: сбрасывается в ``AttackAction.execute`` сразу после
+    использования (atk-роллу даётся advantage, затем поле = None).
+    Также Encounter сбросит на старте следующего хода owner'а
+    (если не использовал).
+    """
+
     combat_stances: set[str] = field(default_factory=set)
     """Активные «стойки» этого хода/раунда: DODGING / DASHING / DISENGAGED.
 

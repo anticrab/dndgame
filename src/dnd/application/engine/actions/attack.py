@@ -253,6 +253,12 @@ class AttackAction:
         # enum здесь, чтобы action attack не зависел от модуля stances.
         dodge_penalty = "dodging" in target.combat_stances
 
+        # Help-бонус: союзник назначил advantage на эту атаку
+        # (PHB-2024 стр. 22). One-shot — сбрасывается после броска.
+        help_bonus = actor.helped_against == target.id
+        if help_bonus:
+            actor.helped_against = None
+
         # 2) Бросок атаки.
         total_atk_bonus = params.attack_bonus + atk_adj.numeric_bonus
         attack_expr = DiceExpr.parse(f"d20{total_atk_bonus:+d}")
@@ -260,7 +266,7 @@ class AttackAction:
             purpose=RollPurpose.ATTACK,
             actor_id=actor.id,
             target_id=target.id,
-            advantage=atk_adj.advantage,
+            advantage=atk_adj.advantage or help_bonus,
             disadvantage=(
                 atk_adj.disadvantage or long_range_penalty or dodge_penalty
             ),
