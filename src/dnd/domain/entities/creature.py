@@ -54,6 +54,7 @@ from dnd.domain.values.damage import (
 )
 from dnd.domain.values.hit_points import HitPoints
 from dnd.domain.values.vision import NORMAL_VISION, Vision
+from dnd.domain.values.weapon import WeaponProfile
 
 _MAX_EXHAUSTION = 6
 _CONCENTRATION_DC_FLOOR = 10
@@ -178,6 +179,25 @@ class Creature:
     (если не использовал).
     """
 
+    proficiency_bonus: int = 2
+    """Бонус мастерства (PHB-2024 стр. 32: +2 на уровнях 1–4, +3 на
+    5–8, +4 на 9–12, +5 на 13–16, +6 на 17–20). Применяется ко всем
+    атакам и проверкам, в которых существо обучено.
+
+    По умолчанию +2 — это уровень 1; для монстров PHB MM указывает
+    конкретный бонус. Используется helper'ом
+    :func:`equipped_weapon_attack_params`.
+    """
+
+    equipped_weapon: WeaponProfile | None = None
+    """Экипированное оружие. Используется AI и UI для построения
+    ``AttackParams`` (см. ``application/engine/actions/attack.py``).
+
+    None означает «безоружный»; AI должен либо взять UNARMED_STRIKE,
+    либо пропустить атаку. На MVP — без полноценного инвентаря, оружие
+    задаётся при создании существа.
+    """
+
     helped_by: CreatureId | None = None
     """ID того, кто оказал Help. Нужен, чтобы в момент атаки проверить
     «if the target is no longer within 5 feet of you when the attack
@@ -222,6 +242,8 @@ class Creature:
         resistances: frozenset[str] = frozenset(),
         vulnerabilities: frozenset[str] = frozenset(),
         immunities: frozenset[str] = frozenset(),
+        proficiency_bonus: int = 2,
+        equipped_weapon: WeaponProfile | None = None,
     ) -> Creature:
         """Создать существо с полными HP.
 
@@ -237,6 +259,11 @@ class Creature:
             raise ValueError(f"armor_class must be >= 1, got {armor_class}")
         if speed_ft < 0:
             raise ValueError(f"speed_ft must be >= 0, got {speed_ft}")
+        if proficiency_bonus < 2 or proficiency_bonus > 6:
+            raise ValueError(
+                f"proficiency_bonus must be 2..6 (PHB-2024 стр. 32), "
+                f"got {proficiency_bonus}"
+            )
         return cls(
             id=id_,
             name=name,
@@ -249,6 +276,8 @@ class Creature:
             resistances=resistances,
             vulnerabilities=vulnerabilities,
             immunities=immunities,
+            proficiency_bonus=proficiency_bonus,
+            equipped_weapon=equipped_weapon,
         )
 
     # --- состояние HP ---------------------------------------------------

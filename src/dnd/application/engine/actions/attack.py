@@ -29,7 +29,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from enum import StrEnum
 from typing import ClassVar, Final
 
 from pydantic import Field
@@ -59,6 +58,7 @@ from dnd.domain.conditions.builtin import (
     UNCONSCIOUS,
 )
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.attack_kind import AttackKind
 from dnd.domain.values.damage import DamageInstance, DamageType
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.terrain import CoverLevel
@@ -81,11 +81,6 @@ _DODGE_SUPPRESSING_CONDITIONS: Final = frozenset(
 def _dodge_suppressed(target: Creature) -> bool:
     """True, если у цели Dodge не действует (PHB-2024 стр. 22)."""
     return any(target.has_condition(c) for c in _DODGE_SUPPRESSING_CONDITIONS)
-
-
-class AttackKind(StrEnum):
-    MELEE = "melee"
-    RANGED = "ranged"
 
 
 class AttackParams(ActionParams):
