@@ -231,19 +231,11 @@ class RollResult:
         ``kept`` для одиночного d20 — это итоговая к20 (одна, даже при
         преимуществе); проверка `kept[0] == 20` корректна.
         """
-        return (
-            self.expr.is_single_d20
-            and len(self.kept) == 1
-            and self.kept[0] == 20
-        )
+        return self.expr.is_single_d20 and len(self.kept) == 1 and self.kept[0] == 20
 
     @property
     def is_natural_1(self) -> bool:
-        return (
-            self.expr.is_single_d20
-            and len(self.kept) == 1
-            and self.kept[0] == 1
-        )
+        return self.expr.is_single_d20 and len(self.kept) == 1 and self.kept[0] == 1
 
     @property
     def d20_raw(self) -> int | None:

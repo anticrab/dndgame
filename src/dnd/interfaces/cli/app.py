@@ -15,7 +15,7 @@ from dnd import __version__
 app = typer.Typer(
     name="dnd",
     help="Console D&D 5e — educational project.",
-    no_args_is_help=True,
+    no_args_is_help=False,  # обрабатывается в callback ниже
     add_completion=False,
 )
 
@@ -28,14 +28,17 @@ class DbAction(StrEnum):
     RESET = "reset"
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def _root(
-    version: bool = typer.Option(
-        False, "--version", help="Show version and exit.", is_eager=True
-    ),
+    ctx: typer.Context,
+    version: bool = typer.Option(False, "--version", help="Show version and exit.", is_eager=True),
 ) -> None:
+    """Корневой callback: обрабатывает --version и показывает help без аргументов."""
     if version:
         typer.echo(f"dnd {__version__}")
+        raise typer.Exit()
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
         raise typer.Exit()
 
 

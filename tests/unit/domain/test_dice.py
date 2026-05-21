@@ -38,8 +38,8 @@ def test_parse_cyrillic_k() -> None:
         "+5",
         "0d6",
         "1d0",
-        "2d6kh5",       # keep > count
-        "0d20kh0",      # 0 dice
+        "2d6kh5",  # keep > count
+        "0d20kh0",  # 0 dice
     ],
 )
 def test_parse_rejects_garbage(bad_input: str) -> None:
@@ -182,3 +182,32 @@ def test_scripted_rng_out_of_range_raises_value_error() -> None:
     rng = ScriptedRNG([7])
     with pytest.raises(ValueError, match="out of range"):
         rng.roll(6)
+
+
+def test_describe_basic() -> None:
+    rng = ScriptedRNG([4, 2])
+    r = DiceExpr.parse("2d6+3").roll(rng)
+    text = r.describe()
+    assert "2d6+3" in text
+    assert "4,2" in text
+    assert "= 9" in text
+
+
+def test_describe_advantage_and_dropped() -> None:
+    rng = ScriptedRNG([7, 19])
+    r = DiceExpr.parse("d20+5").roll(rng, advantage=True)
+    text = r.describe()
+    assert "with advantage" in text
+    assert "dropped" in text
+
+
+def test_describe_crit() -> None:
+    rng = ScriptedRNG([5, 7])
+    r = DiceExpr.parse("1d8+3").roll(rng, crit=True)
+    assert "crit" in r.describe()
+
+
+def test_describe_disadvantage() -> None:
+    rng = ScriptedRNG([7, 19])
+    r = DiceExpr.parse("d20").roll(rng, disadvantage=True)
+    assert "with disadvantage" in r.describe()

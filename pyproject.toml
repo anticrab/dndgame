@@ -59,10 +59,20 @@ select = [
 ]
 ignore = [
   "E501",             # длинные строки — иногда нужны (ASCII-арт, тексты)
+  # Ambiguous-Unicode-правила бессмысленны для русскоязычного проекта:
+  # кириллические `с/о/а/р/е/х/у/В/Е/К/Н/О/Р/С/Т/Х` действительно «похожи»
+  # на латинские, но это нормальный русский текст, не атака.
+  "RUF001",
+  "RUF002",
+  "RUF003",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["B011", "SIM"]
+# Typer и Click требуют `typer.Argument(...)` / `typer.Option(...)`
+# в default-значениях параметров — это их основная идиома, B008 здесь
+# false-positive.
+"src/dnd/interfaces/cli/**" = ["B008"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -79,19 +89,39 @@ module = ["textual.*", "questionary.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-markers --strict-config"
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+  "--showlocals",
+  "--tb=short",
+]
 testpaths = ["tests"]
+xfail_strict = true
+filterwarnings = [
+  "error",
+  # pydantic v2 ещё генерирует DeprecationWarning от внутренних путей —
+  # игнорируем, если они не в нашем коде.
+  "ignore::DeprecationWarning:pydantic.*",
+]
 markers = [
   "slow: медленные интеграционные/e2e",
   "rules: проверки правил по книге",
+  "property: property-based (hypothesis)",
+  "integration: интеграционные (репозитории, контент, БД)",
+  "e2e: сквозные сценарии партии",
 ]
 
 [tool.coverage.run]
 branch = true
 source = ["src/dnd"]
+parallel = true
+omit = [
+  "src/dnd/interfaces/cli/__main__.py",  # тривиальная точка входа
+]
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 85
 show_missing = true
 skip_empty = true
 exclude_lines = [
@@ -99,4 +129,13 @@ exclude_lines = [
   "if TYPE_CHECKING:",
   "raise NotImplementedError",
   "\\.\\.\\.",
+  "@overload",
+  "if __name__ == .__main__.:",
 ]
+
+[tool.hypothesis]
+# Профиль по умолчанию: 100 примеров, разумный таймаут на тест.
+# Для CI можно использовать профиль `ci` с увеличенным числом примеров
+# (см. tests/conftest.py).
+deadline = 1000
+derandomize = false

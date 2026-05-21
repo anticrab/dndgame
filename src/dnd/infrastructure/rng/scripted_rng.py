@@ -25,7 +25,5 @@ class ScriptedRNG(RNG):
             raise IndexError("ScriptedRNG: scripted rolls exhausted")
         value = self._rolls.popleft()
         if not 1 <= value <= sides:
-            raise ValueError(
-                f"ScriptedRNG: value {value} is out of range 1..{sides}"
-            )
+            raise ValueError(f"ScriptedRNG: value {value} is out of range 1..{sides}")
         return value

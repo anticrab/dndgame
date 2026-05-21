@@ -1,0 +1,45 @@
+# Dockerfile.dev — образ для воспроизводимого запуска тестов и линтеров.
+#
+# Использование:
+#   docker build -f Dockerfile.dev -t dnd-dev .
+#   docker run --rm -v "$PWD":/app -w /app dnd-dev pytest
+#   docker run --rm -v "$PWD":/app -w /app dnd-dev bash -lc "ruff check src tests && mypy src"
+#
+# Образ намеренно НЕ копирует код внутрь — код монтируется через -v. Это
+# даёт быстрый цикл «правка → тест» без перепересборки образа.
+#
+# Образ зафиксирован на python:3.12-slim, чтобы CI и локальная разработка
+# использовали одну и ту же major.minor-версию интерпретатора.
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+# Системные пакеты — минимум:
+#   build-essential — нужен для сборки некоторых C-расширений
+#                     (например, у hypothesis в редких случаях).
+#   git             — для возможной диагностики и для pre-commit.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Установка зависимостей идёт в два шага: сначала только манифест,
+# чтобы кешировать слой; код монтируется через volume в момент запуска.
+COPY pyproject.toml README.md ./
+# Создаём минимальный src-layout, чтобы pip смог установить пакет в editable
+# (нужно для `from dnd.* import ...` без mounted volume).
+RUN mkdir -p src/dnd && touch src/dnd/__init__.py \
+    && pip install -U pip \
+    && pip install -e ".[dev]"
+
+# При запуске контейнер ждёт смонтированный код в /app и запускает CMD.
+CMD ["bash"]

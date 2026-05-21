@@ -1,0 +1,41 @@
+# Pre-commit hooks. Установить: `pre-commit install`.
+# Запустить руками: `pre-commit run --all-files`.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'   # markdown позволяет trailing-space для жёсткого переноса
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.14
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (strict, src only)
+        entry: mypy
+        language: system
+        types: [python]
+        files: ^src/
+        pass_filenames: false
+        args: [src]
+
+      - id: pytest-fast
+        name: pytest -x (быстрый прогон unit-тестов)
+        entry: pytest tests/unit -x --tb=short -q
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-push]   # тяжёлый шаг — только перед push, не на каждый коммит

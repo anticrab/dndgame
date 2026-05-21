@@ -46,9 +46,7 @@ class AbilityScore:
 
     def __post_init__(self) -> None:
         if not 1 <= self.score <= 30:
-            raise ValueError(
-                f"{self.ability.value}: score {self.score} is out of range 1..30"
-            )
+            raise ValueError(f"{self.ability.value}: score {self.score} is out of range 1..30")
 
     @property
     def modifier(self) -> int:
