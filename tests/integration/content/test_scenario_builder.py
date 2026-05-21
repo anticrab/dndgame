@@ -16,7 +16,10 @@ import pytest
 from dnd.application.dto.engine_event import EncounterEnded, EngineEvent
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
-from dnd.application.engine.ai.simple_monster import take_monster_turn
+from dnd.application.engine.ai.simple_monster import (
+    is_hostile_from_factions,
+    take_monster_turn,
+)
 from dnd.application.engine.scenario_builder import (
     build_battlefield_from_map,
     build_encounter_from_scenario,
@@ -124,7 +127,7 @@ def test_e2e_scenario_run_via_yaml(repo: YamlContentRepository) -> None:
                 attack.execute(actor, params, ctx)
         else:
             take_monster_turn(
-                actor, ctx, hostile_factions=frozenset({"party"})
+                actor, ctx, is_hostile=is_hostile_from_factions(actor_id, enc.factions)
             )
         enc.end_turn()
 

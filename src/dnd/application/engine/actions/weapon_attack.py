@@ -54,14 +54,11 @@ def weapon_attack_params(
     ability_mod = creature.abilities.modifier(ability)
     attack_bonus = creature.proficiency_bonus + ability_mod
 
-    # damage = weapon.damage_expr + ability_mod. Для unarmed-strike
-    # damage_expr может быть "0"; в этом случае собираем чисто modifier
-    # (минимум 1 для нашего MVP не моделируем).
-    if ability_mod == 0 or weapon.damage_expr == "0":
-        damage_expr = (
-            weapon.damage_expr if ability_mod == 0
-            else f"{ability_mod:+d}"
-        )
+    # damage = weapon.damage_expr + ability_mod. Все оружия в MVP
+    # имеют dice-форму ("1d8", "1d6"); чистый bonus-only (unarmed) пока
+    # не поддерживается — см. weapon.py / аудит 14 VS-R001.
+    if ability_mod == 0:
+        damage_expr = weapon.damage_expr
     else:
         damage_expr = f"{weapon.damage_expr}{ability_mod:+d}"
 

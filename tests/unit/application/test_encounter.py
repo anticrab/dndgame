@@ -876,3 +876,39 @@ def test_zero_hp_actor_has_zero_movement() -> None:
     enc.start()
     # Бой кончится сразу (a мёртв, MONSTERS=b единственная воюющая).
     assert enc.is_concluded is True
+
+
+# -- VS-G001 (audit 14): hard guard MAX_ROUNDS -------------------------
+
+
+@pytest.mark.rules
+def test_round_limit_forces_encounter_end() -> None:
+    """Если оба AI бесконечно Dodge'ят (ничего не происходит) — после
+    MAX_ROUNDS бой принудительно завершается с winners=None.
+
+    Симулируем 101 раунд через прямые end_turn-вызовы без действий
+    между ними. Аудит 14 VS-G001.
+    """
+    deps, bus = _make_deps([14, 10])
+    a = _make_creature("a", dex=14)
+    b = _make_creature("b", dex=10)
+    enc = Encounter(
+        participants={a.id: a, b.id: b},
+        factions={a.id: Faction.PARTY, b.id: Faction.MONSTERS},
+        deps=deps,
+    )
+    enc.start()
+    captured: list[EngineEvent] = []
+    bus.subscribe(EngineEvent, captured.append)
+
+    # Прокручиваем больше MAX_ROUNDS раундов без действий.
+    safety = 0
+    while not enc.is_concluded and safety < 10_000:
+        safety += 1
+        enc.start_turn()
+        enc.end_turn()
+
+    assert enc.is_concluded is True
+    ended = next(e for e in captured if isinstance(e, EncounterEnded))
+    assert ended.winners is None
+    assert ended.round_number > Encounter.MAX_ROUNDS - 1

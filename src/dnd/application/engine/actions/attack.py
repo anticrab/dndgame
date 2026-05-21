@@ -385,9 +385,14 @@ class AttackAction:
             )
             damage_roll = ctx.dice_roller.roll(full_expr, dmg_ctx)
 
+            # PHB-2024 стр. 26: «Минимальный урон». Атака с отрицательным
+            # модификатором (например, STR=6 → mod=-2, 1d4-2 → возможен
+            # total=-1) не лечит цель — урон клампится к 0. Аудит 14 VS-R002.
+            raw_damage = max(0, damage_roll.total)
+
             # 6) Применить урон.
             damage_result = target.take_damage(
-                DamageInstance(amount=damage_roll.total, type_=params.damage_type),
+                DamageInstance(amount=raw_damage, type_=params.damage_type),
                 is_critical=is_crit,
             )
 
@@ -397,7 +402,7 @@ class AttackAction:
                     target_id=target.id,
                     damage_roll_id=damage_roll.roll_id,
                     damage_type=params.damage_type,
-                    raw_amount=damage_roll.total,
+                    raw_amount=raw_damage,
                     final_amount=damage_result.final_amount,
                     is_critical=is_crit,
                 )

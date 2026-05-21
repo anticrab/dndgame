@@ -786,3 +786,35 @@ def test_target_immunity_zeroes_damage() -> None:
     dmg = next(e for e in captured if isinstance(e, DamageDealt))
     assert dmg.final_amount == 0
     assert target.hit_points.current == target.hit_points.maximum
+
+
+# -- VS-R002 (audit 14): clamp damage>=0 ------------------------------
+
+
+@pytest.mark.rules
+def test_negative_damage_modifier_clamped_to_zero() -> None:
+    """PHB-2024 стр. 26: «минимальный урон». 1d4-2, roll=1 → total=-1
+    клампим к 0. Аудит 14 VS-R002.
+    """
+    target = _make_goblin(hp=20)
+    attacker = _make_fighter()
+    _, _, ctx, bus = _setup(
+        rng_rolls=[18, 1],  # atk=18 → попал; damage=1
+        attacker=attacker, target=target,
+    )
+    # Делаем разбойного «слабого» с STR=6 (mod=-2), используем 1d4-2
+    weak_params = AttackParams(
+        target_id=target.id,
+        kind=AttackKind.MELEE,
+        attack_bonus=5,
+        damage_expr="1d4-2",  # 1-2 = -1
+        damage_type=DamageType.SLASHING,
+        range_ft=5,
+    )
+    captured = _capture(bus)
+    AttackAction().execute(attacker, weak_params, ctx)
+
+    dmg = next(e for e in captured if isinstance(e, DamageDealt))
+    assert dmg.raw_amount == 0  # клампим
+    # HP цели не изменилось
+    assert target.hit_points.current == target.hit_points.maximum

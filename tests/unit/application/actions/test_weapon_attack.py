@@ -105,3 +105,39 @@ def test_higher_proficiency_bonus_applies() -> None:
     fighter = _make("vet", str_=16, dex=12, prof=3)
     params = weapon_attack_params(fighter, CreatureId("goblin"))
     assert params.attack_bonus == 3 + 3  # prof +3 + STR +3
+
+
+# -- VS-AI001 (audit 14): is_hostile_from_factions ---------------------
+
+
+def test_is_hostile_from_factions_skips_neutral_and_self() -> None:
+    """Аудит 14 VS-AI001: NEUTRAL и same-faction — не враги."""
+    from dnd.application.engine.ai.simple_monster import (
+        is_hostile_from_factions,
+    )
+    from dnd.domain.values.faction import Faction
+
+    a = CreatureId("a")
+    b = CreatureId("b")
+    n = CreatureId("n")
+    pred = is_hostile_from_factions(
+        a,
+        {a: Faction.PARTY, b: Faction.MONSTERS, n: Faction.NEUTRAL},
+    )
+    assert pred(a) is False  # self
+    assert pred(b) is True  # MONSTERS vs PARTY → враг
+    assert pred(n) is False  # NEUTRAL — не враг
+
+
+def test_is_hostile_from_factions_same_faction_friendly() -> None:
+    from dnd.application.engine.ai.simple_monster import (
+        is_hostile_from_factions,
+    )
+    from dnd.domain.values.faction import Faction
+
+    a = CreatureId("a")
+    b = CreatureId("b")
+    pred = is_hostile_from_factions(
+        a, {a: Faction.PARTY, b: Faction.PARTY}
+    )
+    assert pred(b) is False  # союзник

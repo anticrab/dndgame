@@ -79,12 +79,12 @@ SHORTBOW = WeaponProfile(
     ability=Ability.DEX,
 )
 
-UNARMED_STRIKE = WeaponProfile(
-    name="Unarmed Strike",
-    kind=AttackKind.MELEE,
-    damage_expr="0",  # 1 + STR mod; 0 кубов
-    damage_type=DamageType.BLUDGEONING,
-)
+# Unarmed Strike (PHB-2024 стр. 209: «1 + STR mod bludgeoning») —
+# **намеренно не включён** в MVP. Текущий ``damage_expr`` —
+# это строка для ``DiceExpr.parse`` («1d8», «1d6+2»), а формула
+# «1 + STR mod» без кубов не выражается в этом формате (нет
+# обязательного `d`-блока). См. аудит 14 VS-R001. Добавим, когда
+# damage-формат расширится поддержкой fixed-bonus-без-dice.
 
 
 __all__ = [
@@ -92,6 +92,5 @@ __all__ = [
     "SCIMITAR",
     "SHORTBOW",
     "SHORTSWORD",
-    "UNARMED_STRIKE",
     "WeaponProfile",
 ]

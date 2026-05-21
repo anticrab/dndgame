@@ -24,24 +24,32 @@ Stateless: одна функция ``take_monster_turn(actor, ctx, encounter)``.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from dnd.application.dto.action import Allowed, NoParams
+from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.stances import DodgeAction
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.faction import Faction
 from dnd.domain.values.square import Square
+
+IsHostile = Callable[[CreatureId], bool]
 
 
 def take_monster_turn(
-    actor: Creature, ctx: TurnContext, *, hostile_factions: frozenset[str]
+    actor: Creature, ctx: TurnContext, *, is_hostile: IsHostile
 ) -> None:
     """Сделать ход за монстра.
 
-    ``hostile_factions`` — множество **значений** ``Faction`` (str),
-    к которым враждебен actor. Передаётся, чтобы AI не зависел от
-    Encounter и от Faction-enum напрямую.
+    ``is_hostile(other_id) -> bool`` — предикат «другое existo враг».
+    Composition root собирает его поверх Encounter.factions; AI не
+    зависит от Faction-enum и от структуры Encounter напрямую.
+    Аудит 14 VS-AI001 — заменил бесполезный ``hostile_factions`` на
+    рабочий callable.
 
     Side effects: вызывает Action.execute, мутирует Battlefield,
     публикует события.
@@ -49,7 +57,7 @@ def take_monster_turn(
     if not actor.is_alive or actor.is_at_zero_hp:
         return  # ничего не делаем
 
-    target = _find_nearest_hostile(actor, ctx, hostile_factions)
+    target = _find_nearest_hostile(actor, ctx, is_hostile)
     if target is None:
         _try_dodge(actor, ctx)
         return
@@ -87,18 +95,13 @@ def _try_dodge(actor: Creature, ctx: TurnContext) -> None:
 
 
 def _find_nearest_hostile(
-    actor: Creature, ctx: TurnContext, hostile_factions: frozenset[str]
+    actor: Creature, ctx: TurnContext, is_hostile: IsHostile
 ) -> Creature | None:
     """Ближайший живой враг (chebyshev-distance) в зоне видимости LoS.
 
-    ``hostile_factions`` оставлен для будущей версии, когда AI узнает
-    о фракциях через расширенный TurnContext (сейчас фракции хранятся
-    в Encounter, не в ctx). На MVP функция считает всех видимых
-    не-actor'ов врагами — этого достаточно для бинарного сценария
-    PARTY vs MONSTERS.
+    Фильтрует кандидатов через ``is_hostile`` — composition root
+    знает Encounter.factions и собирает предикат заранее.
     """
-    del hostile_factions  # MVP: фильтр не применяем — см. docstring
-
     bf = ctx.battlefield
     if not bf.has_creature(actor.id):
         return None
@@ -109,6 +112,8 @@ def _find_nearest_hostile(
         if cid == actor.id or not cr.is_alive or cr.is_at_zero_hp:
             continue
         if not bf.has_creature(cid):
+            continue
+        if not is_hostile(cid):
             continue
         cr_pos = bf.position_of(cid)
         if not bf.line_of_sight(actor_pos, cr_pos):
@@ -180,4 +185,29 @@ def _sign(value: int) -> int:
     return 0
 
 
-__all__ = ["take_monster_turn"]
+def is_hostile_from_factions(
+    actor_id: CreatureId, factions: dict[CreatureId, Faction]
+) -> IsHostile:
+    """Утилита: predicate «враждебен ли" по карте фракций.
+
+    Все participants, чья фракция не совпадает с фракцией actor'а и
+    не NEUTRAL, считаются врагами. NEUTRAL и same-faction —
+    дружественны/нейтральны.
+
+    Composition root / тесты собирают этот предикат и передают в
+    ``take_monster_turn(..., is_hostile=...)``.
+    """
+    actor_faction = factions.get(actor_id)
+
+    def predicate(other_id: CreatureId) -> bool:
+        if other_id == actor_id:
+            return False
+        other_faction = factions.get(other_id)
+        if other_faction is None or other_faction is Faction.NEUTRAL:
+            return False
+        return other_faction is not actor_faction
+
+    return predicate
+
+
+__all__ = ["IsHostile", "is_hostile_from_factions", "take_monster_turn"]

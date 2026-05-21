@@ -29,7 +29,10 @@ from dnd.application.dto.engine_event import (
 from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
-from dnd.application.engine.ai.simple_monster import take_monster_turn
+from dnd.application.engine.ai.simple_monster import (
+    is_hostile_from_factions,
+    take_monster_turn,
+)
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_scripted_dependencies
 from dnd.domain.entities.battlefield import Battlefield
@@ -132,7 +135,7 @@ def test_smoke_warrior_kills_goblin() -> None:
                 attack.execute(actor, params, ctx)
         else:
             # MONSTERS — AI.
-            take_monster_turn(actor, ctx, hostile_factions=frozenset({"party"}))
+            take_monster_turn(actor, ctx, is_hostile=is_hostile_from_factions(actor_id, enc.factions))
 
         enc.end_turn()
 
@@ -233,7 +236,7 @@ def test_smoke_monster_ai_moves_then_attacks() -> None:
                 attack.execute(actor, params, ctx)
         else:
             take_monster_turn(
-                actor, ctx, hostile_factions=frozenset({"party"})
+                actor, ctx, is_hostile=is_hostile_from_factions(actor_id, enc.factions)
             )
         enc.end_turn()
 

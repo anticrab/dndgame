@@ -127,7 +127,15 @@ class Encounter:
     становится бесполезным — повторный ``start()`` запрещён, любые
     ``start_turn``/``end_turn`` → ``RuntimeError``. Для нового боя
     создавайте новый объект. Аудит 13 EN-A006.
+
+    **Hard-guard от зацикливания**: при превышении ``MAX_ROUNDS``
+    раундов бой принудительно завершается с ``winners=None``.
+    Аудит 14 VS-G001.
     """
+
+    # Защита от багов AI/handler'ов. 100 раундов = 10 минут игрового
+    # времени; реалистичный бой укладывается в 5-10 раундов.
+    MAX_ROUNDS: int = 100
 
     def __init__(
         self,
@@ -407,7 +415,12 @@ class Encounter:
                 cr.helped_by = None
 
     def _advance_turn_pointer(self) -> None:
-        """Сдвинуть current_turn_index или открыть следующий раунд."""
+        """Сдвинуть current_turn_index или открыть следующий раунд.
+
+        Hard-guard от бесконечного боя (аудит 14 VS-G001): если число
+        раундов превысило :attr:`MAX_ROUNDS`, бой принудительно
+        завершается ничьей.
+        """
         next_index = self._state.current_turn_index + 1
         if next_index < len(self._state.initiative_order):
             self._state.current_turn_index = next_index
@@ -415,9 +428,39 @@ class Encounter:
         # Конец круга — закрыть текущий, открыть следующий.
         closed_round = self._state.round_number
         self._deps.event_bus.publish(RoundEnded(round_number=closed_round))
-        self._state.round_number += 1
+        next_round = self._state.round_number + 1
+        if next_round > self.MAX_ROUNDS:
+            self._force_end_by_round_limit()
+            return
+        self._state.round_number = next_round
         self._state.current_turn_index = 0
         self._begin_round(self._state.round_number)
+
+    def _force_end_by_round_limit(self) -> None:
+        """Принудительное закрытие боя — превышен лимит раундов.
+
+        Это защита от багов AI / handler'ов, которые могут привести к
+        зацикленному «Dodge / Dodge / Dodge» без урона. winners=None,
+        survivors — все, кто ещё жив. Аудит 14 VS-G001.
+        """
+        _log.warning(
+            "encounter forcefully ended: round limit %d reached",
+            self.MAX_ROUNDS,
+        )
+        survivors = tuple(
+            cid for cid, cr in self._participants.items() if cr.is_alive
+        )
+        self._state.concluded = True
+        if self._unsubscribe_provoked is not None:
+            self._unsubscribe_provoked()
+            self._unsubscribe_provoked = None
+        self._deps.event_bus.publish(
+            EncounterEnded(
+                winners=None,
+                round_number=self._state.round_number,
+                survivors=survivors,
+            )
+        )
 
     def _begin_round(self, n: int) -> None:
         """Сброс reactions у всех живых participants + публикация
