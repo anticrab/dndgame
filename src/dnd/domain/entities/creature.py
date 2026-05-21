@@ -159,6 +159,17 @@ class Creature:
     """Активные состояния. Полноценная Condition-логика — в отдельном
     регистре (task #28); здесь только трекинг наложен/снят."""
 
+    combat_stances: set[str] = field(default_factory=set)
+    """Активные «стойки» этого хода/раунда: DODGING / DASHING / DISENGAGED.
+
+    Не Condition — стойка живёт до начала следующего хода владельца
+    (DODGING/DISENGAGED) или текущего хода (DASHING — маркер
+    дополнительного движения, бюджет уже выдан в момент Dash).
+    Очищает ``Encounter`` (этап F) на старте хода. Значения декларирует
+    ``dnd.application.engine.actions.stances.CombatStance``; здесь —
+    ``set[str]``, чтобы domain не зависел от application-слоя.
+    """
+
     concentration: SpellId | None = None
     """ID **заклинания**, которое существо удерживает концентрацией.
 

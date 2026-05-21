@@ -246,6 +246,13 @@ class AttackAction:
             and distance_ft > params.range_ft
         )
 
+        # Цель в Dodge-стойке → атаки по ней с помехой (PHB-2024 стр. 22).
+        # Книжная оговорка «если цель видит атакующего» — на MVP считаем
+        # выполненной (LoS уже проверен и симметричен).
+        # "dodging" — значение CombatStance.DODGING; не импортируем
+        # enum здесь, чтобы action attack не зависел от модуля stances.
+        dodge_penalty = "dodging" in target.combat_stances
+
         # 2) Бросок атаки.
         total_atk_bonus = params.attack_bonus + atk_adj.numeric_bonus
         attack_expr = DiceExpr.parse(f"d20{total_atk_bonus:+d}")
@@ -254,7 +261,9 @@ class AttackAction:
             actor_id=actor.id,
             target_id=target.id,
             advantage=atk_adj.advantage,
-            disadvantage=atk_adj.disadvantage or long_range_penalty,
+            disadvantage=(
+                atk_adj.disadvantage or long_range_penalty or dodge_penalty
+            ),
             extra_dice=atk_adj.extra_dice,
         )
         attack_roll = ctx.dice_roller.roll(attack_expr, attack_ctx)
