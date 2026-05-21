@@ -386,3 +386,160 @@ def test_help_mock_condition_service_unused() -> None:
         helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
     )
     mock_service.assert_not_called()
+
+
+# -- HS-R001 (audit 11, S0): helper должен быть в 5ft в момент атаки ---
+
+
+@pytest.mark.rules
+def test_help_advantage_lost_when_helper_moves_away_before_attack() -> None:
+    """PHB-2024 стр. 22: «if the target is no longer within 5 feet of you
+    when the attack is made, you lose the benefit».
+
+    Сценарий: helper делает Help, потом отходит. Когда ally атакует —
+    advantage НЕ применяется (helper > 5ft от target). Поле сбрасывается.
+
+    Аудит 11 HS-R001.
+    """
+    helper, ally, target, ctx, bus = _setup_three(
+        Square(1, 1), Square(2, 1), Square(2, 2)
+    )
+    HelpAction().execute(
+        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
+    )
+    assert ally.helped_against == target.id
+    assert ally.helped_by == helper.id
+
+    # Helper отошёл далеко — теперь > 5ft от target (2,2).
+    ctx.battlefield.move_creature(helper.id, Square(8, 8))
+
+    # ally атакует target. Если бы advantage применился — RNG нужно бы
+    # ДВА d20; даём один + damage. Если применился — IndexError.
+    ctx_for_ally = TurnContext(
+        actor_id=ally.id,
+        battlefield=ctx.battlefield,
+        dice_roller=ComputerDiceRoller(
+            rng=ScriptedRNG([14, 4]), event_bus=bus
+        ),
+        modifier_applier=ctx.modifier_applier,
+        condition_service=ctx.condition_service,
+        event_bus=bus,
+        rng=ctx.rng,
+        participants=ctx.participants,
+        movement_remaining_ft=ally.speed_ft,
+    )
+    captured: list[EngineEvent] = []
+    bus.subscribe(EngineEvent, captured.append)
+
+    AttackAction().execute(
+        ally,
+        AttackParams(
+            target_id=target.id,
+            kind=AttackKind.MELEE,
+            attack_bonus=5,
+            damage_expr="1d8+3",
+            damage_type=DamageType.SLASHING,
+            range_ft=5,
+        ),
+        ctx_for_ally,
+    )
+
+    atk = next(e for e in captured if isinstance(e, AttackRolled))
+    # 14+5=19 vs AC 14 → попал; но advantage не применялся (только 1 d20
+    # бросился — иначе RNG бы исчерпался на d20 и не хватило damage).
+    assert atk.hit is True
+    # Поле сброшено (one-shot бонус «теряется»).
+    assert ally.helped_against is None
+    assert ally.helped_by is None
+
+
+@pytest.mark.rules
+def test_help_advantage_applied_when_helper_still_within_5ft() -> None:
+    """Sanity: если helper не отошёл, advantage срабатывает (как раньше)."""
+    helper, ally, target, ctx, bus = _setup_three(
+        Square(1, 1), Square(2, 1), Square(2, 2),
+        rng_rolls=[5, 18, 4],  # advantage берёт 18
+    )
+    HelpAction().execute(
+        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
+    )
+    # Helper НЕ двигался — остался в (1,1), target в (2,2). distance =
+    # max(|1-2|, |1-2|) = 1 клетка = 5 фут. OK.
+
+    ctx_for_ally = TurnContext(
+        actor_id=ally.id,
+        battlefield=ctx.battlefield,
+        dice_roller=ctx.dice_roller,
+        modifier_applier=ctx.modifier_applier,
+        condition_service=ctx.condition_service,
+        event_bus=ctx.event_bus,
+        rng=ctx.rng,
+        participants=ctx.participants,
+        movement_remaining_ft=ally.speed_ft,
+    )
+    captured: list[EngineEvent] = []
+    bus.subscribe(EngineEvent, captured.append)
+
+    AttackAction().execute(
+        ally,
+        AttackParams(
+            target_id=target.id,
+            kind=AttackKind.MELEE,
+            attack_bonus=5,
+            damage_expr="1d8+3",
+            damage_type=DamageType.SLASHING,
+            range_ft=5,
+        ),
+        ctx_for_ally,
+    )
+    atk = next(e for e in captured if isinstance(e, AttackRolled))
+    assert atk.hit is True  # advantage 18 → попал
+    assert ally.helped_against is None
+    assert ally.helped_by is None
+
+
+@pytest.mark.rules
+def test_help_advantage_lost_when_helper_removed_from_battlefield() -> None:
+    """Если helper'а вообще больше нет на поле (сценарий: погиб и
+    removed) — advantage не действует."""
+    helper, ally, target, ctx, bus = _setup_three(
+        Square(1, 1), Square(2, 1), Square(2, 2)
+    )
+    HelpAction().execute(
+        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
+    )
+    ctx.battlefield.remove_creature(helper.id)
+
+    ctx_for_ally = TurnContext(
+        actor_id=ally.id,
+        battlefield=ctx.battlefield,
+        dice_roller=ComputerDiceRoller(
+            rng=ScriptedRNG([14, 4]), event_bus=bus
+        ),
+        modifier_applier=ctx.modifier_applier,
+        condition_service=ctx.condition_service,
+        event_bus=bus,
+        rng=ctx.rng,
+        participants=ctx.participants,
+        movement_remaining_ft=ally.speed_ft,
+    )
+    captured: list[EngineEvent] = []
+    bus.subscribe(EngineEvent, captured.append)
+
+    AttackAction().execute(
+        ally,
+        AttackParams(
+            target_id=target.id,
+            kind=AttackKind.MELEE,
+            attack_bonus=5,
+            damage_expr="1d8+3",
+            damage_type=DamageType.SLASHING,
+            range_ft=5,
+        ),
+        ctx_for_ally,
+    )
+    # 14+5=19 — попал без advantage.
+    atk = next(e for e in captured if isinstance(e, AttackRolled))
+    assert atk.hit is True
+    # Поле всё равно очищается.
+    assert ally.helped_against is None

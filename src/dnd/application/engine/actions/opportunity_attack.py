@@ -31,12 +31,18 @@ from typing import ClassVar
 from dnd.application.dto.action import (
     ActionAvailability,
     ActionEconomyCost,
+    ActionOutcome,
+    ActionParams,
     Allowed,
     Forbidden,
     ForbiddenReason,
 )
 from dnd.application.dto.ids import ActionId
-from dnd.application.engine.actions.attack import AttackAction
+from dnd.application.engine.actions.attack import (
+    AttackAction,
+    AttackKind,
+    AttackParams,
+)
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
 
@@ -50,6 +56,40 @@ class OpportunityAttack(AttackAction):
     id_value: ClassVar[ActionId] = ActionId("opportunity_attack")
     name_key_value: ClassVar[str] = "action.opportunity_attack"
     economy_cost_value: ClassVar[ActionEconomyCost] = ActionEconomyCost.REACTION
+
+    def can_perform_against(
+        self,
+        actor: Creature,
+        params: AttackParams,
+        ctx: TurnContext,
+    ) -> ActionAvailability:
+        """OA — только **melee** атака (PHB-2024 стр. 22: «one melee
+        attack»). Ranged-OA через AttackKind.RANGED запрещён.
+
+        Аудит 12 OA-R001.
+        """
+        if params.kind is not AttackKind.MELEE:
+            return Forbidden(
+                reason=ForbiddenReason.CUSTOM,
+                details="opportunity attack must be melee",
+            )
+        return super().can_perform_against(actor, params, ctx)
+
+    def execute(
+        self,
+        actor: Creature,
+        params: ActionParams,
+        ctx: TurnContext,
+    ) -> ActionOutcome:
+        """Защита от прямого вызова execute с RANGED-параметрами
+        (минуя can_perform_against): аудит 12 OA-R001.
+        """
+        if isinstance(params, AttackParams) and params.kind is not AttackKind.MELEE:
+            raise RuntimeError(
+                "contract violation: OpportunityAttack accepts only "
+                "AttackKind.MELEE; can_perform_against must be called first"
+            )
+        return super().execute(actor, params, ctx)
 
     def _check_economy(
         self, actor: Creature, ctx: TurnContext

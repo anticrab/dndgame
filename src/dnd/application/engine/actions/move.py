@@ -256,7 +256,17 @@ class MoveAction:
         Returns: map threatener_id → frozenset клеток его reach-зоны.
         Учитываем стандартный reach 5 фт; индивидуальный reach (глефа)
         придёт через данные существа, когда Character заведёт оружие.
+
+        Фильтры:
+
+        * threatener живой и на карте;
+        * threatener не Incapacitated/Stunned/Paralyzed/Unconscious
+          (не может реагировать; PHB-2024 стр. 367);
+        * threatener **видит** actor'а из своей позиции (PHB-2024
+          стр. 22: «if you can see it»). Без LoS — нет провокации.
+          Аудит 09 MV-R001.
         """
+        actor_pos = ctx.battlefield.position_of(actor.id)
         result: dict[CreatureId, frozenset[Square]] = {}
         for other_id, other in ctx.participants.items():
             if other_id == actor.id or not other.is_alive:
@@ -267,6 +277,9 @@ class MoveAction:
                 if other.has_condition(blocker):
                     break
             else:
+                other_pos = ctx.battlefield.position_of(other_id)
+                if not ctx.battlefield.line_of_sight(other_pos, actor_pos):
+                    continue
                 result[other_id] = ctx.battlefield.threatens_squares(other_id)
         return result
 

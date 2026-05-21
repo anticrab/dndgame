@@ -277,3 +277,42 @@ def test_oa_can_perform_does_not_use_condition_service() -> None:
     ctx.condition_service = MagicMock()
     OpportunityAttack().can_perform(fighter, ctx)
     ctx.condition_service.assert_not_called()
+
+
+# -- OA-R001 (audit 12, S1): OA only MELEE ----------------------------
+
+
+@pytest.mark.rules
+def test_oa_against_ranged_kind_is_forbidden() -> None:
+    """PHB-2024 стр. 22: «one melee attack». Ranged-OA запрещён.
+
+    Аудит 12 OA-R001.
+    """
+    fighter, goblin, ctx, _ = _setup(rng_rolls=[])
+    ranged_params = AttackParams(
+        target_id=goblin.id,
+        kind=AttackKind.RANGED,
+        attack_bonus=5,
+        damage_expr="1d6+2",
+        damage_type=DamageType.PIERCING,
+        range_ft=30,
+    )
+    av = OpportunityAttack().can_perform_against(fighter, ranged_params, ctx)
+    assert isinstance(av, Forbidden)
+    assert av.reason is ForbiddenReason.CUSTOM
+    assert "melee" in av.details
+
+
+def test_oa_execute_ranged_params_raises() -> None:
+    """Защита от прямого вызова execute с RANGED-параметрами."""
+    fighter, goblin, ctx, _ = _setup(rng_rolls=[])
+    ranged_params = AttackParams(
+        target_id=goblin.id,
+        kind=AttackKind.RANGED,
+        attack_bonus=5,
+        damage_expr="1d6+2",
+        damage_type=DamageType.PIERCING,
+        range_ft=30,
+    )
+    with pytest.raises(RuntimeError, match="MELEE"):
+        OpportunityAttack().execute(fighter, ranged_params, ctx)

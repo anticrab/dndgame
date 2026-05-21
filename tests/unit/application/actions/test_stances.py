@@ -306,3 +306,69 @@ def test_disengage_then_move_does_not_provoke() -> None:
 
     aops = [e for e in captured if isinstance(e, OpportunityAttackProvoked)]
     assert aops == []
+
+
+# -- ST-R001 (audit 10, S1): Dodge гасится Incapacitated/speed=0 ------
+
+
+@pytest.mark.rules
+@pytest.mark.parametrize(
+    "blocker_condition",
+    ["incapacitated", "stunned", "paralyzed", "unconscious"],
+)
+def test_dodge_suppressed_when_target_incapacitated(blocker_condition: str) -> None:
+    """PHB-2024 стр. 22: «benefit ends if you are Incapacitated or your
+    Speed drops to 0». Stunned/Paralyzed/Unconscious импличат Incapacitated
+    и/или speed=0.
+
+    Сценарий: цель в Dodge, потом получает блокирующее условие — атака
+    идёт БЕЗ disadvantage. RNG: [5, 18] — без disadvantage берётся 5
+    (одиночный d20); с disadvantage было бы [5, 18] → берётся меньший
+    из двух = 5. Различить случаи в одном тесте трудно; используем
+    одиночный RNG и проверяем, что disadvantage НЕ применился через
+    общую длину RNG-очереди.
+
+    Аудит 10 ST-R001.
+    """
+    attacker = _make_creature("fighter")
+    target = _make_creature("target")
+    target.combat_stances.add(CombatStance.DODGING.value)
+    target.apply_condition(ConditionId(blocker_condition))
+
+    bf = Battlefield(10, 10)
+    bf.place_creature(attacker.id, Square(1, 1))
+    bf.place_creature(target.id, Square(2, 1))
+    bus = InMemoryEventBus()
+    # Одно значение в RNG: если disadvantage применится — будет
+    # IndexError при попытке бросить второй d20.
+    rng = ScriptedRNG([18, 5])  # 2 значения; должно использоваться 1 для d20 + 1 для damage
+    ctx = TurnContext(
+        actor_id=attacker.id,
+        battlefield=bf,
+        dice_roller=ComputerDiceRoller(rng=rng, event_bus=bus),
+        modifier_applier=ModifierApplier(ModifierBag()),
+        condition_service=MagicMock(),
+        event_bus=bus,
+        rng=rng,
+        participants={attacker.id: attacker, target.id: target},
+        movement_remaining_ft=attacker.speed_ft,
+    )
+    captured: list[EngineEvent] = []
+    bus.subscribe(EngineEvent, captured.append)
+
+    params = AttackParams(
+        target_id=target.id,
+        kind=AttackKind.MELEE,
+        attack_bonus=5,
+        damage_expr="1d8+3",
+        damage_type=DamageType.SLASHING,
+        range_ft=5,
+    )
+    AttackAction().execute(attacker, params, ctx)
+
+    atk = next(e for e in captured if isinstance(e, AttackRolled))
+    # Без disadvantage: один d20 = 18; 18+5=23 vs AC 14 → попал.
+    # С disadvantage: два d20 [18, 5], берётся 5; 5+5=10 vs AC 14 → промах.
+    assert atk.hit is True, (
+        "Dodge должен быть подавлен; атака не должна получать disadvantage"
+    )

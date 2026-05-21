@@ -178,6 +178,15 @@ class Creature:
     (если не использовал).
     """
 
+    helped_by: CreatureId | None = None
+    """ID того, кто оказал Help. Нужен, чтобы в момент атаки проверить
+    «if the target is no longer within 5 feet of you when the attack
+    is made, you lose the benefit» (PHB-2024 стр. 22).
+
+    Парное к ``helped_against`` — оба поля выставляются/сбрасываются
+    вместе. Аудит 11 HS-R001.
+    """
+
     combat_stances: set[str] = field(default_factory=set)
     """Активные «стойки» этого хода/раунда: DODGING / DASHING / DISENGAGED.
 

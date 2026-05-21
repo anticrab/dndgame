@@ -70,6 +70,18 @@ _BLOCKING_CONDITIONS: Final = frozenset(
     {INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS}
 )
 
+# Состояния, при которых Dodge-стойка цели перестаёт давать
+# disadvantage атакующему (PHB-2024 стр. 22: «benefit ends if you are
+# Incapacitated or your Speed drops to 0»). Аудит 10 ST-R001.
+_DODGE_SUPPRESSING_CONDITIONS: Final = frozenset(
+    {INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS}
+)
+
+
+def _dodge_suppressed(target: Creature) -> bool:
+    """True, если у цели Dodge не действует (PHB-2024 стр. 22)."""
+    return any(target.has_condition(c) for c in _DODGE_SUPPRESSING_CONDITIONS)
+
 
 class AttackKind(StrEnum):
     MELEE = "melee"
@@ -267,13 +279,40 @@ class AttackAction:
         # выполненной (LoS уже проверен и симметричен).
         # "dodging" — значение CombatStance.DODGING; не импортируем
         # enum здесь, чтобы action attack не зависел от модуля stances.
-        dodge_penalty = "dodging" in target.combat_stances
+        #
+        # PHB-2024 стр. 22: «benefit ends if you are Incapacitated or
+        # your Speed drops to 0». Stunned / Paralyzed / Unconscious все
+        # impply Incapacitated; Paralyzed/Stunned/Unconscious дают также
+        # speed=0. Поэтому если у цели любое из этих условий — Dodge
+        # больше не действует. Аудит 10 ST-R001.
+        dodge_penalty = (
+            "dodging" in target.combat_stances
+            and not _dodge_suppressed(target)
+        )
 
         # Help-бонус: союзник назначил advantage на эту атаку
         # (PHB-2024 стр. 22). One-shot — сбрасывается после броска.
-        help_bonus = actor.helped_against == target.id
-        if help_bonus:
+        #
+        # Книжная оговорка (аудит 11 HS-R001): «benefit ends if the
+        # target is no longer within 5 feet of you [helper] when the
+        # attack is made». Проверяем позицию helper'а сейчас, а не на
+        # момент Help-action.
+        help_bonus = False
+        if actor.helped_against == target.id:
+            helper = (
+                ctx.participants.get(actor.helped_by)
+                if actor.helped_by is not None
+                else None
+            )
+            if helper is not None and ctx.battlefield.has_creature(helper.id):
+                helper_pos = ctx.battlefield.position_of(helper.id)
+                if helper_pos.distance_to_feet(target_pos) <= 5:
+                    help_bonus = True
+            # One-shot: помощь «израсходована», даже если её отменил
+            # уход helper'а — это согласуется с RAW (бонус «теряется»,
+            # а не «копится»).
             actor.helped_against = None
+            actor.helped_by = None
 
         # 2) Бросок атаки.
         total_atk_bonus = params.attack_bonus + atk_adj.numeric_bonus

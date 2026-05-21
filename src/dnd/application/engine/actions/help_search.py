@@ -143,6 +143,7 @@ class HelpAction:
 
         ctx.spend(ActionEconomyCost.ACTION)
         ally.helped_against = params.target_id
+        ally.helped_by = actor.id
 
         ctx.event_bus.publish(
             HelpGranted(
