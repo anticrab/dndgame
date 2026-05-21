@@ -1,0 +1,269 @@
+"""Восемь базовых состояний MVP (Книга 2024, стр. 367, Глоссарий состояний).
+
+Содержательно: каждое состояние — простой dataclass, реализующий
+``Condition`` Protocol. Поведение «как влияет на броски» закодировано
+в ``provides_modifiers`` — это интегрируется с :class:`ModifierApplier`.
+
+Реализованы:
+
+* ``Incapacitated`` — без действий/реакций/бонусных действий
+  (это смысл — действия запрещены; модификаторы броска отдельно).
+* ``Prone`` — лежащий ничком.
+* ``Poisoned`` — отравлен.
+* ``Frightened`` — испуган.
+* ``Stunned`` — оглушён (implies Incapacitated).
+* ``Paralyzed`` — парализован (implies Incapacitated).
+* ``Unconscious`` — бессознательный (implies Incapacitated + Prone).
+* ``Invisible`` — невидимый.
+
+Некоторые правила (например, «атаки в 5 фут по бессознательному —
+крит», «атаки против невидимого — с помехой») не выражаются
+односторонним модификатором на самом существе: они касаются того,
+**кто** атакует. Этот класс правил будет обработан позже, когда
+появится attack_roll: там ``ModifierApplier.collect`` будет принимать
+не только owner_id, но и target_id, и cross-creature эффекты
+наложатся через специальные модификаторы с разными owner/target.
+
+В этом MVP мы покрываем только **owner-self** эффекты (помехи на
+свои броски, etc) — этого достаточно, чтобы Poisoned/Frightened/
+Prone влияли на собственные атаки. Расширение — задача Encounter.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from dnd.application.dto.ids import ConditionId, CreatureId
+from dnd.application.dto.modifiers import (
+    DisadvantageEffect,
+    Modifier,
+    ModifierSourceKind,
+    ModifierTargetKind,
+)
+
+# Канонические ConditionId для базовых состояний.
+INCAPACITATED = ConditionId("incapacitated")
+PRONE = ConditionId("prone")
+POISONED = ConditionId("poisoned")
+FRIGHTENED = ConditionId("frightened")
+STUNNED = ConditionId("stunned")
+PARALYZED = ConditionId("paralyzed")
+UNCONSCIOUS = ConditionId("unconscious")
+INVISIBLE = ConditionId("invisible")
+
+
+def _self_disadvantage(
+    owner_id: CreatureId,
+    condition_id: ConditionId,
+    *targets: ModifierTargetKind,
+) -> tuple[Modifier, ...]:
+    """Удобная фабрика: «существо имеет помеху на броски такого-то типа»."""
+    return tuple(
+        Modifier(
+            source_id=f"condition:{condition_id}",
+            source_kind=ModifierSourceKind.CONDITION,
+            target_kind=target,
+            effect=DisadvantageEffect(),
+            owner_id=owner_id,
+            stack_key=f"condition:{condition_id}:{target.value}",
+        )
+        for target in targets
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class IncapacitatedCondition:
+    """Книга 2024 стр. 367, «Недееспособный».
+
+    Не может совершать действий, бонусных действий и реакций.
+    Не накладывает прямых модификаторов на броски — ограничение
+    действий обрабатывается в Encounter (TurnBudget).
+    """
+
+    id: ConditionId = INCAPACITATED
+    implies: frozenset[ConditionId] = field(default_factory=frozenset)
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return ()
+
+
+@dataclass(frozen=True, slots=True)
+class ProneCondition:
+    """Книга 2024 стр. 367, «Лежащий ничком».
+
+    * Свои броски атак — с **помехой**.
+    * Атаки по нему в 5 фут — с преимуществом; >5 фут — с помехой
+      (это cross-creature, реализуется в attack_roll).
+    * Перемещение — ползком (cost ×2).
+    """
+
+    id: ConditionId = PRONE
+    implies: frozenset[ConditionId] = field(default_factory=frozenset)
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return _self_disadvantage(owner_id, self.id, ModifierTargetKind.ATTACK_ROLL)
+
+
+@dataclass(frozen=True, slots=True)
+class PoisonedCondition:
+    """Книга 2024 стр. 367, «Отравленный».
+
+    Помеха на броски атак и проверки характеристик.
+    """
+
+    id: ConditionId = POISONED
+    implies: frozenset[ConditionId] = field(default_factory=frozenset)
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return _self_disadvantage(
+            owner_id,
+            self.id,
+            ModifierTargetKind.ATTACK_ROLL,
+            ModifierTargetKind.ABILITY_CHECK,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class FrightenedCondition:
+    """Книга 2024 стр. 367, «Испуганный».
+
+    * Помеха на броски атак и проверки характеристик, пока источник
+      страха в поле зрения.
+    * Не может **по своей воле** приближаться к источнику страха.
+
+    Условие «источник в поле зрения» — это ``ModifierCondition``
+    (Specification), MVP его не выражает; считаем активным.
+    Запрет на сближение — обрабатывается в Action.can_perform для Move.
+    """
+
+    id: ConditionId = FRIGHTENED
+    implies: frozenset[ConditionId] = field(default_factory=frozenset)
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return _self_disadvantage(
+            owner_id,
+            self.id,
+            ModifierTargetKind.ATTACK_ROLL,
+            ModifierTargetKind.ABILITY_CHECK,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class StunnedCondition:
+    """Книга 2024 стр. 367, «Ошеломлённый».
+
+    Implies Incapacitated. Автоматический провал спасбросков Силы и
+    Ловкости (модификатор-провал — отдельный механизм, для MVP не
+    реализован; реализуем как «помеху», что не точно по правилам,
+    но компенсируется при появлении SaveAutoFail-эффекта).
+    """
+
+    id: ConditionId = STUNNED
+    implies: frozenset[ConditionId] = field(default_factory=lambda: frozenset({INCAPACITATED}))
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        # TODO(post-MVP): SaveAutoFail для STR/DEX вместо disadvantage —
+        # сейчас приближаем через помеху на спасброски, фактически
+        # автопровал = «крайняя помеха». См. ConditionInstance / Q38.
+        return _self_disadvantage(owner_id, self.id, ModifierTargetKind.SAVING_THROW)
+
+
+@dataclass(frozen=True, slots=True)
+class ParalyzedCondition:
+    """Книга 2024 стр. 367, «Парализованный».
+
+    Implies Incapacitated. Автопровал спасбросков Силы и Ловкости.
+    Атаки в 5 фут по парализованному — крит (cross-creature, будет
+    в attack_roll). Аналогичный комментарий про SaveAutoFail.
+    """
+
+    id: ConditionId = PARALYZED
+    implies: frozenset[ConditionId] = field(default_factory=lambda: frozenset({INCAPACITATED}))
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return _self_disadvantage(owner_id, self.id, ModifierTargetKind.SAVING_THROW)
+
+
+@dataclass(frozen=True, slots=True)
+class UnconsciousCondition:
+    """Книга 2024 стр. 367, «Бессознательный».
+
+    Implies Incapacitated + Prone. Автопровал STR/DEX-спасбросков;
+    атаки в 5 фут — крит. См. комментарий к Stunned/Paralyzed.
+
+    Это **Condition**, не ``Creature.is_at_zero_hp`` (тот — про факт HP=0).
+    Бессознательное состояние накладывается **на** падение в 0 HP
+    (Character) или явно эффектом (заклинание Sleep).
+    """
+
+    id: ConditionId = UNCONSCIOUS
+    implies: frozenset[ConditionId] = field(
+        default_factory=lambda: frozenset({INCAPACITATED, PRONE})
+    )
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return _self_disadvantage(owner_id, self.id, ModifierTargetKind.SAVING_THROW)
+
+
+@dataclass(frozen=True, slots=True)
+class InvisibleCondition:
+    """Книга 2024 стр. 367, «Невидимый».
+
+    * Атаки **по** невидимому — с помехой (cross-creature).
+    * Атаки **от** невидимого — с преимуществом (cross-creature).
+    * При определении surprise — считается невидимым.
+
+    Сам по себе self-эффект (на свои броски) Invisible не даёт.
+    Поэтому `provides_modifiers` пуст — взаимодействия будут через
+    attack_roll, когда появятся.
+    """
+
+    id: ConditionId = INVISIBLE
+    implies: frozenset[ConditionId] = field(default_factory=frozenset)
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return ()
+
+
+# -- регистрация ----------------------------------------------------------
+
+
+def register_default_conditions(registry: object) -> None:
+    """Зарегистрировать 8 базовых MVP-состояний в ``ConditionRegistry``.
+
+    Сигнатура с ``object`` — чтобы избежать циклического импорта
+    ``registry → builtin → registry``. Тип проверяется ``hasattr``.
+    """
+    if not hasattr(registry, "register"):
+        raise TypeError(
+            f"register_default_conditions expects ConditionRegistry, got {type(registry).__name__}"
+        )
+    registry.register(IncapacitatedCondition())
+    registry.register(ProneCondition())
+    registry.register(PoisonedCondition())
+    registry.register(FrightenedCondition())
+    registry.register(StunnedCondition())
+    registry.register(ParalyzedCondition())
+    registry.register(UnconsciousCondition())
+    registry.register(InvisibleCondition())
+
+
+__all__ = [
+    "FRIGHTENED",
+    "INCAPACITATED",
+    "INVISIBLE",
+    "PARALYZED",
+    "POISONED",
+    "PRONE",
+    "STUNNED",
+    "UNCONSCIOUS",
+    "FrightenedCondition",
+    "IncapacitatedCondition",
+    "InvisibleCondition",
+    "ParalyzedCondition",
+    "PoisonedCondition",
+    "ProneCondition",
+    "StunnedCondition",
+    "UnconsciousCondition",
+    "register_default_conditions",
+]
