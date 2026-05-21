@@ -503,3 +503,286 @@ def test_attack_params_frozen_and_validated() -> None:
             damage_type=DamageType.SLASHING,
             range_ft=3,  # < 5, валидация Field(ge=5)
         )
+
+
+# -- AT-R001 фикс: damage modifier через ModifierBag --------------------
+
+
+def _modifier_bag_with_damage_bonus(numeric: int = 0, extra_dice: str | None = None):
+    """Утилита: построить ModifierBag для actor'а с указанным DAMAGE_ROLL
+    модификатором (numeric и/или extra_dice)."""
+    from dnd.application.dto.modifiers import (
+        DiceBonusEffect,
+        Modifier,
+        ModifierSourceKind,
+        ModifierTargetKind,
+        NumericBonusEffect,
+        StackingPolicy,
+    )
+
+    bag = ModifierBag()
+    if numeric:
+        bag.add(
+            Modifier(
+                owner_id=CreatureId("fighter"),
+                source_id="magic_weapon",
+                source_kind=ModifierSourceKind.ITEM,
+                target_kind=ModifierTargetKind.DAMAGE_ROLL,
+                effect=NumericBonusEffect(value=numeric),
+                stacking=StackingPolicy.STACK_ALL,
+                stack_key="",
+            )
+        )
+    if extra_dice:
+        bag.add(
+            Modifier(
+                owner_id=CreatureId("fighter"),
+                source_id="sneak_attack",
+                source_kind=ModifierSourceKind.FEATURE,
+                target_kind=ModifierTargetKind.DAMAGE_ROLL,
+                effect=DiceBonusEffect(dice=extra_dice),
+                stacking=StackingPolicy.STACK_ALL,
+                stack_key="",
+            )
+        )
+    return bag
+
+
+@pytest.mark.rules
+def test_execute_magic_weapon_plus_1_damage_does_not_crash() -> None:
+    """AT-R001 (S0): damage_expr='1d8+3' + numeric_bonus=+1 от магии
+    раньше падал DiceParseError на '1d8+3+1'. Фикс через
+    dataclasses.replace(modifier=base.modifier + adj.numeric_bonus).
+
+    d20=18+5=23 vs AC 14 → попадание; d8=5; итог 5 + 3 + 1 = 9.
+    """
+    target = _make_goblin(hp=20)
+    attacker = _make_fighter()
+    _, _, ctx, bus = _setup(
+        rng_rolls=[18, 5], attacker=attacker, target=target
+    )
+    ctx.modifier_applier = ModifierApplier(
+        _modifier_bag_with_damage_bonus(numeric=1)
+    )
+    captured = _capture(bus)
+
+    AttackAction().execute(attacker, _params(target.id), ctx)
+
+    dmg = next(e for e in captured if isinstance(e, DamageDealt))
+    assert dmg.final_amount == 9
+
+
+# -- AT-R002: крит удваивает extra_dice ---------------------------------
+
+
+@pytest.mark.rules
+def test_critical_hit_doubles_extra_dice() -> None:
+    """PHB-2024 стр. 25: на крите удваиваются ВСЕ кости урона, включая
+    Sneak Attack / Divine Smite / Hex. ComputerDiceRoller прокидывает
+    crit=True в extra_dice — проверяем, что в EngineRollResult два
+    броска от extra_dice (1d6 → 2d6) даже когда основные кубы уже
+    удвоены.
+
+    RNG: [20] for d20 attack (nat 20 = crit) +
+         [4, 5] for damage 1d8 → удвоено 2d8 +
+         [2, 6] for extra 1d6 → удвоено 2d6.
+    """
+    target = _make_goblin(hp=50, ac=50)  # AC 50 — без крита не попали бы
+    attacker = _make_fighter()
+    _, _, ctx, bus = _setup(
+        rng_rolls=[20, 4, 5, 2, 6], attacker=attacker, target=target
+    )
+    ctx.modifier_applier = ModifierApplier(
+        _modifier_bag_with_damage_bonus(extra_dice="1d6")
+    )
+    captured = _capture(bus)
+
+    AttackAction().execute(attacker, _params(target.id), ctx)
+
+    dmg = next(e for e in captured if isinstance(e, DamageDealt))
+    # Основные кубы: 2d8 = 4+5 = 9, +mod 3 = 12
+    # Extra: 2d6 = 2+6 = 8
+    # Итого: 12 + 8 = 20.
+    assert dmg.raw_amount == 20
+    assert dmg.is_critical is True
+
+
+# -- AT-R003: half cover (+2) -------------------------------------------
+
+
+@pytest.mark.rules
+def test_half_cover_adds_2_to_effective_ac() -> None:
+    """PHB-2024 стр. 25: half cover = +2 к КД."""
+    attacker, target, ctx, bus = _setup(
+        rng_rolls=[15, 4],
+        attacker_pos=Square(0, 0),
+        target_pos=Square(4, 0),
+    )
+    from dnd.domain.values.terrain import LOW_COVER
+
+    ctx.battlefield.set_terrain(Square(2, 0), LOW_COVER)
+    captured = _capture(bus)
+
+    AttackAction().execute(
+        attacker,
+        _params(target.id, kind=AttackKind.RANGED, range_ft=60),
+        ctx,
+    )
+    atk = next(e for e in captured if isinstance(e, AttackRolled))
+    assert atk.effective_ac == 14 + 2
+    # d20=15 + 5 = 20 vs 16 → попал.
+    assert atk.hit is True
+
+
+# -- AT-G001: concentration save ----------------------------------------
+
+
+@pytest.mark.rules
+def test_concentration_save_dc_propagated_when_hit() -> None:
+    """PHB-2024 стр. 352: получив урон, концентрация требует CON-save с
+    DC = max(10, damage // 2). AttackAction передаёт это поле в
+    AttackResolved для движка."""
+    target = _make_goblin(hp=30)
+    from dnd.application.dto.ids import SpellId
+
+    target.concentration = SpellId("bless")
+    attacker = _make_fighter()
+    _, _, ctx, bus = _setup(
+        rng_rolls=[18, 5], attacker=attacker, target=target
+    )
+    captured = _capture(bus)
+
+    AttackAction().execute(attacker, _params(target.id), ctx)
+
+    res = next(e for e in captured if isinstance(e, AttackResolved))
+    # damage = 5 + 3 = 8 → DC = max(10, 4) = 10
+    assert res.concentration_save_dc == 10
+    assert res.downed is False
+
+
+# -- AT-G002: execute не валидирует повторно ----------------------------
+
+
+def test_execute_does_not_re_validate_after_can_perform() -> None:
+    """ACTIONS.md §6: execute не проверяет повторно. Сценарий:
+    after_can_perform_against → ставим WALL между attacker и target,
+    вызываем execute. По контракту execute идёт «как есть» — атака
+    случается, даже если LoS теперь нет.
+
+    Этот тест **документирует** контракт, а не баг.
+    """
+    target = _make_goblin(hp=20)
+    attacker, _, ctx, bus = _setup(
+        rng_rolls=[18, 5],
+        attacker_pos=Square(0, 0),
+        target_pos=Square(4, 0),
+        target=target,
+    )
+    av = AttackAction().can_perform_against(
+        attacker,
+        _params(target.id, kind=AttackKind.RANGED, range_ft=60),
+        ctx,
+    )
+    assert isinstance(av, Allowed)
+    # Ставим стену МЕЖДУ — теперь по правилам атака бы не прошла.
+    ctx.battlefield.set_terrain(Square(2, 0), WALL)
+
+    captured = _capture(bus)
+    outcome = AttackAction().execute(
+        attacker,
+        _params(target.id, kind=AttackKind.RANGED, range_ft=60),
+        ctx,
+    )
+
+    # Execute не запрещает; атака состоялась.
+    assert outcome.success is True
+    assert any(isinstance(e, AttackRolled) for e in captured)
+
+
+def test_execute_raises_when_target_not_in_participants() -> None:
+    """AT-A001: execute страхует contract violation чётким RuntimeError,
+    а не KeyError."""
+    attacker, _target, ctx, _ = _setup(rng_rolls=[])
+    bad_params = _params("phantom")
+    with pytest.raises(RuntimeError, match="contract violation"):
+        AttackAction().execute(attacker, bad_params, ctx)
+
+
+# -- AT-G004: полный FIFO порядок событий ------------------------------
+
+
+def test_full_event_fifo_order_on_hit() -> None:
+    """ENGINE.md §5.2 + §7.4: одно попадание даёт ровно такую цепочку
+    типов событий в шине:
+
+        RollIssued (atk d20) → RollApplied (atk d20) → AttackRolled →
+        RollIssued (damage)  → RollApplied (damage)  → DamageDealt →
+        AttackResolved
+
+    Если кто-то поменяет порядок publish — тест поймает.
+    """
+    from dnd.application.dto.engine_event import RollApplied, RollIssued
+
+    target = _make_goblin(hp=20)
+    attacker, _, ctx, bus = _setup(
+        rng_rolls=[14, 5], target=target
+    )
+    captured = _capture(bus)
+
+    AttackAction().execute(attacker, _params(target.id), ctx)
+
+    types = [type(e).__name__ for e in captured]
+    # Удаляем только наши «бизнес»-события и Roll*; tags/other нет.
+    assert types == [
+        "RollIssued",
+        "RollApplied",
+        "AttackRolled",
+        "RollIssued",
+        "RollApplied",
+        "DamageDealt",
+        "AttackResolved",
+    ]
+    # Дополнительно: RollIssued и RollApplied первой пары — один roll_id.
+    roll_issued_atk = next(e for e in captured if isinstance(e, RollIssued))
+    roll_applied_atk = next(e for e in captured if isinstance(e, RollApplied))
+    assert roll_issued_atk.result.roll_id == roll_applied_atk.result.roll_id
+
+
+# -- AT-G005: resistance / vulnerability цели ---------------------------
+
+
+@pytest.mark.rules
+def test_target_resistance_halves_damage() -> None:
+    """PHB-2024 стр. 26: resistant ×½ (floor). Goblin со resistant
+    slashing получает 8 → 4."""
+    target = _make_goblin(hp=30)
+    # Resistance хранится как множество строковых значений DamageType.value.
+    object.__setattr__(target, "resistances", frozenset({DamageType.SLASHING.value}))
+    attacker = _make_fighter()
+    _, _, ctx, bus = _setup(
+        rng_rolls=[18, 5], attacker=attacker, target=target
+    )
+    captured = _capture(bus)
+
+    AttackAction().execute(attacker, _params(target.id), ctx)
+
+    dmg = next(e for e in captured if isinstance(e, DamageDealt))
+    assert dmg.raw_amount == 8  # 5 + 3 (raw — до resist)
+    assert dmg.final_amount == 4  # после resistance ×½
+
+
+@pytest.mark.rules
+def test_target_immunity_zeroes_damage() -> None:
+    target = _make_goblin(hp=30)
+    object.__setattr__(target, "immunities", frozenset({DamageType.SLASHING.value}))
+    attacker = _make_fighter()
+    _, _, ctx, bus = _setup(
+        rng_rolls=[18, 5], attacker=attacker, target=target
+    )
+    captured = _capture(bus)
+
+    AttackAction().execute(attacker, _params(target.id), ctx)
+
+    dmg = next(e for e in captured if isinstance(e, DamageDealt))
+    assert dmg.final_amount == 0
+    assert target.hit_points.current == target.hit_points.maximum

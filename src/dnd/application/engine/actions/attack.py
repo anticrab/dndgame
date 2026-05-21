@@ -28,8 +28,9 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from enum import StrEnum
-from typing import Final
+from typing import ClassVar, Final
 
 from pydantic import Field
 
@@ -84,6 +85,17 @@ class AttackParams(ActionParams):
 
     ``long_range_ft`` для MELEE игнорируется (должен быть 0). Для
     RANGED 0 означает «нет длинной дистанции, диапазон ровно range_ft».
+
+    **Разделение ответственности с ModifierApplier** (аудит 08 AT-A004):
+
+    * ``attack_bonus`` — **статический** бонус оружия: proficiency_bonus
+      + ability_mod (STR/DEX) + ranks плюс ``+N`` зачарования.
+      Не включает ситуативные модификаторы.
+    * ``damage_expr`` — **базовый** урон оружия (``"1d8+3"`` для long sword
+      с STR=16), включая ability_mod. Без ситуативных бонусов.
+    * Ситуативные модификаторы (Bless, Bardic Inspiration, conditions
+      на actor'е и т.п.) собираются ``ModifierApplier`` в ``execute`` по
+      ``ATTACK_ROLL`` / ``DAMAGE_ROLL`` и комбинируются с этими полями.
     """
 
     target_id: CreatureId
@@ -99,17 +111,20 @@ class AttackAction:
     """Стандартная атака оружием.
 
     Один экземпляр на всё приложение — действие не имеет состояния.
+    Метаданные хранятся в ``ClassVar``: id, name_key, economy_cost.
     """
 
-    economy_cost_value: Final = ActionEconomyCost.ACTION
+    id_value: ClassVar[ActionId] = ActionId("attack")
+    name_key_value: ClassVar[str] = "action.attack"
+    economy_cost_value: ClassVar[ActionEconomyCost] = ActionEconomyCost.ACTION
 
     @property
     def id(self) -> ActionId:
-        return ActionId("attack")
+        return self.id_value
 
     @property
     def name_key(self) -> str:
-        return "action.attack"
+        return self.name_key_value
 
     @property
     def economy_cost(self) -> ActionEconomyCost:
@@ -183,12 +198,33 @@ class AttackAction:
         params: ActionParams,
         ctx: TurnContext,
     ) -> ActionOutcome:
+        """Выполнить атаку. Контракт ACTIONS.md §6: вызывающий обязан
+        проверить ``can_perform`` и ``can_perform_against`` ДО ``execute``.
+
+        Этот метод **не дублирует** валидацию (см. §6 «никаких двойных
+        вычислений»). Если контракт нарушен:
+
+        * нет цели в ``participants`` → ``RuntimeError`` («can_perform_against
+          не был вызван»);
+        * цель не на карте → ``KeyError`` из ``Battlefield.position_of``;
+        * LoS отсутствует / total cover — атака пойдёт «как есть» и
+          скорее всего промахнётся (effective_ac будет обычным, cover
+          не добавит, но запретов не будет).
+
+        Это сознательно — Action не страхует UI/AI.
+        """
         if not isinstance(params, AttackParams):
             raise TypeError(
                 f"AttackAction expects AttackParams, got {type(params).__name__}"
             )
 
-        target = ctx.participants[params.target_id]
+        target = ctx.participants.get(params.target_id)
+        if target is None:
+            raise RuntimeError(
+                f"contract violation: target {params.target_id!r} not in "
+                f"participants; AttackAction.can_perform_against must be "
+                f"called before execute"
+            )
         attacker_pos = ctx.battlefield.position_of(actor.id)
         target_pos = ctx.battlefield.position_of(target.id)
         cover = ctx.battlefield.cover_against(attacker_pos, target_pos)
@@ -267,11 +303,13 @@ class AttackAction:
             )
             dmg_adj = ctx.modifier_applier.to_roll_adjustments(dmg_mods)
             base_expr = DiceExpr.parse(params.damage_expr)
+            # Сборка через dataclasses.replace, не строковая конкатенация —
+            # DiceExpr.parse не поддерживает «1d8+3+2» (одно опциональное
+            # `[+-]\d+` в паттерне). Аудит 08 AT-R001.
             full_expr = (
-                base_expr if dmg_adj.numeric_bonus == 0
-                else DiceExpr.parse(
-                    f"{params.damage_expr}{dmg_adj.numeric_bonus:+d}"
-                )
+                base_expr
+                if dmg_adj.numeric_bonus == 0
+                else replace(base_expr, modifier=base_expr.modifier + dmg_adj.numeric_bonus)
             )
             dmg_ctx = RollContext(
                 purpose=RollPurpose.DAMAGE,
