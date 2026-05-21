@@ -159,6 +159,15 @@ class Creature:
     """Активные состояния. Полноценная Condition-логика — в отдельном
     регистре (task #28); здесь только трекинг наложен/снят."""
 
+    reaction_used: bool = False
+    """Использовал ли реакцию в **этом раунде**.
+
+    Reaction — per-creature per-round, не per-turn (PHB-2024 стр. 22).
+    Поле тут, а не в TurnContext, потому что реакции случаются в чужой
+    ход (например, opportunity attack). Очищает ``Encounter`` на старте
+    каждого нового раунда.
+    """
+
     helped_against: CreatureId | None = None
     """ID цели, на которую этому существу полагается advantage на
     следующую атаку (PHB-2024 стр. 22, Help action).

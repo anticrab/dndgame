@@ -132,6 +132,21 @@ class AttackAction:
 
     # --- can_perform ---------------------------------------------------
 
+    def _check_economy(
+        self, actor: Creature, ctx: TurnContext
+    ) -> ActionAvailability:
+        """Проверка бюджета. Подклассы (``OpportunityAttack``) переопределяют
+        её для reaction-режима, где «бюджет» — это
+        ``actor.reaction_used`` per-round, а не ``ctx.reaction_used``."""
+        if not ctx.can_spend(self.economy_cost_value):
+            return Forbidden(reason=ForbiddenReason.NO_ECONOMY_LEFT)
+        return Allowed()
+
+    def _spend_economy(self, actor: Creature, ctx: TurnContext) -> None:
+        """Списать бюджет атаки. Парная переопределяемая ручка к
+        ``_check_economy``."""
+        ctx.spend(self.economy_cost_value)
+
     def can_perform(
         self, actor: Creature, ctx: TurnContext
     ) -> ActionAvailability:
@@ -139,8 +154,9 @@ class AttackAction:
         # глобальные блокеры — экономика и состояния. Конкретные проверки
         # «можно ли атаковать ИМЕННО эту цель» — в ``can_perform_against``,
         # которое UI вызывает после выбора цели.
-        if not ctx.can_spend(ActionEconomyCost.ACTION):
-            return Forbidden(reason=ForbiddenReason.NO_ECONOMY_LEFT)
+        budget = self._check_economy(actor, ctx)
+        if isinstance(budget, Forbidden):
+            return budget
         for cond in _BLOCKING_CONDITIONS:
             if actor.has_condition(cond):
                 return Forbidden(
@@ -230,7 +246,7 @@ class AttackAction:
         cover = ctx.battlefield.cover_against(attacker_pos, target_pos)
         distance_ft = attacker_pos.distance_to_feet(target_pos)
 
-        ctx.spend(ActionEconomyCost.ACTION)
+        self._spend_economy(actor, ctx)
 
         # 1) Собрать модификаторы атаки.
         atk_mods = ctx.modifier_applier.collect(
@@ -371,7 +387,7 @@ class AttackAction:
 
         return ActionOutcome(
             success=True,
-            consumed=ActionEconomyCost.ACTION,
+            consumed=self.economy_cost_value,
             events_published=tuple(published),
             notes=(
                 f"hit={hit} crit={is_crit} target={target.id} "
