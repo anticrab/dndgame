@@ -19,6 +19,7 @@ from typing import ClassVar
 from pydantic import BaseModel, ConfigDict, Field
 
 from dnd.application.dto.ids import CreatureId, RollId
+from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import EngineRollResult
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.square import Square
@@ -171,6 +172,68 @@ class MoveCompleted(EngineEvent):
     end_pos: Square
     steps: int
     total_spent_ft: int
+
+
+# -- События боя (Encounter lifecycle, этап F) -------------------------
+
+
+class InitiativeRolled(EngineEvent):
+    """Инициатива брошена; ``order`` — финальный порядок ходов в раунде.
+
+    Публикуется один раз в начале боя (``Encounter.start``). Содержит
+    все participants' бросков, включая мёртвых на момент старта (на MVP
+    их в order не помещаем). См. ``docs/ENCOUNTER.md`` §2.
+    """
+
+    event_type: ClassVar[str] = "encounter.initiative_rolled"
+    order: tuple[InitiativeEntry, ...]
+
+
+class RoundStarted(EngineEvent):
+    """Начался раунд n. После публикации reactions у всех participants
+    обнулены."""
+
+    event_type: ClassVar[str] = "encounter.round_started"
+    round_number: int
+
+
+class RoundEnded(EngineEvent):
+    """Закончился раунд n. Все участники в order отходили (живые или нет)."""
+
+    event_type: ClassVar[str] = "encounter.round_ended"
+    round_number: int
+
+
+class TurnStarted(EngineEvent):
+    """Начался ход actor'а. Stances actor'а сброшены, свежий TurnContext
+    создан, экономия обнулена."""
+
+    event_type: ClassVar[str] = "encounter.turn_started"
+    actor_id: CreatureId
+    round_number: int
+    skipped: bool = False  # True если existo не может ходить (0 HP и т.п.)
+
+
+class TurnEnded(EngineEvent):
+    """Закончился ход actor'а."""
+
+    event_type: ClassVar[str] = "encounter.turn_ended"
+    actor_id: CreatureId
+    round_number: int
+
+
+class EncounterEnded(EngineEvent):
+    """Бой завершён.
+
+    ``winners`` — победившая фракция, или ``None`` если живых из
+    обеих воюющих сторон уже нет (одновременный нокаут) либо остались
+    только NEUTRAL.
+    """
+
+    event_type: ClassVar[str] = "encounter.ended"
+    winners: str | None  # Faction.value или None
+    round_number: int
+    survivors: tuple[CreatureId, ...]
 
 
 class HelpGranted(EngineEvent):
