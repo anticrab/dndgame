@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from dnd.application.ports.dice_roller import DiceRoller
     from dnd.application.ports.event_bus import EventBus
     from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.entities.creature import Creature
     from dnd.domain.ports.rng import RNG
 
 
@@ -53,6 +54,11 @@ class TurnContext:
     condition_service: ConditionService
     event_bus: EventBus
     rng: RNG
+
+    # Все участники текущего боя (живые и нет). Действия лукапят цель
+    # по CreatureId, не таская Creature в params (params — pydantic-DTO
+    # без mutable-объектов). Encounter (этап F) заполняет это.
+    participants: dict[CreatureId, Creature]
 
     movement_remaining_ft: int  # = speed * 1.0 в начале хода
 

@@ -35,6 +35,7 @@ def _make_ctx(movement_ft: int = 30) -> TurnContext:
         condition_service=MagicMock(),
         event_bus=MagicMock(),
         rng=MagicMock(),
+        participants={},
         movement_remaining_ft=movement_ft,
     )
 
