@@ -9,7 +9,8 @@ description = "Консольная D&D 5e (2024): эталонный учебн
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Кирилл Лотков", email = "lokotkov.cyril@gmail.com" }]
+authors = [{ name = "Maxim Lokotkov" }]
+urls = { Homepage = "https://github.com/anticrab" }
 keywords = ["dnd", "rpg", "cli", "tui", "5e"]
 
 dependencies = [
