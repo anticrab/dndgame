@@ -198,12 +198,21 @@ class Battlefield:
         потому что мы и так выбрали её как цель. Это согласуется с
         book-правилом «вы видите то, на что навели».
 
+        Обе точки обязаны быть в пределах карты — иначе ValueError.
         Идентичные точки — всегда видны.
+
+        Симметрия: ``los(a,b) == los(b,a)`` гарантируется через
+        канонизацию endpoint'ов (``_canonical_segment``) — стандартный
+        Брезенхэм направленно-зависим, и без канонизации одна и та же
+        стена могла бы блокировать только в одну сторону.
         """
+        self._require_in_bounds(frm, "frm")
+        self._require_in_bounds(to, "to")
         if frm == to:
             return True
-        for cell in _bresenham_line(frm, to):
-            if cell in (frm, to):
+        a, b = _canonical_segment(frm, to)
+        for cell in _bresenham_line(a, b):
+            if cell in (a, b):
                 continue
             if self.terrain_at(cell).blocks_los:
                 return False
@@ -212,23 +221,47 @@ class Battlefield:
     def cover_against(self, attacker_pos: Square, target_pos: Square) -> CoverLevel:
         """Какое укрытие у цели против атаки.
 
-        Берём cover **наибольшей** клетки на линии (книга стр. 25:
-        «если несколько источников укрытия — берётся самое сильное»).
-        Промежуточные клетки = клетки между, не включая endpoint'ы.
+        Алгоритм:
 
+        * Если ``target_pos`` стоит на клетке с ``CoverLevel.TOTAL``
+          (стена, закрытая дверь) — возвращаем ``TOTAL``: книга стр. 25,
+          «цель за полной защитой нельзя выбрать целью атаки». Это
+          важное отличие от семантики LoS — LoS позволяет «видеть, на
+          что навели», но cover остаётся полным.
+        * Иначе берём cover **наибольшей** клетки **между** позициями
+          (книга стр. 25: «если несколько источников укрытия — берётся
+          самое сильное»). Промежуточные клетки = клетки между, не
+          включая endpoint'ы — cover на endpoint означал бы «цель
+          ВНУТРИ парапета», а это уже не cover, а условие выбора цели.
+
+        Обе точки обязаны быть в пределах карты — иначе ValueError.
         Идентичные точки — NONE.
         """
+        self._require_in_bounds(attacker_pos, "attacker_pos")
+        self._require_in_bounds(target_pos, "target_pos")
         if attacker_pos == target_pos:
             return CoverLevel.NONE
 
+        # Книжный crash-stop: цель в total-cover клетке — нельзя выбрать.
+        target_terrain_cover = self.terrain_at(target_pos).cover
+        if target_terrain_cover is CoverLevel.TOTAL:
+            return CoverLevel.TOTAL
+
+        # Канонизируем порядок endpoint'ов для симметрии cover_against:
+        # стандартный Брезенхэм направленно-зависим.
+        a, b = _canonical_segment(attacker_pos, target_pos)
         worst = CoverLevel.NONE
-        for cell in _bresenham_line(attacker_pos, target_pos):
-            if cell in (attacker_pos, target_pos):
+        for cell in _bresenham_line(a, b):
+            if cell in (a, b):
                 continue
             cover = self.terrain_at(cell).cover
             if _cover_strength(cover) > _cover_strength(worst):
                 worst = cover
         return worst
+
+    def _require_in_bounds(self, square: Square, name: str) -> None:
+        if not self.in_bounds(square):
+            raise ValueError(f"{name}={square} is out of bounds")
 
     def threatens_squares(self, creature_id: CreatureId, *, reach_ft: int = 5) -> frozenset[Square]:
         """Какие клетки находятся под угрозой существа.
@@ -265,6 +298,19 @@ class Battlefield:
 # Sentinel Terrain «вне карты»: непроходим, блокирует LoS, total cover.
 # Создан как обычный Terrain, не нужно отдельного класса.
 _OUT_OF_BOUNDS = Terrain(passable=False, blocks_los=True, cover=CoverLevel.TOTAL)
+
+
+def _canonical_segment(p1: Square, p2: Square) -> tuple[Square, Square]:
+    """Канонический порядок endpoint'ов для LoS/cover.
+
+    Стандартный Брезенхэм направленно-зависим: при ``start→end`` и
+    ``end→start`` он может выбирать разные промежуточные клетки на
+    диагоналях. Это нарушает книжную симметрию «A видит B ⇔ B видит A».
+
+    Сортируем пару лексикографически ``(x, y)`` — детерминированно и
+    без потери информации.
+    """
+    return (p1, p2) if (p1.x, p1.y) <= (p2.x, p2.y) else (p2, p1)
 
 
 def _cover_strength(cover: CoverLevel) -> int:

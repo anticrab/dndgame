@@ -80,14 +80,32 @@ def test_setting_floor_clears_dict() -> None:
     assert bf.terrain_at(Square(3, 4)) is FLOOR
 
 
-def test_set_terrain_out_of_bounds_raises() -> None:
+@pytest.mark.parametrize(
+    "coord",
+    [
+        # точки границ — самые подлые off-by-one кейсы
+        Square(5, 0),
+        Square(0, 5),
+        Square(-1, 0),
+        Square(0, -1),
+        Square(10, 10),
+    ],
+)
+def test_set_terrain_out_of_bounds_raises(coord: Square) -> None:
     bf = Battlefield(5, 5)
     with pytest.raises(ValueError, match="out of bounds"):
-        bf.set_terrain(Square(10, 10), WALL)
+        bf.set_terrain(coord, WALL)
 
 
 def test_terrain_out_of_bounds_is_wall_like() -> None:
-    """За границей карты — стена (для упрощения LoS-алгоритма)."""
+    """За границей карты — стена (для упрощения LoS-алгоритма).
+
+    Это внутренний контракт: ``terrain_at`` безопасен при OOB-запросе,
+    чтобы Брезенхэм мог обращаться к соседям endpoints без отдельных
+    проверок. Публичные методы LoS/cover при OOB-endpoint'ах бросают
+    ValueError — см. test_los_out_of_bounds_raises и
+    test_cover_out_of_bounds_raises.
+    """
     bf = Battlefield(5, 5)
     out_terrain = bf.terrain_at(Square(-1, 0))
     assert out_terrain.passable is False
@@ -107,7 +125,15 @@ def test_place_and_query_position() -> None:
 
 
 def test_multiple_creatures_in_same_square() -> None:
-    """Q1: несколько существ на одной клетке допустимо."""
+    """Q1: несколько существ на одной клетке допустимо на уровне
+    Battlefield.
+
+    Книжное правило «проход сквозь враждебного запрещён» (PHB-2024
+    стр. 24, «Перемещение около других существ») — забота
+    ``Action.Move``, не Battlefield. Battlefield само по себе не
+    различает «дружественный/враждебный»: эту валидацию делает action
+    перед вызовом ``move_creature``. См. также docstring модуля.
+    """
     bf = Battlefield(10, 10)
     a = CreatureId("a")
     b = CreatureId("b")
@@ -123,10 +149,14 @@ def test_placing_on_wall_raises() -> None:
         bf.place_creature(CreatureId("x"), Square(5, 5))
 
 
-def test_placing_out_of_bounds_raises() -> None:
+@pytest.mark.parametrize(
+    "coord",
+    [Square(5, 0), Square(0, 5), Square(-1, 0), Square(0, -1), Square(10, 10)],
+)
+def test_placing_out_of_bounds_raises(coord: Square) -> None:
     bf = Battlefield(5, 5)
     with pytest.raises(ValueError, match="out of bounds"):
-        bf.place_creature(CreatureId("x"), Square(10, 10))
+        bf.place_creature(CreatureId("x"), coord)
 
 
 def test_replace_creature_moves_it() -> None:
@@ -175,15 +205,22 @@ def test_position_of_unknown_raises() -> None:
         bf.position_of(CreatureId("ghost"))
 
 
-def test_creatures_at_returns_immutable_snapshot() -> None:
-    """Вызывающий не должен мочь повредить внутренний список."""
+def test_creatures_at_snapshot_does_not_leak_internal_list() -> None:
+    """Контракт: возвращённый снапшот не делит память с внутренним
+    `_occupancy[square]`. Если ``creatures_at`` начнёт возвращать
+    `list` напрямую (рефакторинг), этот тест поймает регрессию.
+    """
     bf = Battlefield(10, 10)
-    bf.place_creature(CreatureId("a"), Square(1, 1))
+    a = CreatureId("a")
+    bf.place_creature(a, Square(1, 1))
     snap = bf.creatures_at(Square(1, 1))
-    assert isinstance(snap, tuple)
-    # tuple — иммутабельна по природе; повторный запрос даёт ту же
-    # последовательность.
-    assert bf.creatures_at(Square(1, 1)) == snap
+    # mutate-attempt: tuple immutability — проверяем, что снапшот не list
+    assert not isinstance(snap, list)
+    # Кладём ещё одно существо — старый снапшот не меняется.
+    bf.place_creature(CreatureId("b"), Square(1, 1))
+    assert snap == (a,)
+    # А свежий запрос видит обоих.
+    assert len(bf.creatures_at(Square(1, 1))) == 2
 
 
 def test_occupied_squares() -> None:
@@ -191,6 +228,41 @@ def test_occupied_squares() -> None:
     bf.place_creature(CreatureId("a"), Square(1, 1))
     bf.place_creature(CreatureId("b"), Square(5, 5))
     assert bf.occupied_squares == frozenset({Square(1, 1), Square(5, 5)})
+
+
+def test_place_remove_place_same_id_works() -> None:
+    """Существо вышло из боя и вернулось: повторное place того же ID
+    после remove должно работать как первый place."""
+    bf = Battlefield(10, 10)
+    a = CreatureId("a")
+    bf.place_creature(a, Square(1, 1))
+    bf.remove_creature(a)
+    bf.place_creature(a, Square(2, 2))
+    assert bf.position_of(a) == Square(2, 2)
+    assert bf.creatures_at(Square(1, 1)) == ()
+    assert bf.has_creature(a) is True
+
+
+def test_creatures_at_preserves_insertion_order_after_remove_middle() -> None:
+    """Docstring `creatures_at` обещает «порядок — по времени постановки».
+    Удаление среднего не должно перетасовать остальных."""
+    bf = Battlefield(5, 5)
+    a, b, c = CreatureId("a"), CreatureId("b"), CreatureId("c")
+    bf.place_creature(a, Square(2, 2))
+    bf.place_creature(b, Square(2, 2))
+    bf.place_creature(c, Square(2, 2))
+    bf.remove_creature(b)
+    assert bf.creatures_at(Square(2, 2)) == (a, c)
+
+
+def test_battlefield_1x1_minimal_case() -> None:
+    """1×1 — допустимый край: только одна клетка, threatens пуст."""
+    bf = Battlefield(1, 1)
+    assert bf.in_bounds(Square(0, 0)) is True
+    assert bf.in_bounds(Square(1, 0)) is False
+    a = CreatureId("a")
+    bf.place_creature(a, Square(0, 0))
+    assert bf.threatens_squares(a) == frozenset()
 
 
 # -- LoS ----------------------------------------------------------------
@@ -214,15 +286,18 @@ def test_los_blocked_by_wall_between() -> None:
     assert bf.line_of_sight(Square(0, 0), Square(9, 0)) is False
 
 
+@pytest.mark.rules
 def test_los_not_blocked_by_endpoint_terrain() -> None:
-    """Стена на самой цели — LoS есть (книга: «вы видите то, на что
-    навели»)."""
+    """Стена на самой цели — LoS есть (книга стр. 25: «вы видите то, на
+    что навели»)."""
     bf = Battlefield(10, 10)
     bf.set_terrain(Square(9, 0), WALL)
     assert bf.line_of_sight(Square(0, 0), Square(9, 0)) is True
 
 
+@pytest.mark.rules
 def test_los_blocked_by_closed_door() -> None:
+    """Закрытая дверь блокирует LoS, как стена (книга стр. 25)."""
     bf = Battlefield(10, 10)
     bf.set_terrain(Square(5, 5), CLOSED_DOOR)
     assert bf.line_of_sight(Square(3, 5), Square(7, 5)) is False
@@ -238,6 +313,44 @@ def test_los_through_high_cover_not_blocked() -> None:
 def test_los_diagonal_open() -> None:
     bf = Battlefield(10, 10)
     assert bf.line_of_sight(Square(0, 0), Square(5, 5)) is True
+
+
+@pytest.mark.rules
+def test_los_corner_of_wall_is_not_blocked_simplified() -> None:
+    """MVP-упрощение (VISIBILITY.md §7.1, ADR-0002): диагональный LoS
+    через «угол» из двух ортогональных стен — НЕ блокирован.
+
+    Полное wargame-правило «обе ортогонали → блок» — пост-MVP. Если
+    кто-то реализует это правило — тест обоснованно сломается и
+    заставит обновить документацию.
+    """
+    bf = Battlefield(5, 5)
+    bf.set_terrain(Square(1, 0), WALL)
+    bf.set_terrain(Square(0, 1), WALL)
+    # Линия (0,0) → (2,2) идёт через (1,1) — FLOOR; стены на (1,0) и
+    # (0,1) формируют «угол», но стандартный Брезенхэм через него
+    # проходит.
+    assert bf.line_of_sight(Square(0, 0), Square(2, 2)) is True
+
+
+@pytest.mark.parametrize(
+    "frm,to",
+    [
+        (Square(-1, 0), Square(2, 2)),
+        (Square(0, 0), Square(10, 10)),
+        (Square(0, -1), Square(2, 2)),
+    ],
+)
+def test_los_out_of_bounds_raises(frm: Square, to: Square) -> None:
+    """Контракт: оба endpoint'а LoS обязаны быть в пределах карты.
+
+    OOB-семантика wall-like — внутренний механизм для безопасного
+    обхода Брезенхэмом краёв (см. test_terrain_out_of_bounds_is_wall_like);
+    публичный API такие запросы отвергает.
+    """
+    bf = Battlefield(5, 5)
+    with pytest.raises(ValueError, match="out of bounds"):
+        bf.line_of_sight(frm, to)
 
 
 # -- cover --------------------------------------------------------------
@@ -268,7 +381,10 @@ def test_cover_picks_strongest_along_line() -> None:
     assert bf.cover_against(Square(2, 5), Square(7, 5)) is CoverLevel.THREE_QUARTERS
 
 
+@pytest.mark.rules
 def test_cover_no_obstacles_is_none() -> None:
+    """Книга стр. 25: «cover дают только препятствия между атакующим и
+    целью»."""
     bf = Battlefield(10, 10)
     assert bf.cover_against(Square(0, 0), Square(9, 9)) is CoverLevel.NONE
 
@@ -278,11 +394,81 @@ def test_cover_same_square_is_none() -> None:
     assert bf.cover_against(Square(3, 3), Square(3, 3)) is CoverLevel.NONE
 
 
-def test_cover_endpoint_terrain_does_not_count() -> None:
-    """Cover на самой цели не считается (как и для LoS)."""
+@pytest.mark.rules
+def test_cover_high_cover_on_target_endpoint_is_none() -> None:
+    """HIGH_COVER на самой цели — NONE: цель стоит **внутри** парапета
+    (атакующий выбрал именно эту клетку), и тогда half/three-quarters
+    cover уже не применяется. Это упрощённая семантика endpoint'а.
+
+    Для WALL endpoint поведение другое — см. test_cover_wall_on_target_is_total.
+    """
     bf = Battlefield(10, 10)
     bf.set_terrain(Square(7, 5), HIGH_COVER)
     assert bf.cover_against(Square(3, 5), Square(7, 5)) is CoverLevel.NONE
+
+
+@pytest.mark.rules
+def test_cover_wall_on_target_is_total() -> None:
+    """Книга стр. 25: «цель за полной защитой нельзя выбрать целью».
+
+    Если цель стоит на клетке с TOTAL-cover террейном (стена, закрытая
+    дверь) — cover_against возвращает TOTAL. Это отличает cover-семантику
+    endpoint'а от LoS-семантики «вижу то, на что навёл»: LoS-True не
+    значит, что атака легитимна — последнее слово за cover/Action.attack.
+    """
+    bf = Battlefield(10, 10)
+    bf.set_terrain(Square(7, 5), WALL)
+    assert bf.cover_against(Square(3, 5), Square(7, 5)) is CoverLevel.TOTAL
+
+
+@pytest.mark.rules
+def test_cover_wall_between_and_on_target_returns_total() -> None:
+    """WALL посередине + WALL на цели — также TOTAL. Доминирует endpoint."""
+    bf = Battlefield(10, 10)
+    bf.set_terrain(Square(5, 5), WALL)
+    bf.set_terrain(Square(7, 5), WALL)
+    assert bf.cover_against(Square(3, 5), Square(7, 5)) is CoverLevel.TOTAL
+
+
+@pytest.mark.rules
+def test_cover_closed_door_on_target_is_total() -> None:
+    """Закрытая дверь даёт TOTAL cover так же, как стена."""
+    bf = Battlefield(10, 10)
+    bf.set_terrain(Square(7, 5), CLOSED_DOOR)
+    assert bf.cover_against(Square(3, 5), Square(7, 5)) is CoverLevel.TOTAL
+
+
+@pytest.mark.rules
+@pytest.mark.parametrize(
+    "attacker,target",
+    [
+        # ортогональные соседи
+        (Square(4, 5), Square(5, 5)),
+        (Square(5, 5), Square(5, 6)),
+        # диагональные соседи
+        (Square(4, 4), Square(5, 5)),
+        (Square(6, 6), Square(5, 5)),
+    ],
+)
+def test_cover_adjacent_target_always_none(attacker: Square, target: Square) -> None:
+    """Книга стр. 25: cover требует препятствия **между**. У соседей
+    промежуточных клеток нет — cover всегда NONE (важно для melee)."""
+    bf = Battlefield(10, 10)
+    assert bf.cover_against(attacker, target) is CoverLevel.NONE
+
+
+@pytest.mark.parametrize(
+    "attacker,target",
+    [
+        (Square(-1, 0), Square(2, 2)),
+        (Square(0, 0), Square(10, 10)),
+    ],
+)
+def test_cover_out_of_bounds_raises(attacker: Square, target: Square) -> None:
+    """Контракт: оба endpoint'а cover_against обязаны быть в карте."""
+    bf = Battlefield(5, 5)
+    with pytest.raises(ValueError, match="out of bounds"):
+        bf.cover_against(attacker, target)
 
 
 # -- threatens_squares --------------------------------------------------
@@ -339,22 +525,49 @@ def test_threatens_unknown_creature_raises() -> None:
 
 _within_bf = st.integers(min_value=0, max_value=19)
 _squares = st.builds(Square, x=_within_bf, y=_within_bf)
+# Набор случайных стен (0..6): нетривиальная карта, чтобы инварианты
+# действительно работали, но и без переполнения примерами.
+_wall_set = st.sets(_squares, min_size=0, max_size=6)
 
 
 @pytest.mark.property
-@given(a=_squares, b=_squares)
-def test_property_los_symmetric_on_empty_map(a: Square, b: Square) -> None:
-    """LoS симметричен на пустой карте без препятствий: A видит B ⇔ B видит A."""
+@given(a=_squares, b=_squares, walls=_wall_set)
+def test_property_los_symmetric_with_random_walls(
+    a: Square, b: Square, walls: frozenset[Square]
+) -> None:
+    """LoS симметричен на ЛЮБОЙ карте: ``los(a,b) == los(b,a)``.
+
+    Это нетривиальное свойство Брезенхэма: алгоритм обходит точки в
+    направлении start→end, и асимметричный обход (если бы он был)
+    дал бы разный результат. Случайные стены гарантируют, что среди
+    примеров есть конфигурации, где LoS не тривиально True.
+    """
     bf = Battlefield(20, 20)
+    for w in walls:
+        bf.set_terrain(w, WALL)
     assert bf.line_of_sight(a, b) == bf.line_of_sight(b, a)
 
 
 @pytest.mark.property
-@given(a=_squares, b=_squares)
-def test_property_cover_no_obstacles_is_none(a: Square, b: Square) -> None:
-    """На пустой карте cover всегда NONE."""
+@given(a=_squares, b=_squares, walls=_wall_set)
+def test_property_cover_symmetric_with_random_walls(
+    a: Square, b: Square, walls: frozenset[Square]
+) -> None:
+    """Cover симметричен: ``cover(a,b) == cover(b,a)``.
+
+    Книга стр. 25 не различает направление — препятствие между A и B
+    даёт cover обоим. Алгоритм Брезенхэма обходит линию направленно;
+    если бы он терял клетки на «обратном» проходе — тест бы отловил.
+
+    Стены ставим только в промежутке (исключаем endpoint'ы из
+    конфигурации), чтобы устранить шум от семантики «WALL на target».
+    """
     bf = Battlefield(20, 20)
-    assert bf.cover_against(a, b) is CoverLevel.NONE
+    for w in walls:
+        if w == a or w == b:
+            continue
+        bf.set_terrain(w, WALL)
+    assert bf.cover_against(a, b) == bf.cover_against(b, a)
 
 
 @pytest.mark.property
@@ -394,18 +607,20 @@ def test_book_scenario_archer_behind_wall_blocked() -> None:
     assert bf.line_of_sight(Square(0, 1), Square(9, 1)) is False
 
 
+@pytest.mark.rules
 def test_book_scenario_archer_behind_high_cover_can_shoot_with_cover() -> None:
     """Лучник стреляет через high cover (парапет): LoS есть, но цель
-    под three-quarters cover."""
+    под three-quarters cover. Книга стр. 25."""
     bf = Battlefield(10, 3)
     bf.set_terrain(Square(5, 1), HIGH_COVER)
     assert bf.line_of_sight(Square(0, 1), Square(9, 1)) is True
     assert bf.cover_against(Square(0, 1), Square(9, 1)) is CoverLevel.THREE_QUARTERS
 
 
+@pytest.mark.rules
 def test_difficult_terrain_does_not_affect_los_or_cover() -> None:
-    """Труднопроходимая местность не блокирует LoS и не даёт cover —
-    только замедляет движение."""
+    """Труднопроходимая местность (книга стр. 23) не блокирует LoS и не
+    даёт cover — только замедляет движение."""
     bf = Battlefield(10, 3)
     bf.set_terrain(Square(5, 1), DIFFICULT)
     assert bf.line_of_sight(Square(0, 1), Square(9, 1)) is True
