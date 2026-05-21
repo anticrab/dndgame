@@ -18,6 +18,8 @@ from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from dnd.application.dto.rolls import EngineRollResult
+
 
 class EngineEvent(BaseModel):
     """База всех событий движка."""
@@ -36,3 +38,27 @@ class EngineEvent(BaseModel):
             "'master_intervention') и фильтрации в UI / логе."
         ),
     )
+
+
+class RollIssued(EngineEvent):
+    """Бросок инициирован, но ещё не применён к состоянию.
+
+    Между ``RollIssued`` и ``RollApplied`` мастер может вмешаться
+    (``MasterIntent.reroll`` / ``set_roll``). В MVP вмешательства нет —
+    события следуют последовательно. См. ``docs/ENGINE.md`` §7.4.
+
+    ``DiceStatisticsService`` подписывается именно на ``RollIssued``,
+    чтобы статистика считалась по «честному» броску до master-фаджа.
+    """
+
+    event_type: ClassVar[str] = "roll.issued"
+    result: EngineRollResult
+
+
+class RollApplied(EngineEvent):
+    """Бросок применён к состоянию (атака попала/промахнулась, спасбросок
+    прошёл/провалился). ``result`` может отличаться от ``RollIssued`` по
+    содержимому, если мастер вмешался (одинаковый ``roll_id``)."""
+
+    event_type: ClassVar[str] = "roll.applied"
+    result: EngineRollResult
