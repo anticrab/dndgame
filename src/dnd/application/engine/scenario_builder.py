@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.templates import MapTemplate, ScenarioTemplate
 from dnd.application.engine.builder import build_creature_from_template
@@ -24,6 +26,9 @@ from dnd.domain.values.terrain import (
     WALL,
     Terrain,
 )
+
+if TYPE_CHECKING:
+    from dnd.composition import EncounterRuntimeServices
 
 # Имя в YAML legend → канонический Terrain. Расширяется по мере роста
 # контента.
@@ -79,24 +84,43 @@ def build_encounter_from_scenario(
     scenario: ScenarioTemplate,
     *,
     content: ContentRepository,
-    deps: EncounterDependencies,
+    services: EncounterRuntimeServices | None = None,
+    deps: EncounterDependencies | None = None,
 ) -> Encounter:
     """Из сценария — готовый Encounter (не запущенный).
 
-    Битфилд из ``deps`` игнорируется и заменяется на новый из карты —
-    composition root обычно строит deps под этот сценарий.
+    Принимает **одно** из двух (XOR):
+
+    * ``services: EncounterRuntimeServices`` — рекомендуемый путь
+      (CL-A001). Битфилд строится из карты сценария, services
+      привязываются через ``with_battlefield``.
+    * ``deps: EncounterDependencies`` — legacy: ``deps.battlefield``
+      игнорируется и заменяется новым битфилдом. Сохранено для
+      обратной совместимости тестов.
 
     Возвращает Encounter; вызывающий делает ``encounter.start()``.
     """
+    if (services is None) == (deps is None):
+        raise ValueError(
+            "build_encounter_from_scenario requires exactly one of "
+            "`services` or `deps`"
+        )
+
     bf = build_battlefield_from_map(scenario.map)
-    deps_with_map = EncounterDependencies(
-        battlefield=bf,
-        dice_roller=deps.dice_roller,
-        modifier_applier=deps.modifier_applier,
-        condition_service=deps.condition_service,
-        event_bus=deps.event_bus,
-        rng=deps.rng,
-    )
+    if services is not None:
+        deps_with_map = services.with_battlefield(bf)
+    else:
+        # legacy путь: переиспользуем все сервисы из deps, заменяем
+        # только battlefield на свежий из карты.
+        assert deps is not None
+        deps_with_map = EncounterDependencies(
+            battlefield=bf,
+            dice_roller=deps.dice_roller,
+            modifier_applier=deps.modifier_applier,
+            condition_service=deps.condition_service,
+            event_bus=deps.event_bus,
+            rng=deps.rng,
+        )
 
     participants: dict[CreatureId, Creature] = {}
     factions: dict[CreatureId, Faction] = {}

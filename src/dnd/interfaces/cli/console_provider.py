@@ -48,18 +48,25 @@ _ACTION_CHOICES = [
 ]
 
 
+# Защита от бесконечной рекурсии в re-prompt'ах. Аудит 15 CL-UX001:
+# если игрок упорно выбирает «Attack без целей», после N циклов
+# принудительно завершаем ход (последняя соломинка против бага UI).
+_MAX_REPROMPTS = 5
+
+
 @dataclass(slots=True)
 class ConsoleIntentProvider:
     """Источник намерений через интерактивные prompt'ы.
 
-    Поле ``prompt`` оставлено для тестов: можно подменить
-    функцию-провайдера значений (например, цикл по списку). На
-    практике использует ``questionary.select`` / ``questionary.text``.
+    Поля ``prompt_*`` — слоты для подмены prompt'ов в тестах:
+    функции принимают сообщение и список выборов, возвращают строку.
+    В рантайме используют ``questionary`` (lazy import).
     """
 
     prompt_action: Callable[[str, list[str]], str] | None = None
     prompt_choice: Callable[[str, list[str]], str] | None = None
     prompt_text: Callable[[str], str] | None = None
+    notify: Callable[[str], None] | None = None
 
     def next_intent(
         self,
@@ -67,6 +74,23 @@ class ConsoleIntentProvider:
         ctx: TurnContext,
         encounter: Encounter,
     ) -> PlayerIntent:
+        return self._next_intent(actor, ctx, encounter, depth=0)
+
+    def _next_intent(
+        self,
+        actor: Creature,
+        ctx: TurnContext,
+        encounter: Encounter,
+        depth: int,
+    ) -> PlayerIntent:
+        if depth >= _MAX_REPROMPTS:
+            # Защита от циклической ошибки: «Attack без целей» снова и
+            # снова. Завершаем ход, не теряем сессию.
+            self._notify_user(
+                "Too many invalid attempts — ending turn."
+            )
+            return EndTurnIntent()
+
         choice = self._select(
             f"[{actor.name}] choose action:", _ACTION_CHOICES
         )
@@ -80,9 +104,9 @@ class ConsoleIntentProvider:
             case "Disengage":
                 return DisengageIntent()
             case "Attack":
-                return self._build_attack_intent(actor, ctx, encounter)
+                return self._build_attack_intent(actor, ctx, encounter, depth)
             case "Move":
-                return self._build_move_intent(actor, ctx, encounter)
+                return self._build_move_intent(actor, ctx, encounter, depth)
         return EndTurnIntent()
 
     # --- private -----------------------------------------------------
@@ -112,16 +136,25 @@ class ConsoleIntentProvider:
         result = questionary.text(message).ask()
         return result if result is not None else ""
 
+    def _notify_user(self, message: str) -> None:
+        """Сообщение игроку (warning / hint). Не теряет ход."""
+        if self.notify is not None:
+            self.notify(message)
+
     def _build_attack_intent(
         self,
         actor: Creature,
         ctx: TurnContext,
         encounter: Encounter,
+        depth: int,
     ) -> PlayerIntent:
         actor_faction = encounter.factions[actor.id]
         targets = _list_reachable_hostiles(actor, ctx, encounter, actor_faction)
         if not targets:
-            return EndTurnIntent()  # некого атаковать
+            # Аудит 15 CL-UX001: не теряем ход тихо — сообщаем и снова
+            # показываем меню.
+            self._notify_user("No reachable targets — choose another action.")
+            return self._next_intent(actor, ctx, encounter, depth + 1)
         labels = [
             f"{cid} ({encounter.participants[cid].name}, HP {encounter.participants[cid].hit_points.current}/{encounter.participants[cid].hit_points.maximum})"
             for cid in targets
@@ -136,6 +169,7 @@ class ConsoleIntentProvider:
         actor: Creature,
         ctx: TurnContext,
         encounter: Encounter,
+        depth: int,
     ) -> PlayerIntent:
         raw = self._ask_text(
             f"[{actor.name}] move to (x,y), e.g. 2,3 — current "
@@ -145,13 +179,24 @@ class ConsoleIntentProvider:
             x_str, y_str = raw.split(",", 1)
             target = Square(int(x_str.strip()), int(y_str.strip()))
         except (ValueError, AttributeError):
-            return EndTurnIntent()
+            # Аудит 15 CL-UX001: невалидный ввод — re-prompt, не end turn.
+            self._notify_user(
+                f"Cannot parse coordinates from {raw!r}. Use format: x,y"
+            )
+            return self._next_intent(actor, ctx, encounter, depth + 1)
+        if not ctx.battlefield.in_bounds(target):
+            self._notify_user(
+                f"{target} is out of bounds — pick coordinates within "
+                f"{ctx.battlefield.width}x{ctx.battlefield.height}."
+            )
+            return self._next_intent(actor, ctx, encounter, depth + 1)
         # Строим прямой chebyshev-путь.
         path = _chebyshev_path(
             ctx.battlefield.position_of(actor.id), target
         )
         if not path:
-            return EndTurnIntent()
+            self._notify_user("Already at the target square.")
+            return self._next_intent(actor, ctx, encounter, depth + 1)
         return MoveIntent(path=tuple(path))
 
 

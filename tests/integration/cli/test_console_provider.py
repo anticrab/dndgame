@@ -147,3 +147,79 @@ def test_console_provider_move_invalid_text_becomes_end_turn() -> None:
     )
     intent = provider.next_intent(warrior, ctx, enc)
     assert isinstance(intent, EndTurnIntent)
+
+
+# -- CL-UX001 (audit 15): re-prompt при invalid input ------------------
+
+
+def test_attack_with_no_targets_reprompts_with_warning() -> None:
+    """Аудит 15 CL-UX001: «Attack без целей» → re-prompt, не EndTurn."""
+    enc, warrior, _g = _build_encounter()
+    ctx = enc.start_turn()
+    # Снимаем оружие → нет валидных целей.
+    warrior.equipped_weapon = None
+
+    action_seq = iter(["Attack", "Dodge"])
+    notifications: list[str] = []
+    provider = ConsoleIntentProvider(
+        prompt_action=lambda _m, _c: next(action_seq),
+        notify=notifications.append,
+    )
+    intent = provider.next_intent(warrior, ctx, enc)
+    # После «Attack без целей» → notify + re-prompt → следующий выбор «Dodge».
+    assert isinstance(intent, DodgeIntent)
+    assert any("targets" in n.lower() for n in notifications)
+
+
+def test_move_with_invalid_text_reprompts() -> None:
+    """Invalid coord → notify + re-prompt → user пробует снова."""
+    enc, warrior, _g = _build_encounter()
+    ctx = enc.start_turn()
+
+    action_seq = iter(["Move", "Dodge"])
+    text_seq = iter(["garbage"])
+    notifications: list[str] = []
+    provider = ConsoleIntentProvider(
+        prompt_action=lambda _m, _c: next(action_seq),
+        prompt_text=lambda _m: next(text_seq),
+        notify=notifications.append,
+    )
+    intent = provider.next_intent(warrior, ctx, enc)
+    assert isinstance(intent, DodgeIntent)
+    assert any("parse" in n.lower() for n in notifications)
+
+
+def test_move_out_of_bounds_target_reprompts() -> None:
+    """Target за пределами карты → notify + re-prompt."""
+    enc, warrior, _g = _build_encounter()
+    ctx = enc.start_turn()
+
+    action_seq = iter(["Move", "Dodge"])
+    text_seq = iter(["99,99"])
+    notifications: list[str] = []
+    provider = ConsoleIntentProvider(
+        prompt_action=lambda _m, _c: next(action_seq),
+        prompt_text=lambda _m: next(text_seq),
+        notify=notifications.append,
+    )
+    intent = provider.next_intent(warrior, ctx, enc)
+    assert isinstance(intent, DodgeIntent)
+    assert any("out of bounds" in n.lower() for n in notifications)
+
+
+def test_reprompt_max_depth_falls_back_to_end_turn() -> None:
+    """Слишком много re-prompt'ов → принудительно EndTurn (защита)."""
+    enc, warrior, _g = _build_encounter()
+    ctx = enc.start_turn()
+    warrior.equipped_weapon = None  # все Attack бесплодны
+
+    # Всегда выбирает «Attack» — должен сломаться на _MAX_REPROMPTS.
+    notifications: list[str] = []
+    provider = ConsoleIntentProvider(
+        prompt_action=lambda _m, _c: "Attack",
+        notify=notifications.append,
+    )
+    intent = provider.next_intent(warrior, ctx, enc)
+    assert isinstance(intent, EndTurnIntent)
+    # Финальное warning о принудительном завершении.
+    assert any("ending turn" in n.lower() for n in notifications)

@@ -186,6 +186,15 @@ class Encounter:
         return self._deps.battlefield
 
     @property
+    def event_bus(self) -> EventBus:
+        """Прямой доступ к шине событий (proxy через deps).
+
+        Удобство для подписчиков (UI / журналов): не нужно лазать через
+        ``enc.deps.event_bus``. Аудит 15 CL-A002.
+        """
+        return self._deps.event_bus
+
+    @property
     def deps(self) -> EncounterDependencies:
         return self._deps
 

@@ -99,8 +99,17 @@ class GameRunner:
     def _run_pc_turn(
         self, actor: Creature, ctx: TurnContext, encounter: Encounter
     ) -> None:
-        """Опрашиваем provider до EndTurnIntent или предельного счётчика."""
+        """Опрашиваем provider до EndTurnIntent или предельного счётчика.
+
+        Аудит 15 CL-R001: после каждого intent перепроверяем
+        ``actor.is_alive`` / ``is_at_zero_hp`` — реакция OA (или AoE)
+        может убить PC посреди его хода, и крутить дальше intent'ы
+        нельзя (все Action'ы упрутся в условия и зациклимся до
+        ``_MAX_INTENTS_PER_TURN``).
+        """
         for _ in range(_MAX_INTENTS_PER_TURN):
+            if not actor.is_alive or actor.is_at_zero_hp:
+                return
             intent = self._intent_provider.next_intent(actor, ctx, encounter)
             if isinstance(intent, EndTurnIntent):
                 return

@@ -63,8 +63,7 @@ def play(
     from dnd.application.engine.scenario_builder import (
         build_encounter_from_scenario,
     )
-    from dnd.composition import build_default_dependencies
-    from dnd.domain.entities.battlefield import Battlefield
+    from dnd.composition import build_default_runtime_services
     from dnd.infrastructure.content.yaml_repository import (
         YamlContentRepository,
     )
@@ -81,10 +80,13 @@ def play(
     console = Console()
     console.print(f"[bold]{scenario.name}[/]\n")
 
-    deps = build_default_dependencies(battlefield=Battlefield(1, 1))
-    enc = build_encounter_from_scenario(scenario, content=repo, deps=deps)
-    printer = EventPrinter(console)
-    printer.subscribe(enc.deps.event_bus)
+    # Сервисы без привязки к карте — карта строится сценарием.
+    # Аудит 15 CL-A001 (никаких placeholder-битфилдов).
+    services = build_default_runtime_services()
+    enc = build_encounter_from_scenario(
+        scenario, content=repo, services=services
+    )
+    EventPrinter(console).subscribe(enc.event_bus)
 
     runner = GameRunner(intent_provider=ConsoleIntentProvider())
     runner.run(enc)
