@@ -22,6 +22,7 @@ from dnd.application.dto.ids import CreatureId, RollId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import EngineRollResult
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.faction import Faction
 from dnd.domain.values.square import Square
 
 
@@ -228,10 +229,15 @@ class EncounterEnded(EngineEvent):
     ``winners`` — победившая фракция, или ``None`` если живых из
     обеих воюющих сторон уже нет (одновременный нокаут) либо остались
     только NEUTRAL.
+
+    StrEnum ``Faction`` сериализуется как строка автоматически —
+    pydantic сохраняет тип и при `.model_dump()` подписчик получает
+    `str` (для логов), при доступе через атрибут — `Faction` enum.
+    Аудит 13 EN-R005.
     """
 
     event_type: ClassVar[str] = "encounter.ended"
-    winners: str | None  # Faction.value или None
+    winners: Faction | None
     round_number: int
     survivors: tuple[CreatureId, ...]
 

@@ -12,6 +12,7 @@ Mutable entity application-уровня. Зависимости упакован
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -25,13 +26,28 @@ from dnd.application.dto.engine_event import (
     TurnEnded,
     TurnStarted,
 )
-from dnd.application.dto.ids import CreatureId
+from dnd.application.dto.ids import ConditionId, CreatureId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.application.engine.turn_context import TurnContext
+from dnd.domain.conditions.builtin import (
+    INCAPACITATED,
+    PARALYZED,
+    STUNNED,
+    UNCONSCIOUS,
+)
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.faction import Faction
+
+_log = logging.getLogger(__name__)
+
+# Условия с speed=0 / без действий (PHB-2024 стр. 367). При них actor
+# не получает движения в свой ход. _effective_speed_ft возвращает 0.
+# Аудит 13 EN-R001.
+_ZERO_SPEED_CONDITIONS: frozenset[ConditionId] = frozenset(
+    {INCAPACITATED, PARALYZED, STUNNED, UNCONSCIOUS}
+)
 
 if TYPE_CHECKING:
     from dnd.application.engine.condition_service import ConditionService
@@ -106,6 +122,11 @@ class Encounter:
     Конструктор не запускает бой. Запуск — :meth:`start`, после
     которого доступны ``initiative_order`` / ``current_actor_id`` /
     ``round_number``.
+
+    **Single-shot**: после :class:`EncounterEnded` Encounter
+    становится бесполезным — повторный ``start()`` запрещён, любые
+    ``start_turn``/``end_turn`` → ``RuntimeError``. Для нового боя
+    создавайте новый объект. Аудит 13 EN-A006.
     """
 
     def __init__(
@@ -129,11 +150,12 @@ class Encounter:
                 f"factions has unknown creature_ids: {sorted(unknown)}"
             )
 
-        # Сохраняем _ссылку_ на dict, не копируем: вызывающий может
-        # добавлять participants по ходу боя (вызов подкреплений) —
-        # это известная фича для F3+, не баг.
-        self._participants = participants
-        self._factions = factions
+        # Делаем неглубокую копию: добавление participants после start()
+        # в MVP не поддерживается — initiative_order фиксирован при start(),
+        # и новый existo не получит хода (см. аудит 13 EN-A003).
+        # Полноценный API `add_participant(...)` — пост-F4.
+        self._participants = dict(participants)
+        self._factions = dict(factions)
         self._deps = deps
         self._reaction_policy: ReactionPolicy = (
             reaction_policy or noop_reaction_policy
@@ -230,6 +252,11 @@ class Encounter:
         self._deps.event_bus.publish(InitiativeRolled(order=order))
         # Сразу же — старт первого раунда (сброс reactions + RoundStarted).
         self._begin_round(1)
+        # Если одна из воюющих сторон уже выкошена до начала (offscreen
+        # урон, scripted setup) — закрыть бой сразу, без пустых ходов
+        # (аудит 13 EN-A002).
+        if self._check_end_condition():
+            return
         # Подписка на провокации — handler политики решает, делать ли OA.
         self._unsubscribe_provoked = self._deps.event_bus.subscribe(
             OpportunityAttackProvoked, self._on_provoked
@@ -237,10 +264,30 @@ class Encounter:
 
     def _on_provoked(self, event: OpportunityAttackProvoked) -> None:
         """Делегирование политике. Бой может уже быть concluded — тогда
-        провокация игнорируется (политику не дёргаем)."""
+        провокация игнорируется (политику не дёргаем).
+
+        **Контракт ReactionPolicy** (аудит 13 EN-A001):
+        - policy НЕ должна вызывать lifecycle-методы Encounter
+          (start_turn / end_turn / start) — это приведёт к расхождению
+          ходового указателя;
+        - policy может читать state Encounter и исполнять Action'ы
+          (например, OpportunityAttack.execute);
+        - если policy бросит — исключение ловится, логируется как
+          ERROR, бой продолжается; реакция считается несделанной.
+          Иначе шина проглотила бы исключение молча, и диагностика
+          «почему враг не сделал OA» становилась бы невозможной.
+        """
         if self._state.concluded:
             return
-        self._reaction_policy(event, self)
+        try:
+            self._reaction_policy(event, self)
+        except Exception:
+            _log.exception(
+                "reaction_policy raised for OpportunityAttackProvoked "
+                "(threatener=%s, actor=%s); reaction skipped",
+                event.threatener_id,
+                event.actor_id,
+            )
 
     # --- lifecycle (F2) ----------------------------------------------
 
@@ -269,6 +316,10 @@ class Encounter:
         # Сброс stances своего хода (PHB-2024 стр. 22).
         actor.combat_stances -= _STANCES_CLEARED_ON_TURN_START
 
+        # Сброс Help-якорей (PHB-2024 стр. 22: «until the start of your
+        # next turn or until you have advantaged an attack»). Аудит 13 EN-A004.
+        self._clear_pending_help(actor)
+
         # Свежий TurnContext.
         ctx = TurnContext(
             actor_id=actor_id,
@@ -279,7 +330,7 @@ class Encounter:
             event_bus=self._deps.event_bus,
             rng=self._deps.rng,
             participants=self._participants,
-            movement_remaining_ft=actor.speed_ft,
+            movement_remaining_ft=self._effective_speed_ft(actor),
             round_number=self._state.round_number,
             turn_number_in_round=self._state.current_turn_index,
         )
@@ -323,6 +374,37 @@ class Encounter:
     def _require_started(self) -> None:
         if not self._state.started:
             raise EncounterNotStartedError("call start() first")
+
+    def _effective_speed_ft(self, creature: Creature) -> int:
+        """Скорость actor'а в момент его хода.
+
+        PHB-2024 стр. 367: Paralyzed / Stunned / Unconscious /
+        Incapacitated → speed=0. Аудит 13 EN-R001.
+
+        TODO: интегрировать с ``ModifierApplier`` через
+        ``ModifierTargetKind.SPEED`` для Bless-/Slow-/Haste-эффектов
+        (после расширения MODIFIERS.md).
+        """
+        for cond in _ZERO_SPEED_CONDITIONS:
+            if creature.has_condition(cond):
+                return 0
+        if not creature.is_alive or creature.is_at_zero_hp:
+            return 0
+        return creature.speed_ft
+
+    def _clear_pending_help(self, helper: Creature) -> None:
+        """На старте хода helper'а сбросить неиспользованную помощь
+        (PHB-2024 стр. 22: «until the start of your next turn»).
+
+        Поле ``helped_against`` хранится у того, кто **получает помощь**
+        (ally), а парное ``helped_by`` указывает на helper'а. Так что мы
+        пробегаемся по participants и сбрасываем у тех, у кого
+        ``helped_by == helper.id``.
+        """
+        for cr in self._participants.values():
+            if cr.helped_by == helper.id:
+                cr.helped_against = None
+                cr.helped_by = None
 
     def _advance_turn_pointer(self) -> None:
         """Сдвинуть current_turn_index или открыть следующий раунд."""
@@ -387,7 +469,7 @@ class Encounter:
             self._unsubscribe_provoked = None
         self._deps.event_bus.publish(
             EncounterEnded(
-                winners=winners.value if winners is not None else None,
+                winners=winners,
                 round_number=self._state.round_number,
                 survivors=survivors,
             )
@@ -409,10 +491,16 @@ class Encounter:
             tags=("initiative",),
         )
         result = self._deps.dice_roller.roll(expr, ctx)
-        # d20_raw для tie-break: первый «kept» (он же raw — у инициативы
-        # нет advantage/disadvantage по умолчанию). Используем
-        # ``d20_raw`` свойство EngineRollResult.
-        d20_raw = result.d20_raw if result.d20_raw is not None else 0
+        # d20_raw обязателен для tie-break: инициатива по PHB-2024 — это
+        # d20-бросок. Если кастомный DiceRoller вернул не-d20, лучше
+        # упасть громко, чем тихо разрушать tie-break нулями.
+        # Аудит 13 EN-R003.
+        if result.d20_raw is None:
+            raise RuntimeError(
+                f"INITIATIVE roll for {cid!r} must be d20-based; "
+                f"DiceRoller returned EngineRollResult without d20_raw"
+            )
+        d20_raw = result.d20_raw
         return InitiativeEntry(
             creature_id=cid,
             total=result.total,
