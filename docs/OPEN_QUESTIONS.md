@@ -291,6 +291,201 @@ YAML, ссылающиеся на плагины, имеют зарегистр�
 
 ---
 
+## Решения второй волны (перед стартом Creature)
+
+### ✅ Q24. `Battlefield` — **mutable + `snapshot()`**
+
+Карта боя — mutable-объект (методы `move_creature`, `set_terrain` меняют
+его на месте). Для сохранения, replay и сетевого режима — метод
+`snapshot() -> BattlefieldSnapshot` возвращает иммутабельный VO,
+сериализуемый pydantic.
+
+Альтернативы: чистый immutable (`with_creature_at(...)`) и event sourcing.
+Первое — лишний копирование на каждом ходе; второе — overkill для
+учебной партии 30 минут.
+
+**Затронуто:** `domain/entities/battlefield.py`, `application/dto/snapshots.py`.
+
+### ✅ Q25. `Character` vs `Creature` — **композиция**
+
+`Character` содержит `creature: Creature` плюс свои поля (level, xp,
+alignment, biography, spell_slots, hit_dice, death_saves). Доступ к
+`Creature`-методам — через явное делегирование критичных операций
+(`Character.take_damage`, `Character.apply_condition` и т.п.), не через
+`__getattr__`. Прозрачнее для mypy strict, явнее в чтении.
+
+Цена — больше boilerplate-проксей; цена приемлема.
+
+**Затронуто:** `domain/entities/character.py`.
+
+### ✅ Q26. `DeathSaveState` — **встроен в `Character` с самого начала**
+
+Не отдельная сущность, не отдельный сервис: поле
+`Character.death_saves: DeathSaveState` инициализируется при создании
+PC. Состояние:
+
+* `successes: int` (0..3)
+* `failures: int` (0..3)
+* `stable: bool` (если стабилизирован Медициной или нат-20)
+
+При входе в 0 HP — `death_saves` начинает работать; при выходе
+(лечение/нат-20/Медицина) — сбрасывается. См. `DESIGN.md` §2.5.
+
+Реализуется сразу с Character, чтобы не возвращаться к этому при
+первом TPK-сценарии.
+
+**Затронуто:** `domain/entities/character.py`, новый раздел `DESIGN.md` §2.5.
+
+### ✅ Q27. Concentration — **поле на `Creature` заложить сейчас**
+
+В `Creature` будет поле `concentration: ConcentrationState | None`,
+где `ConcentrationState` хранит `spell_id`, `applied_modifiers: list[ModifierId]`.
+
+В MVP-классах (Воин/Плут) — заклинаний нет, поле всегда `None`. Но
+**метод** `take_damage()` уже сейчас вызывает `_concentration_check()`
+с `CON-save DC = max(10, damage // 2)`; реализация
+`_concentration_check` пока no-op (только assert), переписывается в
+один файл при добавлении первого заклинания концентрации.
+
+Это «5-минутная заготовка», которая сэкономит час рефакторинга в
+будущем.
+
+**Затронуто:** `domain/entities/creature.py`.
+
+---
+
+## Решения третьей волны (заранее под расширяемость)
+
+### ✅ Q28. Туман войны / LoS / освещение — **закладываем в движок с начала**
+
+`Battlefield` отвечает за **геометрию** (стены, освещение клеток,
+позиции существ). `VisibilitySystem` (отдельный сервис) отвечает за
+вопросы «видит ли A B?» и «какие клетки видит партия?».
+
+Подробности — в новом документе [`docs/VISIBILITY.md`](VISIBILITY.md).
+
+В MVP: общий партийный туман войны (FoV-вычисляется как объединение
+FoV всех PC). Per-character FoV — пост-MVP, но **интерфейс** уже
+готов к этому.
+
+**Затронуто:** `domain/entities/battlefield.py`, новый
+`application/engine/visibility.py`, `VISIBILITY.md`.
+
+### ✅ Q29. Targeting — **типизированная иерархия `Target`**
+
+`Target` — discriminated union: `CreatureTarget`, `SquareTarget`,
+`AreaTarget(shape, origin)`, `SelfTarget`, `MultiTarget(targets)`,
+`AllInRange(filter)`.
+
+`Action.target_kinds` — какие виды цели принимает действие.
+`UI.request_target(action, ctx)` — спрашивает с подсветкой допустимых.
+
+Подробности — в [`docs/TARGETING.md`](TARGETING.md).
+
+**Затронуто:** `application/dto/target.py`, `domain/actions/base.py`,
+`UI.md` §5.
+
+### ✅ Q30. AI-паттерны NPC — **конфигурируемые в YAML**
+
+`MonsterAI` — стратегия, выбираемая по `ai_profile: str` в YAML
+монстра. Базовые профили: `brawler` (тупой ближайший+max урон),
+`skirmisher` (ослабленных, тактичный), `ranged` (держит дистанцию),
+`caster` (приоритет заклинаний), `support` (лечит союзников), `coward`
+(убегает при HP<25%).
+
+Каждый профиль — Python-класс, регистрируемый в `MonsterAIRegistry`.
+Параметры профиля — данные YAML (например, `coward.flee_threshold: 0.25`).
+
+Подробности — в новом [`docs/AI.md`](AI.md).
+
+**Затронуто:** `application/ports/monster_ai.py`, `infrastructure/ai/`,
+`AI.md`, контент-схема монстров.
+
+### ✅ Q31. Action economy — **строгий протокол**
+
+В `Encounter.run_turn()` существо имеет «бюджет» на ход:
+
+* `action: ActionUsed | None`
+* `bonus_action: ActionUsed | None`
+* `reaction: ActionUsed | None` (живёт между ходами, сбрасывается на
+  старте *своего* хода)
+* `movement_remaining: int` (split — можно потратить часть до и часть
+  после действия)
+* `free_object_interaction: bool` (одно бесплатное взаимодействие в
+  ход)
+
+Это поля на `TurnBudget`-VO, в начале хода создаётся свежий, в конце
+архивируется в `GameLog`. Action.execute проверяет наличие
+соответствующего ресурса.
+
+**Затронуто:** `domain/entities/turn_budget.py` (новый), `DESIGN.md`
+§4 (расширенный).
+
+### ✅ Q32. Multiattack — **через `Action.repeats`**
+
+Воин-5 получает Extra Attack: `2 атаки за одно Action`. Гнолл и многие
+NPC — то же. Реализуется как поле `AttackAction.repeats: int` (по
+умолчанию 1). UI спрашивает цель для каждой атаки отдельно (или
+«одну на всех», по решению игрока).
+
+`Action.execute()` — внутри цикла по `repeats`, каждое попадание —
+свой `AttackRoll` событие.
+
+**Затронуто:** `domain/actions/attack.py`.
+
+### ✅ Q33. Reactions — **отдельный реестр + opt-in от игрока**
+
+`ReactionRegistry` объединён с `ActionRegistry` через поле
+`category: ACTION | BONUS | REACTION` (закрывает аудитное I-020).
+
+Когда триггер выпускает событие (например, `MovingOutOfReach`), движок
+собирает кандидатов-реакций у каждого существа в зоне; если есть
+реакция и игрок управляет существом — `UI.request_confirm("Use
+opportunity attack?")` (с настройкой «всегда — yes/no»).
+
+NPC — `MonsterAI.should_react(trigger, ctx) -> bool`.
+
+**Затронуто:** `domain/actions/base.py`, `application/engine/reactions.py`
+(новый), `MASTER.md` §3 (Master может включать/выключать реакции).
+
+### ✅ Q34. Exhaustion — **отдельная под-система, не Condition**
+
+Истощение — единственное накапливаемое состояние книги. Книга 2024
+упростила: 6 уровней, каждый — -2 ко всем тестам/спасброскам/атакам;
+уровень 6 — смерть. Не сводится к одной Condition.
+
+Реализуется как поле `Creature.exhaustion: int` (0..6), не через
+ConditionRegistry. Применение через специальные методы
+`Creature.add_exhaustion()`, `Creature.remove_exhaustion()`. Влияет на
+броски через автоматический `Modifier` источника
+`source_kind=exhaustion`.
+
+**Затронуто:** `domain/entities/creature.py`, `DESIGN.md` §5.
+
+### ✅ Q35. `CreatureSize` + reach — **enum закладываем сейчас**
+
+```python
+class CreatureSize(StrEnum):
+    TINY = "tiny"          # 2.5×2.5 фут (1/4 клетки, MVP не использует)
+    SMALL = "small"        # 5×5 (1 клетка)
+    MEDIUM = "medium"      # 5×5 (1 клетка) — стандарт MVP
+    LARGE = "large"        # 10×10 (4 клетки) — пост-MVP
+    HUGE = "huge"          # 15×15
+    GARGANTUAN = "gargantuan"  # 20×20+
+```
+
+В MVP все существа `MEDIUM`. Но `Creature.size` есть с самого начала,
+и `Battlefield` корректно работает с однокле́точными существами,
+оставляя зазор под пост-MVP «один Creature занимает несколько клеток».
+
+`Weapon.reach: int = 5` (в футах) для рукопашных; глефа = 10. Это
+**уже сейчас** учитывается в attack-роуте через `range_to_target()`.
+
+**Затронуто:** `domain/values/creature_size.py` (новый),
+`domain/entities/creature.py`.
+
+---
+
 ## Открытые вопросы от UI-агентов
 
 В файлах `docs/ui_mockups/*.md` агенты по UX оставили ~15 точечных

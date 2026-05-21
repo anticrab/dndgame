@@ -93,12 +93,16 @@ bmstu/dndgame/
 │   ├── MASTER.md
 │   ├── I18N.md
 │   ├── MODIFIERS.md
+│   ├── VISIBILITY.md
+│   ├── TARGETING.md
+│   ├── AI.md
 │   ├── GLOSSARY.md
 │   ├── SCENARIO_DEMO.md
 │   ├── OPEN_QUESTIONS.md
 │   └── ADR/
 │       ├── 0001-hexagonal-architecture.md
-│       └── 0002-square-grid.md
+│       ├── 0002-square-grid.md
+│       └── 0003-rng-as-domain-driven-port.md
 ├── content/
 │   ├── core/
 │   │   ├── species/*.yaml
