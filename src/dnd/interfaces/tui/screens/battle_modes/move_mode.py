@@ -69,7 +69,13 @@ class MoveModeHandler:
             bf = screen._current_battlefield
             if 0 <= new.x < bf.width and 0 <= new.y < bf.height:
                 self._cursor = new
-                walkable = find_walkable_path(bf, self._start, self._cursor)
+                # is_alive: трупы лежат на карте, но через них можно
+                # пройти. Без фильтра pathfinder уходил бы вокруг трупа
+                # как от обычного существа.
+                walkable = find_walkable_path(
+                    bf, self._start, self._cursor,
+                    is_alive=screen._is_alive_lookup,
+                )
                 self._path = walkable if walkable is not None else ()
                 self._cost_ft = path_cost_ft(bf, self._path) if self._path else 0
             return True

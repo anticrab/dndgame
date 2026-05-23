@@ -260,6 +260,16 @@ class BattleScreen(Screen[None]):
     def mode_hint_widget(self) -> ModeHintWidget:
         return self.query_one("#mode-hint", ModeHintWidget)
 
+    def _is_alive_lookup(self, cid: CreatureId) -> bool:
+        """Helper для рендера и pathfinder'а: жив ли participant.
+
+        Мёртвые остаются лежать на карте как трупы; pathfinder
+        пускает через них, render показывает `%`. Если participant
+        вообще не в encounter'е (теоретически невозможно) — считаем
+        живым, чтобы не «потерять» рендер существа."""
+        cr = self._participants.get(cid)
+        return True if cr is None else cr.is_alive
+
     # --- intent helpers ---------------------------------------------
 
     def _put_intent(self, intent: PlayerIntent) -> None:
@@ -318,6 +328,7 @@ class BattleScreen(Screen[None]):
                 path_preview=data.path_preview,
                 path_styles=data.path_styles,
                 follow=follow,
+                is_alive=self._is_alive_lookup,
             )
             self.mode_hint_widget.set_text(data.hint)
         except Exception:

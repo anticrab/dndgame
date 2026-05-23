@@ -207,8 +207,13 @@ class ConsoleIntentProvider:
         start = ctx.battlefield.position_of(actor.id)
         # Тот же helper, что и TUI: A* с учётом стен и difficult terrain.
         # Чтобы CLI и TUI выбирали одну клетку и шли одинаковым путём,
-        # — единый источник правды.
-        path = find_walkable_path(ctx.battlefield, start, target)
+        # — единый источник правды. is_alive пропускает трупы.
+        def _alive(cid: CreatureId) -> bool:
+            cr = encounter.participants.get(cid)
+            return True if cr is None else cr.is_alive
+        path = find_walkable_path(
+            ctx.battlefield, start, target, is_alive=_alive
+        )
         if path is None:
             self._notify_user(
                 f"{target} is unreachable (стена / занято / отрезано)."

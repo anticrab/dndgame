@@ -72,6 +72,11 @@ class ModeScreenContext(Protocol):
     # set_active_turn вместе с остальным контекстом.
     _participants: dict[CreatureId, Creature]
 
+    def _is_alive_lookup(self, cid: CreatureId) -> bool:
+        """Жив ли participant. MoveModeHandler передаёт это в
+        find_walkable_path, чтобы трупы не блокировали маршрут."""
+        ...
+
 
 class ModeHandler(Protocol):
     """Контракт для mode-handler'а. BattleScreen делегирует keypress'ы."""

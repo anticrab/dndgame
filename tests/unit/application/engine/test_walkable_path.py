@@ -109,3 +109,26 @@ def test_diagonal_open_field_is_straight_chebyshev() -> None:
     bf = _open(10, 10)
     path = find_walkable_path(bf, Square(0, 0), Square(3, 3))
     assert path == (Square(1, 1), Square(2, 2), Square(3, 3))
+
+
+def test_dead_creature_does_not_block_path() -> None:
+    """Труп на пути не блокирует маршрут (is_alive=False)."""
+    bf = _open(7, 1)
+    bf.place_creature(CreatureId("corpse"), Square(3, 0))
+    path = find_walkable_path(
+        bf, Square(0, 0), Square(6, 0),
+        is_alive=lambda cid: cid != CreatureId("corpse"),
+    )
+    assert path is not None
+    # Должен пройти ПРЯМО через клетку с трупом (chebyshev fast-path).
+    assert Square(3, 0) in path
+
+
+def test_living_creature_still_blocks_with_filter() -> None:
+    bf = _open(7, 1)
+    bf.place_creature(CreatureId("g"), Square(3, 0))
+    path = find_walkable_path(
+        bf, Square(0, 0), Square(6, 0),
+        is_alive=lambda cid: True,  # все живые → блокируют как раньше
+    )
+    assert path is None

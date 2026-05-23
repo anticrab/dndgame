@@ -9,7 +9,9 @@ fallback'а), затем настоящий обходной маршрут че
 from __future__ import annotations
 
 import heapq
+from collections.abc import Callable
 
+from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.values.square import Square
 
@@ -18,6 +20,26 @@ _NEIGHBOURS: tuple[tuple[int, int], ...] = (
     (0, -1),           (0, 1),
     (1, -1),  (1, 0),  (1, 1),
 )
+
+
+def _cell_blocked_by_creatures(
+    battlefield: Battlefield,
+    sq: Square,
+    is_alive: Callable[[CreatureId], bool] | None,
+) -> bool:
+    """True если на клетке хоть одно ЖИВОЕ существо. Мёртвые
+    (если фильтр передан) рассматриваются как «труп лежит, можно
+    переступить» — DM-rule из PHB: prone bodies are difficult
+    terrain, но для MVP считаем их полностью проходимыми.
+
+    При ``is_alive is None`` ведёт себя как раньше — любое существо
+    блокирует (backward compat для тестов и старых call-sites)."""
+    occupants = battlefield.creatures_at(sq)
+    if not occupants:
+        return False
+    if is_alive is None:
+        return True
+    return any(is_alive(cid) for cid in occupants)
 
 
 def find_chebyshev_path(start: Square, target: Square) -> tuple[Square, ...]:
@@ -42,6 +64,7 @@ def _chebyshev_walkable(
     battlefield: Battlefield,
     start: Square,
     path: tuple[Square, ...],
+    is_alive: Callable[[CreatureId], bool] | None,
 ) -> bool:
     """True если каждый шаг chebyshev-пути проходим (terrain + creatures
     + passable_between). Пустой path считаем «проходимым» тривиально."""
@@ -53,7 +76,7 @@ def _chebyshev_walkable(
             return False
         if not battlefield.passable_between(cur, nb):
             return False
-        if battlefield.creatures_at(nb):
+        if _cell_blocked_by_creatures(battlefield, nb, is_alive):
             return False
         cur = nb
     return True
@@ -63,6 +86,8 @@ def find_walkable_path(
     battlefield: Battlefield,
     start: Square,
     target: Square,
+    *,
+    is_alive: Callable[[CreatureId], bool] | None = None,
 ) -> tuple[Square, ...] | None:
     """Кратчайший проходимый путь от ``start`` до ``target`` (без старта).
 
@@ -90,11 +115,11 @@ def find_walkable_path(
         return None
     if not battlefield.terrain_at(target).passable:
         return None
-    if battlefield.creatures_at(target):
+    if _cell_blocked_by_creatures(battlefield, target, is_alive):
         return None
 
     direct = find_chebyshev_path(start, target)
-    if _chebyshev_walkable(battlefield, start, direct):
+    if _chebyshev_walkable(battlefield, start, direct, is_alive):
         return direct
 
     def _h(sq: Square) -> int:

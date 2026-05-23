@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from rich.text import Text
@@ -73,6 +74,7 @@ def render_battlefield(
     highlights: dict[Square, str] | None = None,
     path_preview: tuple[Square, ...] = (),
     path_styles: dict[Square, str] | None = None,
+    is_alive: Callable[[CreatureId], bool] | None = None,
 ) -> Text:
     """Сформировать ``rich.Text`` с ASCII-картой.
 
@@ -132,7 +134,8 @@ def render_battlefield(
                 out.append("·", style=style)
                 continue
             glyph, style = _cell_glyph(
-                battlefield, factions, sq, cursor, with_color=with_color
+                battlefield, factions, sq, cursor,
+                with_color=with_color, is_alive=is_alive,
             )
             if highlights and sq in highlights:
                 extra = highlights[sq]
@@ -193,10 +196,29 @@ def _cell_glyph(
     cursor: Square | None,
     *,
     with_color: bool,
+    is_alive: Callable[[CreatureId], bool] | None = None,
 ) -> tuple[str, str]:
     occupants = battlefield.creatures_at(sq)
     if occupants:
-        top = _pick_top_creature(occupants, factions)
+        # Если есть живой — показываем его (живой важнее трупа).
+        # Если все на клетке мёртвые — рисуем труп (roguelike `%`).
+        # is_alive=None ⇒ старое поведение (все живые); это нужно для
+        # рендер-тестов без participants-контекста.
+        living = [
+            c for c in occupants if (is_alive is None or is_alive(c))
+        ]
+        if not living:
+            # Все мёртвые — труп. Тёмно-красный приглушённый, чтобы не
+            # «пёкло глаза» как живой враг и не сливалось с фоном.
+            glyph = "%"
+            if with_color:
+                style = "red dim"
+                if sq == cursor:
+                    style = "red dim reverse"
+            else:
+                style = "reverse dim" if sq == cursor else "dim"
+            return (glyph, style)
+        top = _pick_top_creature(tuple(living), factions)
         faction = factions.get(top, Faction.NEUTRAL)
         glyph = _FACTION_GLYPH[faction]
         if with_color:
@@ -338,6 +360,7 @@ class MapWidget(Static):
         path_preview: tuple[Square, ...] = (),
         path_styles: dict[Square, str] | None = None,
         follow: Square | None = None,
+        is_alive: Callable[[CreatureId], bool] | None = None,
     ) -> None:
         self.set_world_size(battlefield.width, battlefield.height)
         # авто-расчёт viewport под размер виджета (если layout уже выполнен)
@@ -351,7 +374,7 @@ class MapWidget(Static):
             cursor=cursor, with_color=with_color, zoom=self._zoom,
             visible_rect=self.visible_rect() if self._zoom == "small" else None,
             highlights=highlights, path_preview=path_preview,
-            path_styles=path_styles,
+            path_styles=path_styles, is_alive=is_alive,
         ))
 
     def _auto_follow(self, target: Square) -> None:
