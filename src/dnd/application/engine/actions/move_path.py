@@ -101,13 +101,30 @@ def find_walkable_path(
         # chebyshev-расстояние × минимальная стоимость шага.
         return 5 * max(abs(sq.x - target.x), abs(sq.y - target.y))
 
+    def _cross_bias(sq: Square) -> int:
+        # «Отклонение от прямой start→target»: |(sq - target) ×
+        # (start - target)|. Чем меньше — тем ближе клетка к
+        # воображаемой линии PC→цель. Используется как tie-breaker
+        # внутри equal-cost paths — это не меняет optimality
+        # Dijkstra'и, но делает обходные пути визуально менее
+        # «горбатыми» (UX-репорт «странно обходит стену сверху»).
+        dx1 = sq.x - target.x
+        dy1 = sq.y - target.y
+        dx2 = start.x - target.x
+        dy2 = start.y - target.y
+        return abs(dx1 * dy2 - dx2 * dy1)
+
     g_score: dict[Square, int] = {start: 0}
     prev: dict[Square, Square] = {}
-    # heap items: (f, h, x, y) — h как tie-breaker (ближе к цели —
-    # раньше; убирает большую часть зигзагов при равном f).
-    pq: list[tuple[int, int, int, int]] = [(_h(start), _h(start), start.x, start.y)]
+    # heap items: (f, cross_bias, h, x, y).
+    # 1. Primary order — f = g + h (Dijkstra/A* optimality).
+    # 2. Tie-breaker — cross_bias (прямее = раньше).
+    # 3. Затем h (ближе к цели), затем (x, y) для детерминизма.
+    pq: list[tuple[int, int, int, int, int]] = [
+        (_h(start), _cross_bias(start), _h(start), start.x, start.y),
+    ]
     while pq:
-        _, _, x, y = heapq.heappop(pq)
+        _, _, _, x, y = heapq.heappop(pq)
         cur = Square(x, y)
         if cur == target:
             break
@@ -129,7 +146,9 @@ def find_walkable_path(
                 g_score[nb] = ng
                 prev[nb] = cur
                 h_nb = _h(nb)
-                heapq.heappush(pq, (ng + h_nb, h_nb, nb.x, nb.y))
+                heapq.heappush(
+                    pq, (ng + h_nb, _cross_bias(nb), h_nb, nb.x, nb.y)
+                )
 
     if target not in g_score:
         return None

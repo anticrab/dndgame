@@ -22,34 +22,47 @@ def format_initiative(
     *,
     active_id: CreatureId | None = None,
 ) -> str:
-    """Многострочный листинг очереди.
+    """Многострочный листинг очереди (Rich-markup).
 
     Маркеры:
       * ``▶`` — текущий актор;
-      * ``✗`` — труп (is_alive=False);
+      * ``✗`` — труп (is_alive=False), название перечёркнуто и dim'ом;
       * ``-`` — обычная строка.
+
+    Раньше мёртвых выделял только маленький символ ``✗``, который терялся
+    среди ``-`` (UX-репорт «убил, но он жив»). Теперь:
+    * маркер ``✗`` в красном,
+    * имя перечёркнуто + затемнено,
+    * суффикс ``DEAD`` яркий и сразу читается как «выбыл из боя».
     """
     lines: list[str] = []
     for idx, entry in enumerate(order, start=1):
         creature = participants.get(entry.creature_id)
         if creature is None:
-            marker = "?"
-            name = str(entry.creature_id)
-        elif not creature.is_alive:
-            marker = "✗"
-            name = creature.name
-        elif entry.creature_id == active_id:
-            marker = "▶"
-            name = creature.name
-        else:
-            marker = "-"
-            name = creature.name
+            lines.append(f"{idx} ? {entry.creature_id!s:<12} {entry.total:>3}")
+            continue
+        name = creature.name
+        if not creature.is_alive:
+            lines.append(
+                f"{idx} [red]✗[/] "
+                f"[dim strike]{name:<12}[/] "
+                f"[red bold]DEAD[/] "
+                f"{entry.total:>3}"
+            )
+            continue
+        marker = "▶" if entry.creature_id == active_id else "-"
         lines.append(f"{idx} {marker} {name:<12} {entry.total:>3}")
     return "\n".join(lines)
 
 
 class InitiativeWidget(Static):
     DEFAULT_CSS = ""
+
+    # markup=True — чтобы [dim strike]/[red bold] в format_initiative
+    # реально рендерились, а не печатались как литерал.
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        kwargs.setdefault("markup", True)
+        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
 
     def refresh_from(
         self,
