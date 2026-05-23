@@ -38,6 +38,27 @@ def find_chebyshev_path(start: Square, target: Square) -> tuple[Square, ...]:
     return tuple(path)
 
 
+def _chebyshev_walkable(
+    battlefield: Battlefield,
+    start: Square,
+    path: tuple[Square, ...],
+) -> bool:
+    """True если каждый шаг chebyshev-пути проходим (terrain + creatures
+    + passable_between). Пустой path считаем «проходимым» тривиально."""
+    cur = start
+    for nb in path:
+        if not battlefield.in_bounds(nb):
+            return False
+        if not battlefield.terrain_at(nb).passable:
+            return False
+        if not battlefield.passable_between(cur, nb):
+            return False
+        if battlefield.creatures_at(nb):
+            return False
+        cur = nb
+    return True
+
+
 def find_walkable_path(
     battlefield: Battlefield,
     start: Square,
@@ -45,19 +66,23 @@ def find_walkable_path(
 ) -> tuple[Square, ...] | None:
     """Кратчайший проходимый путь от ``start`` до ``target`` (без старта).
 
-    Dijkstra по 8-связному графу. Веса:
-    * 5 ft за обычную проходимую клетку,
-    * 10 ft за difficult terrain.
+    Алгоритм:
 
-    Пропускаются клетки:
-    * за границей карты;
-    * непроходимый terrain (стена, вода без bridge и т.п.);
-    * содержащие другое существо (кроме самого target — туда можно
-      «прийти на 5 ft», но в MOVE intent'е этого пока нет, поэтому
-      на занятую клетку маршрут не строится).
+    1. **Fast-path** — пробуем прямой chebyshev (8-связная «воздушная»
+       линия). Если он целиком проходим — возвращаем его. Это
+       избавляет UI от «странных» обходных путей, когда препятствий
+       нет: при равной стоимости Dijkstra может выбрать боковой
+       маршрут, и человеку это режет глаз.
 
-    Возвращает None если цель недостижима (нет пути или непроходимый
-    target).
+    2. **A\\*** (informed Dijkstra) по 8-связному графу. Веса 5 ft /
+       10 ft (difficult); эвристика — chebyshev-расстояние × 5 ft.
+       Tie-breaker: при равном ``f = g + h`` предпочитается
+       наименьший ``h`` (ближе к цели) → меньше «зигзагов».
+
+    Пропускаются клетки за границей карты, непроходимые
+    (стена/вода/...) и занятые другими существами.
+
+    Возвращает None если цель недостижима или непроходима.
     """
     if start == target:
         return ()
@@ -68,18 +93,25 @@ def find_walkable_path(
     if battlefield.creatures_at(target):
         return None
 
-    dist: dict[Square, int] = {start: 0}
+    direct = find_chebyshev_path(start, target)
+    if _chebyshev_walkable(battlefield, start, direct):
+        return direct
+
+    def _h(sq: Square) -> int:
+        # chebyshev-расстояние × минимальная стоимость шага.
+        return 5 * max(abs(sq.x - target.x), abs(sq.y - target.y))
+
+    g_score: dict[Square, int] = {start: 0}
     prev: dict[Square, Square] = {}
-    # heap items: (distance, x, y) — x, y нужны как tie-breakers
-    # (Square не сравнима), а не для логики
-    pq: list[tuple[int, int, int]] = [(0, start.x, start.y)]
+    # heap items: (f, h, x, y) — h как tie-breaker (ближе к цели —
+    # раньше; убирает большую часть зигзагов при равном f).
+    pq: list[tuple[int, int, int, int]] = [(_h(start), _h(start), start.x, start.y)]
     while pq:
-        d, x, y = heapq.heappop(pq)
+        _, _, x, y = heapq.heappop(pq)
         cur = Square(x, y)
         if cur == target:
             break
-        if d > dist.get(cur, 10**9):
-            continue
+        g_cur = g_score[cur]
         for dx, dy in _NEIGHBOURS:
             nb = Square(x + dx, y + dy)
             if not battlefield.in_bounds(nb):
@@ -92,13 +124,14 @@ def find_walkable_path(
             if battlefield.creatures_at(nb):
                 continue
             cost = 10 if terrain.difficult else 5
-            nd = d + cost
-            if nd < dist.get(nb, 10**9):
-                dist[nb] = nd
+            ng = g_cur + cost
+            if ng < g_score.get(nb, 10**9):
+                g_score[nb] = ng
                 prev[nb] = cur
-                heapq.heappush(pq, (nd, nb.x, nb.y))
+                h_nb = _h(nb)
+                heapq.heappush(pq, (ng + h_nb, h_nb, nb.x, nb.y))
 
-    if target not in dist:
+    if target not in g_score:
         return None
     path: list[Square] = []
     node = target

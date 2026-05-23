@@ -92,3 +92,20 @@ def test_walks_around_creature_when_room() -> None:
     path = find_walkable_path(bf, Square(0, 1), Square(6, 1))
     assert path is not None
     assert Square(3, 1) not in path
+
+
+def test_open_field_path_is_chebyshev_straight() -> None:
+    """На пустом поле возвращается прямой chebyshev — не «зигзаг» с
+    отступом по y, который раньше иногда выбирала Dijkstra при
+    равной стоимости (UX-репорт «персонаж пытается сходить через
+    верхнюю клетку»)."""
+    bf = _open(10, 10)
+    path = find_walkable_path(bf, Square(1, 5), Square(4, 5))
+    assert path == (Square(2, 5), Square(3, 5), Square(4, 5))
+
+
+def test_diagonal_open_field_is_straight_chebyshev() -> None:
+    """Прямая diagonal — три шага без боковых отклонений."""
+    bf = _open(10, 10)
+    path = find_walkable_path(bf, Square(0, 0), Square(3, 3))
+    assert path == (Square(1, 1), Square(2, 2), Square(3, 3))
