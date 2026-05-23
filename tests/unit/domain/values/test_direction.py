@@ -1,7 +1,9 @@
 """Direction — компасные направления, используются в Feature.blocks_passage_dirs."""
+
 from __future__ import annotations
 
 import pytest
+
 from dnd.domain.values.direction import Direction
 from dnd.domain.values.square import Square
 
@@ -29,6 +31,9 @@ def test_opposite_pairs() -> None:
         (Square(2, 2), Square(3, 2), Direction.E),
         (Square(2, 2), Square(1, 2), Direction.W),
         (Square(2, 2), Square(3, 1), Direction.NE),
+        (Square(2, 2), Square(3, 3), Direction.SE),
+        (Square(2, 2), Square(1, 3), Direction.SW),
+        (Square(2, 2), Square(1, 1), Direction.NW),
     ],
 )
 def test_from_squares(from_sq: Square, to_sq: Square, expected: Direction) -> None:
@@ -43,3 +48,8 @@ def test_from_squares_same_position_raises() -> None:
 def test_from_squares_non_adjacent_raises() -> None:
     with pytest.raises(ValueError, match="not adjacent"):
         Direction.from_squares(Square(1, 1), Square(3, 3))
+
+
+@pytest.mark.parametrize("d", list(Direction))
+def test_opposite_is_involution(d: Direction) -> None:
+    assert d.opposite().opposite() is d
