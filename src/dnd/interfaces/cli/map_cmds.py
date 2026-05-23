@@ -216,6 +216,26 @@ def paint(
     typer.echo(f"painted {at}: base={new_base} features={list(new_features)}")
 
 
+@map_app.command("edit")
+def edit(
+    id_: str = typer.Argument(..., metavar="ID"),
+    maps_dir: Path = typer.Option(_DEFAULT_MAPS, "--maps-dir"),
+    sprites_dir: Path = typer.Option(_DEFAULT_SPRITES, "--sprites-dir"),
+) -> None:
+    """Редактировать карту в TUI (палитра + paint по курсору)."""
+    repo = _repo(maps_dir)
+    try:
+        doc = repo.load(id_)
+    except KeyError:
+        typer.echo(f"map not found: {id_!r}", err=True)
+        raise typer.Exit(code=2) from None
+    sprites = YamlSpriteRegistry(sprites_dir)
+    # Импорт лениво: textual — тяжёлая зависимость, не нужная остальным
+    # подкомандам ``dnd map ...``.
+    from dnd.interfaces.tui import TuiApp
+    TuiApp(editor=(doc, repo, sprites)).run()
+
+
 @map_app.command("export")
 def export(
     id_: str = typer.Argument(...),

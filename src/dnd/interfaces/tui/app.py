@@ -25,9 +25,14 @@ from dnd.interfaces.tui.screens import BattleScreen
 from dnd.interfaces.tui.themes import ThemeName, theme_css_path
 
 if TYPE_CHECKING:
+    from dnd.application.dto.map_dto import MapDocument
     from dnd.application.engine.encounter import Encounter
     from dnd.application.engine.turn_context import TurnContext
+    from dnd.application.ports.map_repository import MapRepository
+    from dnd.application.ports.sprite_registry import SpriteRegistry
     from dnd.domain.entities.creature import Creature
+
+    EditorBundle = tuple[MapDocument, MapRepository, SpriteRegistry]
 
 
 class TuiApp(App[None]):
@@ -51,6 +56,7 @@ class TuiApp(App[None]):
         *,
         encounter: Encounter | None = None,
         theme: ThemeName = "color",
+        editor: EditorBundle | None = None,
     ) -> None:
         # CSS_PATH читается из атрибутов экземпляра в __init__ Textual.
         # Подставляем тему до super().__init__.
@@ -58,6 +64,7 @@ class TuiApp(App[None]):
         super().__init__()
         self._theme: ThemeName = theme
         self._encounter = encounter
+        self._editor = editor
         self._intent_queue: queue.Queue[PlayerIntent] | None = None
         self._provider: TuiIntentProvider | None = None
         self._renderer: EventRenderer | None = None
@@ -66,6 +73,12 @@ class TuiApp(App[None]):
         self._battle_screen: BattleScreen | None = None
 
     def on_mount(self) -> None:
+        if self._editor is not None:
+            from dnd.interfaces.tui.screens.editor_screen import EditorScreen
+            doc, repo, sprites = self._editor
+            self.push_screen(EditorScreen(doc=doc, repo=repo, sprites=sprites))
+            return
+
         if self._encounter is None:
             self.push_screen(BattleScreen())
             return
