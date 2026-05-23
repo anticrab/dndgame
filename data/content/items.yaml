@@ -1,0 +1,62 @@
+# Каталог предметов (этап O). Item-ы по id известны из этого файла
+# и из них реконструируются ItemStack'и в сундуках / на трупах /
+# инвентарях монстров. См. dnd.application.ports.item_repository.
+#
+# Базовый набор для крипты — валюта, расходники, простое оружие.
+# Расширим вместе с этапами R (loot tables на уровни) и S (контент).
+
+# --- валюта -------------------------------------------------------
+- id: gold_piece
+  name: "Gold piece"
+  kind: misc
+  weight_lb: 0.02
+  description: "Стандартная валюта; 50 монет ≈ 1 lb."
+  stackable: true
+
+- id: silver_piece
+  name: "Silver piece"
+  kind: misc
+  weight_lb: 0.02
+  description: "10 серебряных = 1 золотой."
+  stackable: true
+
+# --- расходники ---------------------------------------------------
+- id: healing_potion
+  name: "Healing Potion"
+  kind: consumable
+  weight_lb: 0.5
+  description: "Восстанавливает 2d4+2 HP при использовании."
+  stackable: true
+
+- id: torch
+  name: "Torch"
+  kind: consumable
+  weight_lb: 1.0
+  description: "Источник света 20 ft; горит 1 час."
+  stackable: true
+
+# --- оружие (для лута с трупов) -----------------------------------
+- id: longsword
+  name: "Longsword"
+  kind: weapon
+  weight_lb: 3.0
+  description: "Versatile martial weapon (1d8 / 1d10 versatile)."
+
+- id: scimitar
+  name: "Scimitar"
+  kind: weapon
+  weight_lb: 3.0
+  description: "Finesse martial weapon (1d6 slashing)."
+
+- id: shortbow
+  name: "Shortbow"
+  kind: weapon
+  weight_lb: 2.0
+  description: "Ranged simple weapon (1d6 piercing, 80/320 ft)."
+
+# --- квестовый/прочее --------------------------------------------
+- id: brass_key
+  name: "Brass key"
+  kind: quest
+  weight_lb: 0.0
+  description: "Замысловатый ключ — отпирает запертые двери крипты."
