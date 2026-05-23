@@ -226,6 +226,11 @@ class MapWidget(Static):
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._zoom: str = "small"
+        self._camera: Square = Square(0, 0)
+        self._viewport_w: int = 80
+        self._viewport_h: int = 24
+        self._world_w: int = 0
+        self._world_h: int = 0
 
     @property
     def zoom(self) -> str:
@@ -243,6 +248,51 @@ class MapWidget(Static):
     def toggle_zoom(self) -> None:
         """Инвертировать zoom — удобство для hotkey'ев `+`/`-`/`=`."""
         self._zoom = "small" if self._zoom == "medium" else "medium"
+
+    @property
+    def camera(self) -> Square:
+        return self._camera
+
+    def set_viewport_size(self, w: int, h: int) -> None:
+        """Размер видимой области в клетках. Вызывается из refresh_from
+        на основе self.size (Textual layout). Tests дёргают напрямую."""
+        if w < 1 or h < 1:
+            raise ValueError(f"viewport size must be positive, got {w}×{h}")
+        self._viewport_w = w
+        self._viewport_h = h
+
+    def set_world_size(self, w: int, h: int) -> None:
+        """Размер мира (битфилда) в клетках. Нужен для clamp camera."""
+        self._world_w = w
+        self._world_h = h
+
+    def pan(self, dx: int, dy: int) -> None:
+        """Сместить камеру на (dx, dy). Clamp к [0, world-viewport]."""
+        max_x = max(0, self._world_w - self._viewport_w)
+        max_y = max(0, self._world_h - self._viewport_h)
+        nx = max(0, min(self._camera.x + dx, max_x))
+        ny = max(0, min(self._camera.y + dy, max_y))
+        self._camera = Square(nx, ny)
+
+    def center_on(self, sq: Square) -> None:
+        """Центрировать viewport на клетке. Clamp к границам."""
+        cx = sq.x - self._viewport_w // 2
+        cy = sq.y - self._viewport_h // 2
+        max_x = max(0, self._world_w - self._viewport_w)
+        max_y = max(0, self._world_h - self._viewport_h)
+        self._camera = Square(
+            max(0, min(cx, max_x)),
+            max(0, min(cy, max_y)),
+        )
+
+    def visible_rect(self) -> tuple[int, int, int, int]:
+        """(x0, y0, x1, y1) — диапазон видимых клеток в координатах битфилда."""
+        return (
+            self._camera.x,
+            self._camera.y,
+            self._camera.x + self._viewport_w,
+            self._camera.y + self._viewport_h,
+        )
 
     def refresh_from(
         self,
