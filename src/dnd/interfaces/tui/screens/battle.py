@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, ClassVar
 from textual.app import ComposeResult
 from textual.binding import BindingType
 from textual.containers import Horizontal, Vertical
+from textual.message import Message
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
@@ -70,7 +71,14 @@ class BattleScreen(Screen[None]):
         текущего хода. Вызывается из обработчиков клавиш сразу при
         нажатии — состояние всегда свежее. Полю присваивается
         EventRenderer'ом в TurnStarted.
+
+    После полного монтирования (виджеты доступны через query_one)
+    шлёт ``Ready`` сообщение — TuiApp ловит и стартует bridge+worker.
+    Это снимает гонку «event пришёл раньше, чем DOM собран».
     """
+
+    class Ready(Message):
+        """Экран смонтирован, виджеты готовы к обновлению."""
 
     BINDINGS: ClassVar[list[BindingType]] = [
         ("a", "intent_attack", "Attack"),
@@ -124,6 +132,10 @@ class BattleScreen(Screen[None]):
                 yield InitiativeWidget(id="init")
         yield LogWidget(id="log", wrap=True, highlight=True, markup=True, max_lines=200)
         yield Footer()
+
+    def on_mount(self) -> None:
+        # Все виджеты уже смонтированы — можно сигналить bridge.
+        self.post_message(self.Ready())
 
     # --- accessors --------------------------------------------------
 

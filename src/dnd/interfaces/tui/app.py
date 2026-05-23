@@ -71,6 +71,25 @@ class TuiApp(App[None]):
         self._intent_queue = queue.Queue()
         self._battle_screen = BattleScreen(intent_queue=self._intent_queue)
         self.push_screen(self._battle_screen)
+        # Bridge + worker запускаются на BattleScreen.Ready (см.
+        # _on_battle_screen_ready): иначе worker может выпустить
+        # InitiativeRolled раньше, чем виджеты будут доступны через
+        # query_one.
+
+    def on_battle_screen_ready(self, message: BattleScreen.Ready) -> None:
+        del message
+        # «Голый» каркас (encounter is None) — bridge не нужен.
+        if self._encounter is None:
+            return
+        self._start_bridge_and_worker()
+
+    def _start_bridge_and_worker(self) -> None:
+        # Guard от повторного срабатывания (на случай повторного mount).
+        if self._worker is not None:
+            return
+        assert self._encounter is not None
+        assert self._battle_screen is not None
+        assert self._intent_queue is not None
 
         screen = self._battle_screen
         encounter = self._encounter
@@ -78,7 +97,6 @@ class TuiApp(App[None]):
         def _turn_signal(
             actor: Creature, ctx: TurnContext, enc: Encounter
         ) -> None:
-            # worker-thread → main-thread.
             self.call_from_thread(screen.set_active_turn, actor, ctx, enc)
 
         self._provider = TuiIntentProvider(

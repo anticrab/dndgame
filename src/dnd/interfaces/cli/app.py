@@ -53,13 +53,22 @@ def play(
         "--content-dir",
         help="Path to YAML content directory.",
     ),
+    tui: bool = typer.Option(
+        False,
+        "--tui",
+        help="Run in TUI mode (Textual). Without — questionary-based CLI.",
+    ),
+    theme: str = typer.Option(
+        "color",
+        "--theme",
+        help="TUI theme: color (default) or monochrome.",
+    ),
 ) -> None:
-    """Запустить сценарий боя в интерактивном CLI-режиме."""
+    """Запустить сценарий боя в интерактивном режиме (CLI или TUI)."""
     from pathlib import Path
 
     from rich.console import Console
 
-    from dnd.application.engine.game_runner import GameRunner
     from dnd.application.engine.scenario_builder import (
         build_encounter_from_scenario,
     )
@@ -67,8 +76,6 @@ def play(
     from dnd.infrastructure.content.yaml_repository import (
         YamlContentRepository,
     )
-    from dnd.interfaces.cli.console_provider import ConsoleIntentProvider
-    from dnd.interfaces.cli.event_printer import EventPrinter
 
     repo = YamlContentRepository(Path(content_dir))
     try:
@@ -77,17 +84,31 @@ def play(
         typer.echo(f"Scenario not found: {scenario_id}", err=True)
         raise typer.Exit(code=2) from None
 
-    console = Console()
-    console.print(f"[bold]{scenario.name}[/]\n")
-
-    # Сервисы без привязки к карте — карта строится сценарием.
-    # Аудит 15 CL-A001 (никаких placeholder-битфилдов).
     services = build_default_runtime_services()
     enc = build_encounter_from_scenario(
         scenario, content=repo, services=services
     )
-    EventPrinter(console).subscribe(enc.event_bus)
 
+    if tui:
+        # Импорт здесь — чтобы --no-tui не тащил textual.
+        from dnd.interfaces.tui import run_tui
+
+        if theme not in ("color", "monochrome"):
+            typer.echo(
+                f"Unknown theme {theme!r}; expected color|monochrome",
+                err=True,
+            )
+            raise typer.Exit(code=2)
+        run_tui(encounter=enc, theme=theme)  # type: ignore[arg-type]
+        return
+
+    from dnd.application.engine.game_runner import GameRunner
+    from dnd.interfaces.cli.console_provider import ConsoleIntentProvider
+    from dnd.interfaces.cli.event_printer import EventPrinter
+
+    console = Console()
+    console.print(f"[bold]{scenario.name}[/]\n")
+    EventPrinter(console).subscribe(enc.event_bus)
     runner = GameRunner(intent_provider=ConsoleIntentProvider())
     runner.run(enc)
 

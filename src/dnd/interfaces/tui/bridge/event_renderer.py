@@ -15,6 +15,8 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from textual.css.query import NoMatches
+
 from dnd.application.dto.engine_event import (
     AttackResolved,
     DamageDealt,
@@ -66,8 +68,11 @@ class EventRenderer:
             handler = _DISPATCH.get(type(event))
             if handler is not None:
                 handler(self, event)
-            # Лог обновляем для всех событий — он сам решит, что вывести.
             self._call(self._screen.log_widget.handle_event, event)
+        except NoMatches:
+            # Виджеты ещё не смонтированы (гонка с worker-thread).
+            # Пропускаем — следующий event точно дойдёт.
+            return
         except Exception:
             _log.exception("EventRenderer: handler raised on %r", event)
 
@@ -129,11 +134,13 @@ class EventRenderer:
         )
 
     def _refresh_initiative(self) -> None:
+        # active_id — keyword-only в InitiativeWidget.refresh_from.
+        # call_from_thread поддерживает **kwargs.
         self._call(
             self._screen.initiative_widget.refresh_from,
             self._initiative_order,
             self._encounter.participants,
-            self._active_actor,
+            active_id=self._active_actor,
         )
 
 
