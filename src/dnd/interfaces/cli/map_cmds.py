@@ -214,3 +214,46 @@ def paint(
         tiles=tuple(new_tiles), objects=doc.objects,
     ))
     typer.echo(f"painted {at}: base={new_base} features={list(new_features)}")
+
+
+@map_app.command("export")
+def export(
+    id_: str = typer.Argument(...),
+    format_: str = typer.Option("yaml", "--format", help="yaml | json"),
+    output: Path = typer.Option(None, "--output", help="File to write; stdout if absent"),
+    maps_dir: Path = typer.Option(_DEFAULT_MAPS, "--maps-dir"),
+) -> None:
+    """Экспорт карты в YAML или JSON (stdout или файл)."""
+    doc = _repo(maps_dir).load(id_)
+    if format_ == "json":
+        body = json.dumps(doc.model_dump(mode="json"), ensure_ascii=False, indent=2)
+    else:
+        import yaml  # type: ignore[import-untyped]
+        body = yaml.safe_dump(
+            doc.model_dump(mode="json"), sort_keys=False, allow_unicode=True
+        )
+    if output:
+        output.write_text(body, encoding="utf-8")
+        typer.echo(f"exported to {output}")
+    else:
+        typer.echo(body)
+
+
+@map_app.command("import")
+def import_(
+    file: Path = typer.Argument(...),
+    as_: str = typer.Option(None, "--as", help="override id"),
+    maps_dir: Path = typer.Option(_DEFAULT_MAPS, "--maps-dir"),
+) -> None:
+    """Импорт карты из YAML/JSON файла (формат по расширению)."""
+    text = file.read_text(encoding="utf-8")
+    if file.suffix == ".json":
+        data = json.loads(text)
+    else:
+        import yaml
+        data = yaml.safe_load(text)
+    if as_:
+        data["id"] = as_
+    doc = MapDocument.model_validate(data)
+    _repo(maps_dir).save(doc)
+    typer.echo(f"imported as {doc.id}")

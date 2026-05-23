@@ -147,3 +147,59 @@ def test_map_paint_preserves_other_tiles(maps_dir: Path) -> None:
     coords = [(t.x, t.y) for t in doc.tiles]
     assert (1, 1) in coords
     assert (0, 0) in coords
+
+
+def test_map_export_yaml_to_stdout(maps_dir: Path) -> None:
+    result = runner.invoke(app, [
+        "map", "export", "tiny", "--maps-dir", str(maps_dir),
+    ])
+    assert result.exit_code == 0
+    assert "id: tiny" in result.stdout
+    assert "width: 3" in result.stdout
+
+
+def test_map_export_json_to_file(maps_dir: Path, tmp_path: Path) -> None:
+    out = tmp_path / "tiny.json"
+    result = runner.invoke(app, [
+        "map", "export", "tiny", "--format=json",
+        "--maps-dir", str(maps_dir),
+        "--output", str(out),
+    ])
+    assert result.exit_code == 0
+    assert out.exists()
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["id"] == "tiny"
+
+
+def test_map_export_then_import_json_roundtrip(maps_dir: Path, tmp_path: Path) -> None:
+    """Round-trip: export → import под другим id → load."""
+    out = tmp_path / "tiny.json"
+    runner.invoke(app, [
+        "map", "export", "tiny", "--format=json",
+        "--maps-dir", str(maps_dir), "--output", str(out),
+    ])
+    result = runner.invoke(app, [
+        "map", "import", str(out), "--as=tiny_copy",
+        "--maps-dir", str(maps_dir),
+    ])
+    assert result.exit_code == 0
+    repo = YamlMapRepository(maps_dir)
+    loaded = repo.load("tiny_copy")
+    assert loaded.width == 3
+    assert loaded.id == "tiny_copy"
+
+
+def test_map_import_yaml(maps_dir: Path, tmp_path: Path) -> None:
+    """Import YAML тоже работает."""
+    yaml_path = tmp_path / "external.yaml"
+    yaml_path.write_text(
+        "id: imported\nname: Imp\nwidth: 5\nheight: 5\ntiles: []\nobjects: []\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(app, [
+        "map", "import", str(yaml_path),
+        "--maps-dir", str(maps_dir),
+    ])
+    assert result.exit_code == 0
+    doc = YamlMapRepository(maps_dir).load("imported")
+    assert doc.name == "Imp"
