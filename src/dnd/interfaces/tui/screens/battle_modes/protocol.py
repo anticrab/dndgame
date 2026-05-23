@@ -1,6 +1,11 @@
-"""BattleMode enum + ModeHandler Protocol.
+"""BattleMode enum + ModeHandler Protocol + ModeScreenContext Protocol.
 
 См. spec docs/superpowers/specs/2026-05-23-l-inline-ux-and-abilities-design.md §4.2.
+
+ModeScreenContext декларирует **минимальный** набор атрибутов которые
+handler требует от своего «screen». Это позволяет (1) тестировать
+handler'ы через моки без поднятия BattleScreen, (2) mypy strict
+проверяет контракт без циклических зависимостей.
 """
 from __future__ import annotations
 
@@ -8,8 +13,9 @@ from enum import Enum
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from dnd.application.dto.ids import CreatureId
+    from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.values.square import Square
-    from dnd.interfaces.tui.screens.battle import BattleScreen
 
 
 class BattleMode(Enum):
@@ -18,18 +24,27 @@ class BattleMode(Enum):
     TARGET = "target"
 
 
+class ModeScreenContext(Protocol):
+    """Контракт «screen»: атрибуты которые BattleScreen обещает иметь
+    к моменту входа в mode. Установлены в `enter_mode` (L1-T9)."""
+
+    _current_actor_position: Square
+    _current_battlefield: Battlefield
+    _reachable_targets: list[tuple[CreatureId, Square]]
+
+
 class ModeHandler(Protocol):
     """Контракт для mode-handler'а. BattleScreen делегирует keypress'ы."""
 
-    def on_enter(self, screen: BattleScreen) -> None:
+    def on_enter(self, screen: ModeScreenContext) -> None:
         """Вызывается при входе в mode (после прошлого on_exit)."""
         ...
 
-    def on_exit(self, screen: BattleScreen) -> None:
+    def on_exit(self, screen: ModeScreenContext) -> None:
         """Вызывается при выходе. Очистка cursor/highlights."""
         ...
 
-    def on_key(self, screen: BattleScreen, key: str) -> bool:
+    def on_key(self, screen: ModeScreenContext, key: str) -> bool:
         """True если handler съел клавишу. False → bubble дальше."""
         ...
 
@@ -40,4 +55,4 @@ class ModeHandler(Protocol):
         ...
 
 
-__all__ = ["BattleMode", "ModeHandler"]
+__all__ = ["BattleMode", "ModeHandler", "ModeScreenContext"]
