@@ -1,0 +1,13 @@
+id: high_cover_obj
+category: feature
+name: High cover object
+blocks_los: false
+cover: three_quarters
+blocks_passage_dirs: [n, s, e, w]
+passable_cost_ft: 0
+glyph_5x3:
+  - "  ▒  "
+  - "  ▒  "
+  - "  ┴  "
+glyph_1x1: "H"
+color_token: wall

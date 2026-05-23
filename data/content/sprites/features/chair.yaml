@@ -1,0 +1,13 @@
+id: chair
+category: feature
+name: Chair
+blocks_los: false
+cover: none
+blocks_passage_dirs: []
+passable_cost_ft: 10
+glyph_5x3:
+  - "     "
+  - "  h  "
+  - "     "
+glyph_1x1: "h"
+color_token: object

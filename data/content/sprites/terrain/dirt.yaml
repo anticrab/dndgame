@@ -1,0 +1,11 @@
+id: dirt
+category: terrain
+name: Dirt
+passable: true
+difficult: false
+glyph_5x3:
+  - "     "
+  - "     "
+  - "     "
+glyph_1x1: "."
+color_token: dim

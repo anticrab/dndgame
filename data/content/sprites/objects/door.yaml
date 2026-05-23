@@ -1,0 +1,11 @@
+id: door
+category: object
+name: Door
+# Будет реальный ObjectKind/InteractableObject метаданные в K6.
+# Пока — placeholder для существования директории.
+glyph_5x3:
+  - "  ┌  "
+  - "  │  "
+  - "  └  "
+glyph_1x1: "+"
+color_token: object

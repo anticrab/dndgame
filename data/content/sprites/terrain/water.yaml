@@ -1,0 +1,11 @@
+id: water
+category: terrain
+name: Water
+passable: false
+difficult: false
+glyph_5x3:
+  - "~~~~~"
+  - "~~~~~"
+  - "~~~~~"
+glyph_1x1: "~"
+color_token: object

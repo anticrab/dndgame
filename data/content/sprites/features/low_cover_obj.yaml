@@ -1,0 +1,13 @@
+id: low_cover_obj
+category: feature
+name: Low cover object
+blocks_los: false
+cover: half
+blocks_passage_dirs: []
+passable_cost_ft: 5
+glyph_5x3:
+  - "     "
+  - " /=\\ "
+  - "     "
+glyph_1x1: "="
+color_token: object

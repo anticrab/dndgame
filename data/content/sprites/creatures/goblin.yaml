@@ -1,0 +1,11 @@
+id: goblin
+category: creature
+name: Goblin
+# Реальный Monster (Goblin stat-block) — в K7.
+# Пока — placeholder для существования директории.
+glyph_5x3:
+  - "  ◌  "
+  - " /|\\ "
+  - " / \\ "
+glyph_1x1: "g"
+color_token: enemy

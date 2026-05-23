@@ -1,0 +1,11 @@
+id: chest
+category: object
+name: Chest
+# Реальный InteractableObject (ObjectKind.CHEST) — в K6.
+# Пока — placeholder для существования директории.
+glyph_5x3:
+  - "     "
+  - " ▄▄▄ "
+  - " ███ "
+glyph_1x1: "C"
+color_token: object

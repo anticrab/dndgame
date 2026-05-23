@@ -1,0 +1,11 @@
+id: window
+category: object
+name: Window
+# Реальный InteractableObject (ObjectKind.WINDOW) — в K6.
+# Пока — placeholder для существования директории.
+glyph_5x3:
+  - "─────"
+  - "─ ─ ─"
+  - "─────"
+glyph_1x1: "w"
+color_token: object

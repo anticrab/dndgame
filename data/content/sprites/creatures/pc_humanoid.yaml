@@ -1,0 +1,11 @@
+id: pc_humanoid
+category: creature
+name: Player Character (humanoid)
+# Реальный Creature/PlayerCharacter — в K7.
+# Пока — placeholder для существования директории.
+glyph_5x3:
+  - "  o  "
+  - " /|\\ "
+  - " / \\ "
+glyph_1x1: "@"
+color_token: pc

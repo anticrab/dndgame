@@ -1,0 +1,13 @@
+id: wall_h
+category: feature
+name: Wall (horizontal)
+blocks_los: true
+cover: total
+blocks_passage_dirs: [n, s]
+passable_cost_ft: 0
+glyph_5x3:
+  - "     "
+  - "─────"
+  - "     "
+glyph_1x1: "─"
+color_token: wall

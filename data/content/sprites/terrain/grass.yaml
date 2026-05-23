@@ -1,0 +1,11 @@
+id: grass
+category: terrain
+name: Grass
+passable: true
+difficult: true
+glyph_5x3:
+  - ",.,.,"
+  - ".,.,."
+  - ",.,.,"
+glyph_1x1: ","
+color_token: dim

@@ -1,0 +1,13 @@
+id: table_small
+category: feature
+name: Small table
+blocks_los: false
+cover: half
+blocks_passage_dirs: []
+passable_cost_ft: 10
+glyph_5x3:
+  - "     "
+  - " /-\\ "
+  - "     "
+glyph_1x1: "/"
+color_token: object

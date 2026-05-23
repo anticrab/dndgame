@@ -1,0 +1,11 @@
+id: barrel
+category: object
+name: Barrel
+# Реальный InteractableObject (ObjectKind.BARREL) — в K6.
+# Пока — placeholder для существования директории.
+glyph_5x3:
+  - "  ▄  "
+  - " ███ "
+  - "  ▀  "
+glyph_1x1: "o"
+color_token: object

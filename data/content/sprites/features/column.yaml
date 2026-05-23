@@ -1,0 +1,13 @@
+id: column
+category: feature
+name: Column
+blocks_los: false
+cover: three_quarters
+blocks_passage_dirs: [n, s, e, w, ne, nw, se, sw]
+passable_cost_ft: 0
+glyph_5x3:
+  - "  ▙  "
+  - "  ▙  "
+  - "  ▙  "
+glyph_1x1: "▙"
+color_token: wall

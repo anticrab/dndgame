@@ -1,0 +1,11 @@
+id: stone
+category: terrain
+name: Stone
+passable: true
+difficult: false
+glyph_5x3:
+  - "     "
+  - "     "
+  - "     "
+glyph_1x1: "."
+color_token: floor

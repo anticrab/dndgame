@@ -1,0 +1,13 @@
+id: wall_sw
+category: feature
+name: Wall (SW corner)
+blocks_los: true
+cover: total
+blocks_passage_dirs: [s, w, sw]
+passable_cost_ft: 0
+glyph_5x3:
+  - "│    "
+  - "│    "
+  - "└─── "
+glyph_1x1: "└"
+color_token: wall
