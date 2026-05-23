@@ -51,8 +51,25 @@ def format_initiative(
             )
             continue
         marker = "▶" if entry.creature_id == active_id else "-"
-        lines.append(f"{idx} {marker} {name:<12} {entry.total:>3}")
+        hp = creature.hit_points
+        # N-2: показываем hp/max — на глаз сразу видно, кто
+        # критически ранен (по терминологии PHB-2024 «bloodied» — < ½ HP).
+        hp_str = _hp_markup(hp.current, hp.maximum)
+        lines.append(f"{idx} {marker} {name:<12} {hp_str} {entry.total:>3}")
     return "\n".join(lines)
+
+
+def _hp_markup(current: int, maximum: int) -> str:
+    """``HP 4/7`` с цветом по % здоровья: зелёный ≥½, жёлтый ≥¼,
+    красный ниже. Помогает мгновенно оценить «на ком сосредоточиться»."""
+    ratio = current / maximum if maximum else 0.0
+    if ratio >= 0.5:
+        color = "green"
+    elif ratio >= 0.25:
+        color = "yellow"
+    else:
+        color = "red"
+    return f"[{color}]HP {current:>2}/{maximum}[/]"
 
 
 class InitiativeWidget(Static):

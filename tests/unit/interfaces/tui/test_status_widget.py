@@ -41,22 +41,39 @@ def test_status_without_ctx_is_compact() -> None:
 
 
 def test_status_with_ctx_shows_economy_flags() -> None:
+    """N-4: флаги доступности обёрнуты Rich-markup'ом (green=есть,
+    red=потрачено) — игроку сразу видно, что 'a' не сработает,
+    потому что action уже израсходован."""
     hero = _hero()
     bf = Battlefield(3, 3)
     bf.place_creature(hero.id, Square(0, 0))
     ctx = build_minimal_ctx(actor=hero, battlefield=bf)
     line = format_status(hero, ctx)
-    assert "act:Y" in line  # action ещё не потрачен
-    assert "bonus:Y" in line
-    assert f"move:{hero.speed_ft}ft" in line
+    assert "act:[green]Y[/]" in line
+    assert "bonus:[green]Y[/]" in line
+    assert f"move:[green]{hero.speed_ft}ft[/]" in line
 
 
-def test_status_with_used_action_shows_N() -> None:
+def test_status_with_used_action_shows_N_red() -> None:
     hero = _hero()
     bf = Battlefield(3, 3)
     bf.place_creature(hero.id, Square(0, 0))
     ctx = build_minimal_ctx(actor=hero, battlefield=bf)
     ctx.spend(ActionEconomyCost.ACTION)
     line = format_status(hero, ctx)
-    assert "act:N" in line
-    assert "bonus:Y" in line
+    assert "act:[red]N[/]" in line
+    assert "bonus:[green]Y[/]" in line
+
+
+def test_hp_colored_by_ratio() -> None:
+    """HP цвет: green / yellow / red в зависимости от %. Так игрок
+    видит «bloodied»-статус без подсчётов в уме."""
+    hero = _hero()
+    # 12/12 — green
+    assert "[green]HP 12/12[/]" in format_status(hero, None)
+    # ¼ ≤ ratio < ½ — yellow
+    hero.hit_points = hero.hit_points.take_damage(8)  # 12→4
+    assert "[yellow]HP 4/12[/]" in format_status(hero, None)
+    # < ¼ — red
+    hero.hit_points = hero.hit_points.take_damage(2)  # 4→2
+    assert "[red]HP 2/12[/]" in format_status(hero, None)

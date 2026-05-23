@@ -143,6 +143,7 @@ class BattleScreen(Screen[None]):
         self._current_actor_speed_ft: int = 30
         self._current_battlefield: Battlefield | None = None
         self._reachable_targets: list[tuple[CreatureId, Square]] = []
+        self._participants: dict[CreatureId, Creature] = {}
         # Различает kind intent'а при подтверждении в TARGET mode
         # (attack vs interact vs break). Меняется в action_intent_*
         # и в _trigger_ability (для custom rebound'ов).
@@ -182,6 +183,7 @@ class BattleScreen(Screen[None]):
         self._current_battlefield = encounter.battlefield
         self._current_actor_position = encounter.battlefield.position_of(actor.id)
         self._current_actor_speed_ft = actor.speed_ft
+        self._participants = encounter.participants
         if self._mode is not BattleMode.NORMAL:
             self.enter_mode(BattleMode.NORMAL)
         self.status_widget.refresh_from(actor, ctx)

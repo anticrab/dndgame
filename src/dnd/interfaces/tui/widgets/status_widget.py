@@ -2,7 +2,9 @@
 
 См. ``docs/TUI.md`` §6.2.
 
-Формат строки (80×24): name / HP / AC / Init / экономия (act/bonus/react) / speed.
+Формат строки (80×24): name / HP / AC / Spd / экономия (act/bonus/move).
+HP и флаги действий используют цвет, чтобы критическое состояние и
+израсходованные действия моментально читались (N-2/N-4).
 """
 
 from __future__ import annotations
@@ -17,33 +19,63 @@ if TYPE_CHECKING:
 
 
 def format_status(actor: Creature, ctx: TurnContext | None = None) -> str:
-    """Краткая строка статуса актора.
+    """Краткая строка статуса актора с Rich-markup'ом.
 
     ``ctx`` опционален: при ``None`` рендерим без экономики действия
     (например, в начале боя или для не-активного PC).
+
+    Цвет HP — как в initiative (green ≥½, yellow ≥¼, red <¼).
+    Цвет флагов экономии — green/red, чтобы «потратил action» бросалось
+    в глаза и игрок понял, почему `a` больше не работает.
     """
     hp = actor.hit_points
     bits = [
         f"{actor.name}",
-        f"HP {hp.current}/{hp.maximum}",
+        _hp_markup(hp.current, hp.maximum),
         f"AC {actor.armor_class}",
         f"Spd {actor.speed_ft}ft",
     ]
     if ctx is not None:
         bits.append(
-            f"| act:{_yn(not ctx.action_used)} "
-            f"bonus:{_yn(not ctx.bonus_action_used)} "
-            f"move:{ctx.movement_remaining_ft}ft"
+            f"| act:{_flag_markup(not ctx.action_used)} "
+            f"bonus:{_flag_markup(not ctx.bonus_action_used)} "
+            f"move:{_move_markup(ctx.movement_remaining_ft, actor.speed_ft)}"
         )
     return "  ".join(bits)
 
 
-def _yn(flag: bool) -> str:
-    return "Y" if flag else "N"
+def _hp_markup(current: int, maximum: int) -> str:
+    ratio = current / maximum if maximum else 0.0
+    if ratio >= 0.5:
+        color = "green"
+    elif ratio >= 0.25:
+        color = "yellow"
+    else:
+        color = "red"
+    return f"[{color}]HP {current}/{maximum}[/]"
+
+
+def _flag_markup(available: bool) -> str:
+    if available:
+        return "[green]Y[/]"
+    return "[red]N[/]"
+
+
+def _move_markup(remaining_ft: int, base_speed_ft: int) -> str:
+    if remaining_ft == 0:
+        return "[red]0ft[/]"
+    if remaining_ft < base_speed_ft:
+        return f"[yellow]{remaining_ft}ft[/]"
+    return f"[green]{remaining_ft}ft[/]"
 
 
 class StatusWidget(Static):
     DEFAULT_CSS = ""
+
+    # markup=True — без него [green]…[/] печатается как литерал.
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        kwargs.setdefault("markup", True)
+        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
 
     def refresh_from(
         self, actor: Creature, ctx: TurnContext | None = None

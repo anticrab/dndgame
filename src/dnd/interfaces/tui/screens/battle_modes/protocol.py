@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from dnd.application.dto.ids import CreatureId
     from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.entities.creature import Creature
     from dnd.domain.values.square import Square
 
 
@@ -66,6 +67,10 @@ class ModeScreenContext(Protocol):
     _current_actor_speed_ft: int
     _current_battlefield: Battlefield | None
     _reachable_targets: list[tuple[CreatureId, Square]]
+    # Нужен TargetModeHandler'у, чтобы достать HP/AC для hint'а
+    # выбранной цели. Пусто для не-PC ходов; устанавливается в
+    # set_active_turn вместе с остальным контекстом.
+    _participants: dict[CreatureId, Creature]
 
 
 class ModeHandler(Protocol):
