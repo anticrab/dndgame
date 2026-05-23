@@ -8,18 +8,15 @@ from __future__ import annotations
 
 import contextlib
 import json
+import re
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
 
+from dnd.application.dto.map_dto import MapDocument, MapTileDoc
 from dnd.infrastructure.content.yaml_map_repository import YamlMapRepository
 from dnd.infrastructure.content.yaml_sprite_registry import YamlSpriteRegistry
-
-if TYPE_CHECKING:
-    from dnd.application.dto.map_dto import MapDocument
-
 
 map_app = typer.Typer(name="map", help="Manage and inspect maps.")
 _DEFAULT_MAPS = Path("data/content/maps")
@@ -160,3 +157,60 @@ def validate(
     except (KeyError, ValueError) as exc:
         typer.echo(f"INVALID: {exc}", err=True)
         raise typer.Exit(code=2) from None
+
+
+@map_app.command("new")
+def new(
+    id_: str = typer.Argument(...),
+    size: str = typer.Option(..., "--size", help="WxH"),
+    name: str = typer.Option("", "--name"),
+    maps_dir: Path = typer.Option(_DEFAULT_MAPS, "--maps-dir"),
+) -> None:
+    """Создать новую пустую карту."""
+    m = re.fullmatch(r"(\d+)x(\d+)", size)
+    if not m:
+        typer.echo(f"bad size: {size!r} (expected WxH)", err=True)
+        raise typer.Exit(code=2)
+    w, h = int(m.group(1)), int(m.group(2))
+    doc = MapDocument(id=id_, name=name or id_, width=w, height=h, tiles=(), objects=())
+    _repo(maps_dir).save(doc)
+    typer.echo(f"created: {id_} {w}x{h}")
+
+
+@map_app.command("paint")
+def paint(
+    id_: str = typer.Argument(...),
+    at: str = typer.Option(..., "--at", help="X,Y"),
+    base: str | None = typer.Option(None, "--base"),
+    feature: str | None = typer.Option(None, "--feature"),
+    maps_dir: Path = typer.Option(_DEFAULT_MAPS, "--maps-dir"),
+) -> None:
+    """Точечно изменить tile карты — поставить base и/или добавить feature."""
+    m = re.fullmatch(r"(\d+),(\d+)", at)
+    if not m:
+        typer.echo(f"bad at: {at!r} (expected X,Y)", err=True)
+        raise typer.Exit(code=2)
+    x, y = int(m.group(1)), int(m.group(2))
+    repo = _repo(maps_dir)
+    doc = repo.load(id_)
+    new_tiles = list(doc.tiles)
+    idx = next((i for i, t in enumerate(new_tiles) if t.x == x and t.y == y), None)
+    if idx is None:
+        current = MapTileDoc(x=x, y=y, base=base or "floor", features=())
+    else:
+        current = new_tiles[idx]
+    new_base = base or current.base
+    if feature and feature not in current.features:
+        new_features = (*current.features, feature)
+    else:
+        new_features = current.features
+    updated = MapTileDoc(x=x, y=y, base=new_base, features=new_features)
+    if idx is None:
+        new_tiles.append(updated)
+    else:
+        new_tiles[idx] = updated
+    repo.save(MapDocument(
+        id=doc.id, name=doc.name, width=doc.width, height=doc.height,
+        tiles=tuple(new_tiles), objects=doc.objects,
+    ))
+    typer.echo(f"painted {at}: base={new_base} features={list(new_features)}")
