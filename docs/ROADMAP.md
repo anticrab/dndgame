@@ -171,13 +171,34 @@ Textual-приложения, MVP-граница, многопоточная с�
   Disengage/Interact/Break), `Creature.ability_ids` + `.keybindings`
   для per-creature override hotkey'ев, `ActionBarWidget` с динамической
   полосой `[a] Attack [d] Dodge …`. См. `docs/ABILITIES.md`.
+- ✅ **Этап M — Move polish.** A*-pathfinder с обходом стен + учётом
+  difficult terrain, chebyshev fast-path + cross-bias (пути ровнее),
+  раскраска по budget speed_ft (green/yellow/red), hint
+  `MOVE: (X,Y) cost=N/30 ft [нужен Dash]`, красная подсветка
+  недостижимой клетки, ActionBarWidget скрыт (дублировал Footer).
+- ✅ **Этап N — UX-polish боя.** HP/AC/дистанция целей в TARGET hint,
+  HP-цвет в initiative + 'DEAD' маркер для убитых, цвета в StatusWidget
+  (`act:[red]N[/]` после потраченного action), трупы (`%` red dim)
+  остаются на карте и проходимы для pathfinder'а.
 - ⏳ **Этап L3 — LocationArt + mouse support.** Детализированные
   крупные спрайты локаций (раз клетка 1×1, освобождаются пиксели для
   тайлов 5×3 / 7×5 с детализацией), интеграция мыши для panning/
   выбора цели. Отдельный спек после feedback'а пользователя по L1+L2.
+- 🔜 **Этап O — Инвентарь и снаряжение.** `Item`/`ItemKind`/`ItemStack`,
+  `Inventory` (frozen) на `Creature`, `InventoryAction`
+  (Pickup/Drop/Equip/Unequip/UseConsumable), лут из сундуков
+  (`Chest.state["contents"]` → `list[ItemStack]`), **лут трупов**
+  (труп держит inventory убитого монстра, Interact на `%` →
+  loot menu), TUI InventoryScreen + CLI пункт меню.
+- 🔜 **Этап Q — Death & dying.** Death saves (PHB-2024), stabilize,
+  spare-the-dying, TUI death-save overlay (mockup C.6).
+- 🔜 **Этап P — Заклинания.** `Spell`/`SpellSlot`, 5 базовых
+  (Magic Missile, Fire Bolt, Cure Wounds, Shield, Bless),
+  ActionBarWidget возвращается с динамическими `[1] Fire Bolt …`.
+- 🔜 **Этап R — Уровни и опыт.** XP-tracking, level-up
+  (HP, proficiency_bonus, ASI), TUI level-up screen (mockup C.5).
 - 🔜 Главное меню, лист персонажа, экран исследования.
-- 🔜 Анимация атаки (mockup C.2), level-up / death-save overlays
-  (mockup C.5/C.6).
+- 🔜 Анимация атаки (mockup C.2).
 
 **DoD MVP J:** `dnd play --tui mvp_skirmish` реально проходится
 клавиатурой до Victory / Defeat; обе темы работают; e2e через Pilot
