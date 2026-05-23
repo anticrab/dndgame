@@ -26,10 +26,17 @@ class BattleMode(Enum):
 
 class ModeScreenContext(Protocol):
     """Контракт «screen»: атрибуты которые BattleScreen обещает иметь
-    к моменту входа в mode. Установлены в `enter_mode` (L1-T9)."""
+    к моменту входа в mode. Установлены в `enter_mode` (L1-T9).
+
+    ``_current_battlefield`` объявлен как ``Battlefield | None``, потому
+    что BattleScreen инициализирует его лениво (в ``set_active_turn``).
+    Handler'ы вызываются ТОЛЬКО когда BattleScreen уверен что
+    battlefield установлен — это инвариант экрана; для mypy handler'ы
+    могут `assert screen._current_battlefield is not None`.
+    """
 
     _current_actor_position: Square
-    _current_battlefield: Battlefield
+    _current_battlefield: Battlefield | None
     _reachable_targets: list[tuple[CreatureId, Square]]
 
 

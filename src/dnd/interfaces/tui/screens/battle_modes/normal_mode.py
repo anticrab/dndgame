@@ -7,22 +7,18 @@ ModeHandler.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from dnd.domain.values.square import Square
-
-if TYPE_CHECKING:
-    from dnd.interfaces.tui.screens.battle import BattleScreen
+from dnd.interfaces.tui.screens.battle_modes.protocol import ModeScreenContext
 
 
 class NormalModeHandler:
-    def on_enter(self, screen: BattleScreen) -> None:
+    def on_enter(self, screen: ModeScreenContext) -> None:
         return None
 
-    def on_exit(self, screen: BattleScreen) -> None:
+    def on_exit(self, screen: ModeScreenContext) -> None:
         return None
 
-    def on_key(self, screen: BattleScreen, key: str) -> bool:
+    def on_key(self, screen: ModeScreenContext, key: str) -> bool:
         return False
 
     def overlay_data(

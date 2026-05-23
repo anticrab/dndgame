@@ -62,7 +62,7 @@ LogWidget {
     height: 12;
 }
 
-/* Модальные picker'ы (TargetPicker / MovePicker). */
+/* Модальные диалоги (EndScreen и др.). */
 .modal-box {
     background: $surface;
     border: round $secondary;

@@ -357,8 +357,8 @@ class MapWidget(Static):
 
     def _is_color_theme(self) -> bool:
         # Theme name живёт в TuiApp как self.app._theme; если виджет
-        # используется вне TuiApp (например, MovePicker под Pilot
-        # без TuiApp) — fallback на True (цветной).
+        # используется вне TuiApp (например, в standalone-тестах рендера
+        # под Pilot без TuiApp) — fallback на True (цветной).
         app = self.app
         theme = getattr(app, "_theme", None)
         return theme != "monochrome"

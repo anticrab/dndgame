@@ -1,6 +1,11 @@
 """BattleScreen — основной экран боя.
 
-См. ``docs/TUI.md`` §6 и mockup A.1 (80×24 layout).
+См. ``docs/TUI.md`` §6 и mockup A.1 (80×24 layout). После L1-T9 экран
+не открывает модальные picker'ы для Attack/Move/Interact/Break, а
+переключается в inline-mode (``BattleMode.MOVE`` / ``BattleMode.TARGET``)
+и делегирует keypress'ы соответствующему ``ModeHandler``-у. См.
+spec ``docs/superpowers/specs/2026-05-23-l-inline-ux-and-abilities-design.md``
+§4.2.
 
 Раскладка::
 
@@ -17,8 +22,8 @@
 
 Action-меню — через `BINDINGS` (см. ниже). Handlers формируют
 `PlayerIntent` и кладут его в `intent_queue` (см. TuiIntentProvider).
-Для Attack/Move открываются модальные picker'ы; всё остальное —
-без диалога.
+В NORMAL mode action-биндинги переводят экран в нужный mode (после
+``can_perform`` check'а), реальный submit Intent'а — после Enter в mode.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ from __future__ import annotations
 import queue
 from typing import TYPE_CHECKING, ClassVar
 
+from textual import events as _events
 from textual.app import ComposeResult
 from textual.binding import BindingType
 from textual.containers import Horizontal
@@ -50,8 +56,11 @@ from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.interact import InteractKind
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.domain.values.faction import Faction
-from dnd.interfaces.tui.screens.move_picker import MovePicker
-from dnd.interfaces.tui.screens.target_picker import TargetPicker
+from dnd.domain.values.square import Square
+from dnd.interfaces.tui.screens.battle_modes.move_mode import MoveModeHandler
+from dnd.interfaces.tui.screens.battle_modes.normal_mode import NormalModeHandler
+from dnd.interfaces.tui.screens.battle_modes.protocol import BattleMode, ModeHandler
+from dnd.interfaces.tui.screens.battle_modes.target_mode import TargetModeHandler
 from dnd.interfaces.tui.widgets import (
     InitiativeWidget,
     LogWidget,
@@ -62,6 +71,7 @@ from dnd.interfaces.tui.widgets import (
 if TYPE_CHECKING:
     from dnd.application.engine.encounter import Encounter
     from dnd.application.engine.turn_context import TurnContext
+    from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.entities.creature import Creature
 
 
@@ -115,6 +125,18 @@ class BattleScreen(Screen[None]):
         # Помечается renderer'ом после EncounterEnded — action-биндинги
         # сразу выходят, чтобы игрок не «жал в пустоту» после победы.
         self._concluded: bool = False
+        # --- state machine (L1-T9) ----------------------------------
+        # ModeScreenContext: атрибуты которые handler'ы читают через
+        # Protocol. Заполняются в set_active_turn (battlefield/pos) и
+        # action_intent_attack/interact/break (reachable targets).
+        self._mode: BattleMode = BattleMode.NORMAL
+        self._mode_handler: ModeHandler = NormalModeHandler()
+        self._current_actor_position: Square = Square(0, 0)
+        self._current_battlefield: Battlefield | None = None
+        self._reachable_targets: list[tuple[CreatureId, Square]] = []
+        # Различает kind intent'а при подтверждении в TARGET mode
+        # (attack vs interact vs break). Меняется в action_intent_*.
+        self._pending_target_kind: str = "attack"
 
     # --- public API для bridge --------------------------------------
 
@@ -126,14 +148,26 @@ class BattleScreen(Screen[None]):
     ) -> None:
         """Bridge зовёт это в main-thread (через call_from_thread)
         каждый раз, когда PC получает ход. Состояние сохраняется
-        для action-handlers, статус-виджет обновляется."""
+        для action-handlers, статус-виджет обновляется.
+
+        ИНВАРИАНТ §11-2: при смене хода mode сбрасывается в NORMAL —
+        иначе залипший MOVE из прошлого хода ловил бы стрелки на
+        чужом ходу.
+        """
         self._current = (actor, ctx, encounter)
+        self._current_battlefield = encounter.battlefield
+        self._current_actor_position = encounter.battlefield.position_of(actor.id)
+        if self._mode is not BattleMode.NORMAL:
+            self.enter_mode(BattleMode.NORMAL)
         self.status_widget.refresh_from(actor, ctx)
 
     def clear_active_turn(self) -> None:
         """Сбросить состояние (вне-PC ход). Дополнительная защита от
         случайного нажатия action-клавиши на чужом ходу."""
         self._current = None
+        # Не-PC ход — выйти из любого активного mode (см. set_active_turn).
+        if self._mode is not BattleMode.NORMAL:
+            self.enter_mode(BattleMode.NORMAL)
 
     def mark_concluded(self) -> None:
         """Бой завершён — action-биндинги перестают реагировать."""
@@ -181,6 +215,116 @@ class BattleScreen(Screen[None]):
         # Дальнейшие нажатия до начала следующего хода — игнорируем.
         self._current = None
 
+    # --- mode state machine (L1-T9) ---------------------------------
+
+    def enter_mode(self, mode: BattleMode) -> None:
+        """Переключить активный mode-handler.
+
+        Порядок: ``on_exit`` старого → смена handler'а → ``on_enter``
+        нового → перерисовка карты. Перерисовка нужна, чтобы overlay
+        (cursor / highlights) появился/исчез сразу, не дожидаясь
+        engine-event'а.
+        """
+        self._mode_handler.on_exit(self)
+        self._mode = mode
+        if mode is BattleMode.NORMAL:
+            self._mode_handler = NormalModeHandler()
+        elif mode is BattleMode.MOVE:
+            self._mode_handler = MoveModeHandler()
+        elif mode is BattleMode.TARGET:
+            self._mode_handler = TargetModeHandler()
+        self._mode_handler.on_enter(self)
+        self._refresh_map_overlay()
+
+    def _refresh_map_overlay(self) -> None:
+        """Перерисовать карту с актуальным overlay-данным от handler'а.
+
+        В NORMAL overlay пустой — карта рисуется «как есть»; в MOVE/TARGET
+        cursor/highlights/path_preview приходят из ``overlay_data()``.
+        follow=актор: viewport едет за PC при выходе курсора за safe-zone.
+        """
+        if self._current is None or self._current_battlefield is None:
+            return
+        cursor, highlights, path_preview = self._mode_handler.overlay_data()
+        actor, _ctx, encounter = self._current
+        follow = self._current_battlefield.position_of(actor.id)
+        try:
+            self.map_widget.refresh_from(
+                self._current_battlefield,
+                encounter.factions,
+                cursor=cursor,
+                highlights=highlights,
+                path_preview=path_preview,
+                follow=follow,
+            )
+        except Exception:
+            # MapWidget может ещё не быть смонтирован (initial event'ы).
+            return
+
+    def on_key(self, event: _events.Key) -> None:
+        """Делегировать клавишу активному mode-handler'у.
+
+        В NORMAL mode мы ничего не делаем — отрабатывают BINDINGS
+        (Textual вызывает on_key до dispatch'а в bindings, но мы
+        возвращаем False/None и event дойдёт до actions). В MOVE/TARGET
+        стрелки/Tab/Enter/Esc — handler'а зона ответственности.
+
+        После on_key проверяем флаги handler'а: cancelled → вернуться
+        в NORMAL; confirmed_path/target → положить Intent + NORMAL.
+        """
+        if self._concluded:
+            return
+        if self._mode is BattleMode.NORMAL:
+            return  # BINDINGS обработают
+        handled = self._mode_handler.on_key(self, event.key)
+        if not handled:
+            return
+        event.stop()
+        event.prevent_default()
+        h = self._mode_handler
+        if isinstance(h, MoveModeHandler):
+            if h.cancelled:
+                self.enter_mode(BattleMode.NORMAL)
+                return
+            if h.confirmed_path is not None:
+                if h.confirmed_path:
+                    self._put_intent(MoveIntent(path=h.confirmed_path))
+                self.enter_mode(BattleMode.NORMAL)
+                return
+        elif isinstance(h, TargetModeHandler):
+            if h.cancelled:
+                self.enter_mode(BattleMode.NORMAL)
+                return
+            if h.confirmed_target is not None:
+                self._submit_target_intent(h.confirmed_target)
+                self.enter_mode(BattleMode.NORMAL)
+                return
+        # просто refresh для arrow/tab — overlay изменился
+        self._refresh_map_overlay()
+
+    def _submit_target_intent(self, target: CreatureId) -> None:
+        """Сформировать Intent для подтверждённой цели TARGET mode.
+
+        ``_pending_target_kind`` различает три сценария:
+        * ``attack`` — ``AttackIntent`` (target — CreatureId как есть);
+        * ``interact`` — ``InteractIntent`` (target обёрнут в ObjectId);
+        * ``break`` — ``BreakIntent`` (target обёрнут в ObjectId).
+        """
+        kind = self._pending_target_kind
+        if kind == "attack":
+            self._put_intent(AttackIntent(target_id=target))
+        elif kind == "interact":
+            self._put_intent(
+                InteractIntent(
+                    target_object_id=ObjectId(str(target)),
+                    interact_kind=InteractKind.OPEN,
+                )
+            )
+        elif kind == "break":
+            self._put_intent(
+                BreakIntent(target_object_id=ObjectId(str(target)))
+            )
+
     # --- action handlers --------------------------------------------
 
     def action_intent_attack(self) -> None:
@@ -207,26 +351,12 @@ class BattleScreen(Screen[None]):
                     f"({hostile_count} enemy alive). Move closer (m) first."
                 )
             return
-
-        # TargetPicker принимает list[tuple[str, str]] — оборачиваем
-        # CreatureId в str (NewType → str), а на выходе обратно в
-        # CreatureId. Это нужно, чтобы тот же picker подошёл и для
-        # ObjectId (Interact / Break).
-        labels: list[tuple[str, str]] = [
-            (
-                str(cid),
-                f"{cid} (HP {encounter.participants[cid].hit_points.current}/"
-                f"{encounter.participants[cid].hit_points.maximum})",
-            )
-            for cid in targets
-        ]
-
-        def _on_pick(result: str | None) -> None:
-            if result is None:
-                return
-            self._put_intent(AttackIntent(target_id=CreatureId(result)))
-
-        self.app.push_screen(TargetPicker(labels), _on_pick)
+        # ИНВАРИАНТ §11-4: TARGET mode НЕ открывается с пустым reach.
+        bf = encounter.battlefield
+        self._current_battlefield = bf
+        self._reachable_targets = [(cid, bf.position_of(cid)) for cid in targets]
+        self._pending_target_kind = "attack"
+        self.enter_mode(BattleMode.TARGET)
 
     def action_intent_move(self) -> None:
         if self._concluded or self._current is None:
@@ -238,19 +368,9 @@ class BattleScreen(Screen[None]):
         if isinstance(move_check, Forbidden):
             self.log_widget.write(_explain_forbidden("move", move_check))
             return
-        start = encounter.battlefield.position_of(actor.id)
-
-        from dnd.domain.values.square import Square
-
-        def _on_pick(path: tuple[Square, ...] | None) -> None:
-            if path is None or len(path) == 0:
-                return
-            self._put_intent(MoveIntent(path=tuple(path)))
-
-        self.app.push_screen(
-            MovePicker(encounter.battlefield, encounter.factions, start),
-            _on_pick,
-        )
+        self._current_battlefield = encounter.battlefield
+        self._current_actor_position = encounter.battlefield.position_of(actor.id)
+        self.enter_mode(BattleMode.MOVE)
 
     def action_intent_dodge(self) -> None:
         if self._concluded or self._current is None:
@@ -286,42 +406,37 @@ class BattleScreen(Screen[None]):
         self._put_intent(DisengageIntent())
 
     def action_intent_interact(self) -> None:
-        """Открыть picker по интерактивным объектам в reach (5ft).
+        """Войти в TARGET mode для выбора объекта в reach (5ft).
 
         Default kind = OPEN — основной случай (двери, сундуки). CLOSE /
         EXAMINE пока без отдельной клавиши; добавим, если станет нужно.
+        Объекты подсвечиваются на карте через highlights TargetModeHandler'а;
+        выбор подтверждается Enter, как и у атаки.
         """
         if self._concluded or self._current is None:
             return
         actor, _ctx, encounter = self._current
         bf = encounter.battlefield
         actor_pos = bf.position_of(actor.id)
-        candidates: list[tuple[str, str]] = []
+        # ObjectId/CreatureId оба NewType(str) — для рендера highlights
+        # хватает любого str-id. На submit обратно cast'им в ObjectId.
+        candidates: list[tuple[CreatureId, Square]] = []
         # 1 клетка = 5ft, chebyshev_disk(1) включает центральную клетку.
         for sq in actor_pos.chebyshev_disk(1):
             if not bf.in_bounds(sq):
                 continue
             for obj in bf.objects_at(sq):
-                label = f"{obj.id} ({obj.kind.value})"
-                candidates.append((str(obj.id), label))
+                candidates.append((CreatureId(str(obj.id)), sq))
         if not candidates:
             self.log_widget.write("[bold]No interactable objects in reach.[/]")
             return
-
-        def _on_pick(result: str | None) -> None:
-            if result is None:
-                return
-            self._put_intent(
-                InteractIntent(
-                    target_object_id=ObjectId(result),
-                    interact_kind=InteractKind.OPEN,
-                )
-            )
-
-        self.app.push_screen(TargetPicker(candidates), _on_pick)
+        self._current_battlefield = bf
+        self._reachable_targets = candidates
+        self._pending_target_kind = "interact"
+        self.enter_mode(BattleMode.TARGET)
 
     def action_intent_break(self) -> None:
-        """Picker по breakable объектам в reach (имеют hp в state)."""
+        """TARGET mode для breakable объектов в reach (имеют hp в state)."""
         if self._concluded or self._current is None:
             return
         actor, _ctx, encounter = self._current
@@ -330,27 +445,21 @@ class BattleScreen(Screen[None]):
             return
         bf = encounter.battlefield
         actor_pos = bf.position_of(actor.id)
-        candidates: list[tuple[str, str]] = []
+        candidates: list[tuple[CreatureId, Square]] = []
         for sq in actor_pos.chebyshev_disk(1):
             if not bf.in_bounds(sq):
                 continue
             for obj in bf.objects_at(sq):
                 if "hp" not in obj.state:
                     continue
-                label = (
-                    f"{obj.id} ({obj.kind.value}, HP {obj.state['hp']})"
-                )
-                candidates.append((str(obj.id), label))
+                candidates.append((CreatureId(str(obj.id)), sq))
         if not candidates:
             self.log_widget.write("[bold]No breakable objects in reach.[/]")
             return
-
-        def _on_pick(result: str | None) -> None:
-            if result is None:
-                return
-            self._put_intent(BreakIntent(target_object_id=ObjectId(result)))
-
-        self.app.push_screen(TargetPicker(candidates), _on_pick)
+        self._current_battlefield = bf
+        self._reachable_targets = candidates
+        self._pending_target_kind = "break"
+        self.enter_mode(BattleMode.TARGET)
 
     def action_intent_end_turn(self) -> None:
         if self._concluded or self._current is None:

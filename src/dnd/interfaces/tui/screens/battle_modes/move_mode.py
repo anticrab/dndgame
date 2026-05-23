@@ -43,6 +43,9 @@ class MoveModeHandler:
         if key in _ARROW_DELTAS:
             dx, dy = _ARROW_DELTAS[key]
             new = Square(self._cursor.x + dx, self._cursor.y + dy)
+            # BattleScreen инвариант: enter_mode(MOVE) случается только
+            # из action_intent_move, где battlefield уже установлен.
+            assert screen._current_battlefield is not None
             bf = screen._current_battlefield
             if 0 <= new.x < bf.width and 0 <= new.y < bf.height:
                 self._cursor = new
