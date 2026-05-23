@@ -16,7 +16,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dnd.application.dto.ids import CreatureId
+from dnd.application.dto.ids import CreatureId, ObjectId
+from dnd.application.engine.actions.interact import InteractKind
 from dnd.domain.values.square import Square
 
 
@@ -58,23 +59,54 @@ class EndTurnIntent(_IntentBase):
     kind: Literal["end_turn"] = "end_turn"
 
 
+class InteractIntent(_IntentBase):
+    """Игрок взаимодействует с интерактивным объектом (free action).
+
+    ``interact_kind`` различает open/close/examine — конкретную
+    семантику разруливает :class:`InteractAction`. Цель — объект в
+    reach (5ft); проверка происходит в action'е, GameRunner лишь
+    собирает params и логирует Forbidden.
+    """
+
+    kind: Literal["interact"] = "interact"
+    target_object_id: ObjectId
+    interact_kind: InteractKind
+
+
+class BreakIntent(_IntentBase):
+    """Игрок ломает интерактивный объект (action: атака по объекту с HP).
+
+    ``attack_bonus`` и ``damage_expr`` GameRunner вычислит из
+    ``actor.equipped_weapon`` (через ``weapon_attack_params``-логику);
+    в intent'е нет — UI знает только id цели, не должен лезть в
+    weapon-маталогию.
+    """
+
+    kind: Literal["break"] = "break"
+    target_object_id: ObjectId
+
+
 PlayerIntent = Annotated[
     AttackIntent
     | MoveIntent
     | DodgeIntent
     | DashIntent
     | DisengageIntent
-    | EndTurnIntent,
+    | EndTurnIntent
+    | InteractIntent
+    | BreakIntent,
     Field(discriminator="kind"),
 ]
 
 
 __all__ = [
     "AttackIntent",
+    "BreakIntent",
     "DashIntent",
     "DisengageIntent",
     "DodgeIntent",
     "EndTurnIntent",
+    "InteractIntent",
     "MoveIntent",
     "PlayerIntent",
 ]

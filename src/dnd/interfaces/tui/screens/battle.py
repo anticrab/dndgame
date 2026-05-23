@@ -34,16 +34,20 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header
 
 from dnd.application.dto.action import Allowed
+from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
+    BreakIntent,
     DashIntent,
     DisengageIntent,
     DodgeIntent,
     EndTurnIntent,
+    InteractIntent,
     MoveIntent,
     PlayerIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
+from dnd.application.engine.actions.interact import InteractKind
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.domain.values.faction import Faction
 from dnd.interfaces.tui.screens.move_picker import MovePicker
@@ -56,7 +60,6 @@ from dnd.interfaces.tui.widgets import (
 )
 
 if TYPE_CHECKING:
-    from dnd.application.dto.ids import CreatureId
     from dnd.application.engine.encounter import Encounter
     from dnd.application.engine.turn_context import TurnContext
     from dnd.domain.entities.creature import Creature
@@ -86,6 +89,8 @@ class BattleScreen(Screen[None]):
         ("d", "intent_dodge", "Dodge"),
         ("h", "intent_dash", "Dash"),
         ("g", "intent_disengage", "Disengage"),
+        ("i", "intent_interact", "Interact"),
+        ("k", "intent_break", "Break"),
         ("e", "intent_end_turn", "End turn"),
         # Zoom-toggle (K5-T3, medium ↔ small). Три формы клавиши: `+` и
         # `=` (на большинстве раскладок `+` — это Shift+`=`, но Textual
@@ -188,19 +193,23 @@ class BattleScreen(Screen[None]):
             self.log_widget.write("[bold]No reachable targets.[/]")
             return
 
-        labels = [
+        # TargetPicker принимает list[tuple[str, str]] — оборачиваем
+        # CreatureId в str (NewType → str), а на выходе обратно в
+        # CreatureId. Это нужно, чтобы тот же picker подошёл и для
+        # ObjectId (Interact / Break).
+        labels: list[tuple[str, str]] = [
             (
-                cid,
+                str(cid),
                 f"{cid} (HP {encounter.participants[cid].hit_points.current}/"
                 f"{encounter.participants[cid].hit_points.maximum})",
             )
             for cid in targets
         ]
 
-        def _on_pick(result: CreatureId | None) -> None:
+        def _on_pick(result: str | None) -> None:
             if result is None:
                 return
-            self._put_intent(AttackIntent(target_id=result))
+            self._put_intent(AttackIntent(target_id=CreatureId(result)))
 
         self.app.push_screen(TargetPicker(labels), _on_pick)
 
@@ -236,6 +245,73 @@ class BattleScreen(Screen[None]):
         if self._concluded or self._current is None:
             return
         self._put_intent(DisengageIntent())
+
+    def action_intent_interact(self) -> None:
+        """Открыть picker по интерактивным объектам в reach (5ft).
+
+        Default kind = OPEN — основной случай (двери, сундуки). CLOSE /
+        EXAMINE пока без отдельной клавиши; добавим, если станет нужно.
+        """
+        if self._concluded or self._current is None:
+            return
+        actor, _ctx, encounter = self._current
+        bf = encounter.battlefield
+        actor_pos = bf.position_of(actor.id)
+        candidates: list[tuple[str, str]] = []
+        # 1 клетка = 5ft, chebyshev_disk(1) включает центральную клетку.
+        for sq in actor_pos.chebyshev_disk(1):
+            if not bf.in_bounds(sq):
+                continue
+            for obj in bf.objects_at(sq):
+                label = f"{obj.id} ({obj.kind.value})"
+                candidates.append((str(obj.id), label))
+        if not candidates:
+            self.log_widget.write("[bold]No interactable objects in reach.[/]")
+            return
+
+        def _on_pick(result: str | None) -> None:
+            if result is None:
+                return
+            self._put_intent(
+                InteractIntent(
+                    target_object_id=ObjectId(result),
+                    interact_kind=InteractKind.OPEN,
+                )
+            )
+
+        self.app.push_screen(TargetPicker(candidates), _on_pick)
+
+    def action_intent_break(self) -> None:
+        """Picker по breakable объектам в reach (имеют hp в state)."""
+        if self._concluded or self._current is None:
+            return
+        actor, _ctx, encounter = self._current
+        if actor.equipped_weapon is None:
+            self.log_widget.write("[bold]No weapon equipped.[/]")
+            return
+        bf = encounter.battlefield
+        actor_pos = bf.position_of(actor.id)
+        candidates: list[tuple[str, str]] = []
+        for sq in actor_pos.chebyshev_disk(1):
+            if not bf.in_bounds(sq):
+                continue
+            for obj in bf.objects_at(sq):
+                if "hp" not in obj.state:
+                    continue
+                label = (
+                    f"{obj.id} ({obj.kind.value}, HP {obj.state['hp']})"
+                )
+                candidates.append((str(obj.id), label))
+        if not candidates:
+            self.log_widget.write("[bold]No breakable objects in reach.[/]")
+            return
+
+        def _on_pick(result: str | None) -> None:
+            if result is None:
+                return
+            self._put_intent(BreakIntent(target_object_id=ObjectId(result)))
+
+        self.app.push_screen(TargetPicker(candidates), _on_pick)
 
     def action_intent_end_turn(self) -> None:
         if self._concluded or self._current is None:

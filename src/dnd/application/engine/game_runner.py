@@ -25,14 +25,18 @@ from dnd.application.dto.action import (
 from dnd.application.dto.action import NoParams as _NoParams
 from dnd.application.dto.player_intent import (
     AttackIntent,
+    BreakIntent,
     DashIntent,
     DisengageIntent,
     DodgeIntent,
     EndTurnIntent,
+    InteractIntent,
     MoveIntent,
     PlayerIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
+from dnd.application.engine.actions.break_object import BreakAction, BreakParams
+from dnd.application.engine.actions.interact import InteractAction, InteractParams
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.stances import (
     DashAction,
@@ -155,6 +159,12 @@ class GameRunner:
         if isinstance(intent, DisengageIntent):
             self._do_stance(DisengageAction(), actor, ctx)
             return
+        if isinstance(intent, InteractIntent):
+            self._do_interact(actor, intent, ctx)
+            return
+        if isinstance(intent, BreakIntent):
+            self._do_break(actor, intent, ctx)
+            return
         # EndTurnIntent обрабатывается в _run_pc_turn до вызова.
         # Защита от расширения PlayerIntent без обновления GameRunner.
         raise TypeError(f"unknown PlayerIntent: {type(intent).__name__}")
@@ -183,6 +193,52 @@ class GameRunner:
             move.execute(actor, params, ctx)
         else:
             self._log_rejected(actor, "move", _avail_reason(avail))
+
+    def _do_interact(
+        self, actor: Creature, intent: InteractIntent, ctx: TurnContext
+    ) -> None:
+        params = InteractParams(
+            target_object_id=intent.target_object_id,
+            kind=intent.interact_kind,
+        )
+        action = InteractAction()
+        avail = action.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "interact", _avail_reason(avail))
+
+    def _do_break(
+        self, actor: Creature, intent: BreakIntent, ctx: TurnContext
+    ) -> None:
+        """Атака по объекту экипированным оружием.
+
+        attack_bonus / damage_expr / damage_type берём из
+        ``weapon_attack_params`` — это даёт согласованный набор
+        бонусов (proficiency + ability_mod) с обычной атакой по
+        существу. ``target_id`` в построенном ``AttackParams`` не
+        используется — нам нужны только числа, кость и тип урона.
+        """
+        if actor.equipped_weapon is None:
+            self._log_rejected(actor, "break", "no_equipped_weapon")
+            return
+        # Используем actor.id как «фиктивную» цель для построения
+        # AttackParams — нас интересуют поля attack_bonus / damage_expr /
+        # damage_type. target_id не дойдёт до execute (BreakAction его
+        # не использует).
+        atk_params = weapon_attack_params(actor, actor.id)
+        params = BreakParams(
+            target_object_id=intent.target_object_id,
+            attack_bonus=atk_params.attack_bonus,
+            damage_expr=atk_params.damage_expr,
+            damage_type=atk_params.damage_type,
+        )
+        action = BreakAction()
+        avail = action.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "break", _avail_reason(avail))
 
     def _do_stance(
         self,

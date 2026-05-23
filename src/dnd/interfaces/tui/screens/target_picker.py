@@ -22,11 +22,15 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Label, ListItem, ListView
 
-from dnd.application.dto.ids import CreatureId
 
+class TargetPicker(ModalScreen["str | None"]):
+    """Модальное окно: выбор цели. Возвращает id (str) или None.
 
-class TargetPicker(ModalScreen["CreatureId | None"]):
-    """Модальное окно: выбор цели. Возвращает CreatureId или None."""
+    Принимает список ``(id, label)``. ``id`` типизирован как ``str``,
+    чтобы picker подходил и для ``CreatureId`` (атака), и для
+    ``ObjectId`` (interact / break) — оба ``NewType`` поверх ``str``.
+    Вызывающий после dismiss приводит результат к нужному NewType.
+    """
 
     BINDINGS: ClassVar[list[BindingType]] = [
         ("escape", "cancel", "Cancel"),
@@ -37,7 +41,7 @@ class TargetPicker(ModalScreen["CreatureId | None"]):
 
     def __init__(
         self,
-        targets: list[tuple[CreatureId, str]],
+        targets: list[tuple[str, str]],
     ) -> None:
         super().__init__()
         self._targets = targets
