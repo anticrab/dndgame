@@ -18,7 +18,7 @@ from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dnd.application.dto.ids import CreatureId, RollId
+from dnd.application.dto.ids import CreatureId, ObjectId, RollId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import EngineRollResult
 from dnd.domain.values.damage import DamageType
@@ -292,6 +292,20 @@ class StanceTaken(EngineEvent):
     event_type: ClassVar[str] = "stance.taken"
     actor_id: CreatureId
     stance: str  # "dodging" | "dashing" | "disengaged"
+
+
+class ObjectInteracted(EngineEvent):
+    """Игрок взаимодействовал с интерактивным объектом.
+
+    PHB-2024 стр. 21: free object interaction (1/ход) — открыть дверь,
+    взять предмет, и т.п.
+    """
+
+    event_type: ClassVar[str] = "object.interacted"
+    actor_id: CreatureId
+    object_id: ObjectId
+    kind: str  # "open" | "close" | "examine"
+    loot: tuple[str, ...] = ()  # для CHEST: содержимое
 
 
 class OpportunityAttackProvoked(EngineEvent):
