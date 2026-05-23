@@ -132,9 +132,31 @@ def _object_of(ch: str, idx: int) -> MapObjectDoc | None:
             state={"open": False, "locked": True, "hp": 12, "ac": 14},
         )
     if ch == "C":
+        # Каждый сундук в сокровищнице получает свой набор лута.
+        # Loot — canonical-формат O-6b (parse_loot его понимает напрямую).
+        # Циклически крутим 3 варианта по idx — чтобы три сундука в крипте
+        # содержали разное.
+        loot_variants = [
+            [
+                {"item_id": "gold_piece", "qty": 25},
+                {"item_id": "healing_potion", "qty": 1},
+            ],
+            [
+                {"item_id": "gold_piece", "qty": 12},
+                {"item_id": "torch", "qty": 2},
+                {"item_id": "brass_key", "qty": 1},
+            ],
+            [
+                {"item_id": "silver_piece", "qty": 40},
+                {"item_id": "shortbow", "qty": 1},
+            ],
+        ]
         return MapObjectDoc(
             id=f"chest-{idx}", kind="chest", x=0, y=0,
-            state={"open": False, "locked": False, "hp": 8, "ac": 14},
+            state={
+                "open": False, "locked": False, "hp": 8, "ac": 14,
+                "contents": loot_variants[idx % len(loot_variants)],
+            },
         )
     if ch == "B":
         return MapObjectDoc(

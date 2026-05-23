@@ -4165,6 +4165,13 @@ objects:
     locked: false
     hp: 8
     ac: 14
+    contents:
+    - item_id: gold_piece
+      qty: 12
+    - item_id: torch
+      qty: 2
+    - item_id: brass_key
+      qty: 1
 - id: chest-8
   kind: chest
   x: 3
@@ -4174,6 +4181,11 @@ objects:
     locked: false
     hp: 8
     ac: 14
+    contents:
+    - item_id: silver_piece
+      qty: 40
+    - item_id: shortbow
+      qty: 1
 - id: door-locked-9
   kind: door
   x: 21
@@ -4192,6 +4204,13 @@ objects:
     locked: false
     hp: 8
     ac: 14
+    contents:
+    - item_id: gold_piece
+      qty: 12
+    - item_id: torch
+      qty: 2
+    - item_id: brass_key
+      qty: 1
 - id: door-11
   kind: door
   x: 6
