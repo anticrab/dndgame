@@ -308,6 +308,19 @@ class ObjectInteracted(EngineEvent):
     loot: tuple[str, ...] = ()  # для CHEST: содержимое
 
 
+class ObjectDamaged(EngineEvent):
+    """Объект получил урон (BreakAction). Если broken=True — объект
+    сломан (HP=0)."""
+
+    event_type: ClassVar[str] = "object.damaged"
+    attacker_id: CreatureId
+    object_id: ObjectId
+    raw_amount: int
+    final_amount: int
+    hp_after: int
+    broken: bool
+
+
 class OpportunityAttackProvoked(EngineEvent):
     """Атакующий покидает клетку, на которой его удерживал в зоне
     угрозы threatener. Само разрешение реакции — задача обработчиков
