@@ -9,6 +9,7 @@ handler'ы через моки без поднятия BattleScreen, (2) mypy st
 """
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Protocol
 
@@ -24,6 +25,29 @@ class BattleMode(Enum):
     TARGET = "target"
 
 
+@dataclass(frozen=True)
+class OverlayData:
+    """Что handler хочет показать на карте + в hint-полосе.
+
+    Поля:
+    * ``cursor`` — где рисовать курсор (или None);
+    * ``highlights`` — ``{sq: style}``, рисуется поверх terrain'а
+      (используется TARGET mode для подсветки целей);
+    * ``path_preview`` — клетки маршрута для MOVE mode;
+    * ``path_styles`` — override стиля для отдельных клеток пути
+      (по-умолчанию все клетки рисуются ``green``; здесь можно
+      пометить «жёлтые» — нужен Dash, или «красные» — overflow);
+    * ``hint`` — короткая строка для ModeHintWidget'а (типа
+      «MOVE: cursor=(15,8) cost=25/30 ft»).
+    """
+
+    cursor: Square | None = None
+    highlights: dict[Square, str] = field(default_factory=dict)
+    path_preview: tuple[Square, ...] = ()
+    path_styles: dict[Square, str] = field(default_factory=dict)
+    hint: str = ""
+
+
 class ModeScreenContext(Protocol):
     """Контракт «screen»: атрибуты которые BattleScreen обещает иметь
     к моменту входа в mode. Установлены в `enter_mode` (L1-T9).
@@ -33,9 +57,13 @@ class ModeScreenContext(Protocol):
     Handler'ы вызываются ТОЛЬКО когда BattleScreen уверен что
     battlefield установлен — это инвариант экрана; для mypy handler'ы
     могут `assert screen._current_battlefield is not None`.
+
+    ``_current_actor_speed_ft`` нужен MOVE-mode для раскраски пути
+    (зелёный в пределах speed_ft, жёлтый — Dash, красный — overflow).
     """
 
     _current_actor_position: Square
+    _current_actor_speed_ft: int
     _current_battlefield: Battlefield | None
     _reachable_targets: list[tuple[CreatureId, Square]]
 
@@ -55,11 +83,9 @@ class ModeHandler(Protocol):
         """True если handler съел клавишу. False → bubble дальше."""
         ...
 
-    def overlay_data(
-        self,
-    ) -> tuple[Square | None, dict[Square, str], tuple[Square, ...]]:
-        """(cursor, highlights, path_preview) для MapWidget.refresh_from."""
+    def overlay(self) -> OverlayData:
+        """Что показывать сейчас (cursor / highlights / path / hint)."""
         ...
 
 
-__all__ = ["BattleMode", "ModeHandler", "ModeScreenContext"]
+__all__ = ["BattleMode", "ModeHandler", "ModeScreenContext", "OverlayData"]

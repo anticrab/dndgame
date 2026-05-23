@@ -72,6 +72,7 @@ def render_battlefield(
     visible_rect: tuple[int, int, int, int] | None = None,
     highlights: dict[Square, str] | None = None,
     path_preview: tuple[Square, ...] = (),
+    path_styles: dict[Square, str] | None = None,
 ) -> Text:
     """Сформировать ``rich.Text`` с ASCII-картой.
 
@@ -124,7 +125,11 @@ def render_battlefield(
             sq = Square(x, y)
             # path preview только если на клетке нет существа и она не курсор
             if sq in path_set and sq != cursor and not battlefield.creatures_at(sq):
-                out.append("·", style="green" if with_color else "")
+                if path_styles and sq in path_styles:
+                    style = path_styles[sq] if with_color else ""
+                else:
+                    style = "green" if with_color else ""
+                out.append("·", style=style)
                 continue
             glyph, style = _cell_glyph(
                 battlefield, factions, sq, cursor, with_color=with_color
@@ -331,6 +336,7 @@ class MapWidget(Static):
         cursor: Square | None = None,
         highlights: dict[Square, str] | None = None,
         path_preview: tuple[Square, ...] = (),
+        path_styles: dict[Square, str] | None = None,
         follow: Square | None = None,
     ) -> None:
         self.set_world_size(battlefield.width, battlefield.height)
@@ -345,6 +351,7 @@ class MapWidget(Static):
             cursor=cursor, with_color=with_color, zoom=self._zoom,
             visible_rect=self.visible_rect() if self._zoom == "small" else None,
             highlights=highlights, path_preview=path_preview,
+            path_styles=path_styles,
         ))
 
     def _auto_follow(self, target: Square) -> None:

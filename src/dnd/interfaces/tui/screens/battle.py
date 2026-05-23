@@ -71,6 +71,7 @@ from dnd.interfaces.tui.widgets import (
     InitiativeWidget,
     LogWidget,
     MapWidget,
+    ModeHintWidget,
     StatusWidget,
 )
 
@@ -139,6 +140,7 @@ class BattleScreen(Screen[None]):
         self._mode: BattleMode = BattleMode.NORMAL
         self._mode_handler: ModeHandler = NormalModeHandler()
         self._current_actor_position: Square = Square(0, 0)
+        self._current_actor_speed_ft: int = 30
         self._current_battlefield: Battlefield | None = None
         self._reachable_targets: list[tuple[CreatureId, Square]] = []
         # Различает kind intent'а при подтверждении в TARGET mode
@@ -179,6 +181,7 @@ class BattleScreen(Screen[None]):
         self._current = (actor, ctx, encounter)
         self._current_battlefield = encounter.battlefield
         self._current_actor_position = encounter.battlefield.position_of(actor.id)
+        self._current_actor_speed_ft = actor.speed_ft
         if self._mode is not BattleMode.NORMAL:
             self.enter_mode(BattleMode.NORMAL)
         self.status_widget.refresh_from(actor, ctx)
@@ -213,6 +216,10 @@ class BattleScreen(Screen[None]):
         with Horizontal(id="battle-row"):
             yield MapWidget(id="map")
             yield InitiativeWidget(id="init")
+        # ModeHintWidget — однострочный подсказчик под картой
+        # (cursor coords / cost / target id / ...). Содержит игровой
+        # «состояние выбора» без захламления лога.
+        yield ModeHintWidget(id="mode-hint")
         yield LogWidget(id="log", wrap=True, highlight=True, markup=True, max_lines=200)
         # ActionBarWidget пока скрыт — Textual Footer уже показывает
         # тот же default-набор hotkey'ев из BINDINGS, и две одинаковые
@@ -247,6 +254,10 @@ class BattleScreen(Screen[None]):
     def action_bar_widget(self) -> ActionBarWidget:
         return self.query_one("#action-bar", ActionBarWidget)
 
+    @property
+    def mode_hint_widget(self) -> ModeHintWidget:
+        return self.query_one("#mode-hint", ModeHintWidget)
+
     # --- intent helpers ---------------------------------------------
 
     def _put_intent(self, intent: PlayerIntent) -> None:
@@ -280,7 +291,7 @@ class BattleScreen(Screen[None]):
         """Перерисовать карту с актуальным overlay-данным от handler'а.
 
         В NORMAL overlay пустой — карта рисуется «как есть»; в MOVE/TARGET
-        cursor/highlights/path_preview приходят из ``overlay_data()``.
+        cursor/highlights/path_preview приходят из ``overlay()``.
         Viewport follow:
         * NORMAL/MOVE — едет за PC (стрелки в MOVE двигают курсор
           относительно карты, follow=actor чтобы PC оставался виден);
@@ -290,21 +301,23 @@ class BattleScreen(Screen[None]):
         """
         if self._current is None or self._current_battlefield is None:
             return
-        cursor, highlights, path_preview = self._mode_handler.overlay_data()
+        data = self._mode_handler.overlay()
         actor, _ctx, encounter = self._current
-        if self._mode is BattleMode.TARGET and cursor is not None:
-            follow = cursor
+        if self._mode is BattleMode.TARGET and data.cursor is not None:
+            follow = data.cursor
         else:
             follow = self._current_battlefield.position_of(actor.id)
         try:
             self.map_widget.refresh_from(
                 self._current_battlefield,
                 encounter.factions,
-                cursor=cursor,
-                highlights=highlights,
-                path_preview=path_preview,
+                cursor=data.cursor,
+                highlights=data.highlights,
+                path_preview=data.path_preview,
+                path_styles=data.path_styles,
                 follow=follow,
             )
+            self.mode_hint_widget.set_text(data.hint)
         except Exception:
             # MapWidget может ещё не быть смонтирован (initial event'ы).
             return

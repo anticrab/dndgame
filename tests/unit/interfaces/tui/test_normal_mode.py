@@ -3,10 +3,12 @@ from dnd.interfaces.tui.screens.battle_modes.normal_mode import NormalModeHandle
 
 def test_normal_mode_no_overlay() -> None:
     h = NormalModeHandler()
-    cursor, highlights, path = h.overlay_data()
-    assert cursor is None
-    assert highlights == {}
-    assert path == ()
+    data = h.overlay()
+    assert data.cursor is None
+    assert data.highlights == {}
+    assert data.path_preview == ()
+    assert data.path_styles == {}
+    assert data.hint == ""
 
 
 def test_normal_mode_doesnt_eat_keys() -> None:

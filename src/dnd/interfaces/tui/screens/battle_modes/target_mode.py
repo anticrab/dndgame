@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from dnd.application.dto.ids import CreatureId
 from dnd.domain.values.square import Square
-from dnd.interfaces.tui.screens.battle_modes.protocol import ModeScreenContext
+from dnd.interfaces.tui.screens.battle_modes.protocol import (
+    ModeScreenContext,
+    OverlayData,
+)
 
 
 class TargetModeHandler:
@@ -43,16 +46,22 @@ class TargetModeHandler:
             return True
         return False
 
-    def overlay_data(
-        self,
-    ) -> tuple[Square | None, dict[Square, str], tuple[Square, ...]]:
+    def overlay(self) -> OverlayData:
         if not self._targets:
-            return (None, {}, ())
+            return OverlayData()
         highlights: dict[Square, str] = {}
         for i, (_, sq) in enumerate(self._targets):
             highlights[sq] = "reverse bold" if i == self._idx else "bold"
-        cursor = self._targets[self._idx][1]
-        return (cursor, highlights, ())
+        cur_id, cur_sq = self._targets[self._idx]
+        hint = (
+            f"TARGET: {cur_id} ({self._idx + 1}/{len(self._targets)}) — "
+            f"Tab next · Enter ok · Esc cancel"
+        )
+        return OverlayData(
+            cursor=cur_sq,
+            highlights=highlights,
+            hint=hint,
+        )
 
 
 __all__ = ["TargetModeHandler"]

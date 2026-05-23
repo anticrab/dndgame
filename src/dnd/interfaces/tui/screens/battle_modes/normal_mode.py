@@ -7,8 +7,10 @@ ModeHandler.
 """
 from __future__ import annotations
 
-from dnd.domain.values.square import Square
-from dnd.interfaces.tui.screens.battle_modes.protocol import ModeScreenContext
+from dnd.interfaces.tui.screens.battle_modes.protocol import (
+    ModeScreenContext,
+    OverlayData,
+)
 
 
 class NormalModeHandler:
@@ -21,10 +23,8 @@ class NormalModeHandler:
     def on_key(self, screen: ModeScreenContext, key: str) -> bool:
         return False
 
-    def overlay_data(
-        self,
-    ) -> tuple[Square | None, dict[Square, str], tuple[Square, ...]]:
-        return (None, {}, ())
+    def overlay(self) -> OverlayData:
+        return OverlayData()
 
 
 __all__ = ["NormalModeHandler"]
