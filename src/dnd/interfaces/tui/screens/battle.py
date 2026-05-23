@@ -101,6 +101,9 @@ class BattleScreen(Screen[None]):
         # обработчикам клавиш доступ к свежим actor / ctx / encounter
         # без таскания их через виджеты.
         self._current: tuple[Creature, TurnContext, Encounter] | None = None
+        # Помечается renderer'ом после EncounterEnded — action-биндинги
+        # сразу выходят, чтобы игрок не «жал в пустоту» после победы.
+        self._concluded: bool = False
 
     # --- public API для bridge --------------------------------------
 
@@ -119,6 +122,11 @@ class BattleScreen(Screen[None]):
     def clear_active_turn(self) -> None:
         """Сбросить состояние (вне-PC ход). Дополнительная защита от
         случайного нажатия action-клавиши на чужом ходу."""
+        self._current = None
+
+    def mark_concluded(self) -> None:
+        """Бой завершён — action-биндинги перестают реагировать."""
+        self._concluded = True
         self._current = None
 
     # --- compose ----------------------------------------------------
@@ -166,12 +174,13 @@ class BattleScreen(Screen[None]):
     # --- action handlers --------------------------------------------
 
     def action_intent_attack(self) -> None:
-        if self._current is None:
+        if self._concluded or self._current is None:
             return
         actor, ctx, encounter = self._current
         targets = _list_reachable_hostiles(actor, ctx, encounter)
         if not targets:
-            self.log_widget.write("[yellow]No reachable targets.[/]")
+            # bold вместо цвета — работает в обеих темах.
+            self.log_widget.write("[bold]No reachable targets.[/]")
             return
 
         labels = [
@@ -191,7 +200,7 @@ class BattleScreen(Screen[None]):
         self.app.push_screen(TargetPicker(labels), _on_pick)
 
     def action_intent_move(self) -> None:
-        if self._current is None:
+        if self._concluded or self._current is None:
             return
         actor, _ctx, encounter = self._current
         start = encounter.battlefield.position_of(actor.id)
@@ -209,22 +218,22 @@ class BattleScreen(Screen[None]):
         )
 
     def action_intent_dodge(self) -> None:
-        if self._current is None:
+        if self._concluded or self._current is None:
             return
         self._put_intent(DodgeIntent())
 
     def action_intent_dash(self) -> None:
-        if self._current is None:
+        if self._concluded or self._current is None:
             return
         self._put_intent(DashIntent())
 
     def action_intent_disengage(self) -> None:
-        if self._current is None:
+        if self._concluded or self._current is None:
             return
         self._put_intent(DisengageIntent())
 
     def action_intent_end_turn(self) -> None:
-        if self._current is None:
+        if self._concluded or self._current is None:
             return
         self._put_intent(EndTurnIntent())
 

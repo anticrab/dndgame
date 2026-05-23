@@ -54,9 +54,22 @@ class EventRenderer:
     ) -> None:
         self._screen = screen
         self._encounter = encounter
-        self._call = call_from_thread
+        self._call_raw = call_from_thread
         self._active_actor: CreatureId | None = None
         self._initiative_order: tuple[Any, ...] = ()
+
+    def _call(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+        """Безопасно отправить callback в main-thread.
+
+        Если event loop уже закрыт (app завершился, worker ещё
+        доигрывает оставшиеся события) — call_from_thread кидает
+        ``RuntimeError("Event loop is closed")``. Гасим — иначе
+        worker-thread пробросит в pytest unraisable warning.
+        """
+        try:
+            self._call_raw(fn, *args, **kwargs)
+        except RuntimeError:
+            _log.debug("EventRenderer: call_from_thread on closed loop")
 
     def subscribe(self, bus: EventBus) -> Unsubscribe:
         return bus.subscribe(EngineEvent, self._on_event)
@@ -64,84 +77,103 @@ class EventRenderer:
     # --- dispatch -----------------------------------------------------
 
     def _on_event(self, event: EngineEvent) -> None:
-        try:
-            handler = _DISPATCH.get(type(event))
-            if handler is not None:
-                handler(self, event)
-            self._call(self._screen.log_widget.handle_event, event)
-        except NoMatches:
-            # Виджеты ещё не смонтированы (гонка с worker-thread).
-            # Пропускаем — следующий event точно дойдёт.
-            return
-        except Exception:
-            _log.exception("EventRenderer: handler raised on %r", event)
+        handler = _DISPATCH.get(type(event))
+        if handler is not None:
+            handler(self, event)
+        # Лог обновляем для всех событий; виджет резолвится в main-thread.
+        self._call(self._dispatch_log, event)
 
     def _on_initiative(self, event: InitiativeRolled) -> None:
         self._initiative_order = tuple(event.order)
-        self._refresh_initiative()
-        self._refresh_map()
+        self._call(self._refresh_initiative_main)
+        self._call(self._refresh_map_main)
 
     def _on_turn_started(self, event: TurnStarted) -> None:
         self._active_actor = event.actor_id
-        self._refresh_initiative()
-        actor = self._encounter.participants.get(event.actor_id)
-        if actor is not None:
-            # TurnContext доступен только внутри start_turn(); здесь
-            # передаём None — StatusWidget покажет «без экономии».
-            self._call(self._screen.status_widget.refresh_from, actor, None)
-        # Не-PC ход: убираем активное состояние, action-клавиши
-        # будут игнорироваться. set_active_turn вызывается из
-        # TuiIntentProvider.turn_signal, когда дойдёт до PC.
+        self._call(self._refresh_initiative_main)
+        self._call(self._refresh_status_main)
         if self._encounter.factions.get(event.actor_id) is not Faction.PARTY:
-            self._call(self._screen.clear_active_turn)
-        self._refresh_map()
+            self._call(self._clear_active_main)
+        self._call(self._refresh_map_main)
 
     def _on_move(self, event: MoveCompleted) -> None:
         del event
-        self._refresh_map()
+        self._call(self._refresh_map_main)
 
     def _on_damage_or_attack(self, event: DamageDealt | AttackResolved) -> None:
-        # Перерисовка статуса актуального актора (HP мог измениться).
-        if self._active_actor is None:
-            return
-        actor = self._encounter.participants.get(self._active_actor)
-        if actor is not None:
-            self._call(self._screen.status_widget.refresh_from, actor, None)
+        # HP мог измениться — перерисовать статус активного актора.
+        self._call(self._refresh_status_main)
         if isinstance(event, AttackResolved) and event.downed:
-            self._refresh_map()
-            self._refresh_initiative()
+            self._call(self._refresh_map_main)
+            self._call(self._refresh_initiative_main)
 
     def _on_stance(self, event: StanceTaken) -> None:
         del event
+        self._call(self._refresh_status_main)
+
+    def _on_encounter_ended(self, event: EncounterEnded) -> None:
+        self._call(self._refresh_map_main)
+        self._call(self._refresh_initiative_main)
+        self._call(self._show_end_screen_main, event)
+
+    # --- main-thread helpers ------------------------------------------
+    # Эти функции исполняются в main-thread (через call_from_thread).
+    # Только здесь разрешено query_one и любое обращение к Textual DOM —
+    # иначе мы рискуем race между worker'ом и event-loop'ом.
+
+    def _dispatch_log(self, event: EngineEvent) -> None:
+        try:
+            self._screen.log_widget.handle_event(event)
+        except NoMatches:
+            return  # экран ещё не смонтирован — initial-event теряется
+
+    def _refresh_map_main(self) -> None:
+        try:
+            self._screen.map_widget.refresh_from(
+                self._encounter.battlefield, self._encounter.factions
+            )
+        except NoMatches:
+            return
+
+    def _refresh_initiative_main(self) -> None:
+        try:
+            self._screen.initiative_widget.refresh_from(
+                self._initiative_order,
+                self._encounter.participants,
+                active_id=self._active_actor,
+            )
+        except NoMatches:
+            return
+
+    def _refresh_status_main(self) -> None:
         if self._active_actor is None:
             return
         actor = self._encounter.participants.get(self._active_actor)
-        if actor is not None:
-            self._call(self._screen.status_widget.refresh_from, actor, None)
+        if actor is None:
+            return
+        try:
+            # ctx=None: TurnContext знают только сами Action'ы.
+            self._screen.status_widget.refresh_from(actor, None)
+        except NoMatches:
+            return
 
-    def _on_encounter_ended(self, event: EncounterEnded) -> None:
-        del event
-        self._refresh_map()
-        self._refresh_initiative()
+    def _clear_active_main(self) -> None:
+        try:
+            self._screen.clear_active_turn()
+        except NoMatches:
+            return
 
-    # --- helpers ------------------------------------------------------
+    def _show_end_screen_main(self, event: EncounterEnded) -> None:
+        # EndScreen — точка фокуса после боя; BattleScreen помечает
+        # себя 'concluded', action-биндинги перестают реагировать.
+        try:
+            self._screen.mark_concluded()
+        except NoMatches:
+            return
+        # Импорт здесь — чтобы избежать цикла screens→bridge→screens.
+        from dnd.interfaces.tui.screens.end_screen import EndScreen
 
-    def _refresh_map(self) -> None:
-        self._call(
-            self._screen.map_widget.refresh_from,
-            self._encounter.battlefield,
-            self._encounter.factions,
-        )
-
-    def _refresh_initiative(self) -> None:
-        # active_id — keyword-only в InitiativeWidget.refresh_from.
-        # call_from_thread поддерживает **kwargs.
-        self._call(
-            self._screen.initiative_widget.refresh_from,
-            self._initiative_order,
-            self._encounter.participants,
-            active_id=self._active_actor,
-        )
+        self._screen.app.push_screen(EndScreen(event))
 
 
 _DISPATCH: dict[type[EngineEvent], Callable[[EventRenderer, Any], None]] = {

@@ -66,6 +66,7 @@ def render_battlefield(
     factions: dict[CreatureId, Faction],
     *,
     cursor: Square | None = None,
+    with_color: bool = True,
 ) -> Text:
     """Сформировать ``rich.Text`` с ASCII-картой.
 
@@ -79,14 +80,18 @@ def render_battlefield(
     3. Иначе по типу террейна: стена / труднопроходимая / дверь /
        укрытие / яма / иначе `.` (пол).
 
-    Возвращает ``rich.Text`` с inline-разметкой цветов; вставляется в
-    Textual ``Static`` через ``widget.update(text)``.
+    ``with_color=False`` отключает цветовую разметку — клетки печатаются
+    plain'ом + reverse/bold там, где это семантически (курсор).
+    Этим путём идёт monochrome-тема (UI.md §3.2): семантика передаётся
+    яркостью, не цветом.
     """
     out = Text()
     for y in range(battlefield.height):
         for x in range(battlefield.width):
             sq = Square(x, y)
-            glyph, style = _cell_glyph(battlefield, factions, sq, cursor)
+            glyph, style = _cell_glyph(
+                battlefield, factions, sq, cursor, with_color=with_color
+            )
             out.append(glyph, style=style)
         if y < battlefield.height - 1:
             out.append("\n")
@@ -98,24 +103,38 @@ def _cell_glyph(
     factions: dict[CreatureId, Faction],
     sq: Square,
     cursor: Square | None,
+    *,
+    with_color: bool,
 ) -> tuple[str, str]:
     occupants = battlefield.creatures_at(sq)
     if occupants:
         top = _pick_top_creature(occupants, factions)
         faction = factions.get(top, Faction.NEUTRAL)
         glyph = _FACTION_GLYPH[faction]
-        style = _FACTION_COLOR_TAG[faction]
-        if sq == cursor:
-            style = f"{style} reverse"
+        if with_color:
+            style = _FACTION_COLOR_TAG[faction]
+            if sq == cursor:
+                style = f"{style} reverse"
+        else:
+            # monochrome: PC — bold; враг — reverse; нейтрал — обычный.
+            base = {
+                Faction.PARTY: "bold",
+                Faction.MONSTERS: "reverse",
+                Faction.NEUTRAL: "",
+            }[faction]
+            style = f"{base} reverse" if sq == cursor and base else (
+                "reverse" if sq == cursor else base
+            )
         return (glyph, style)
 
     if sq == cursor:
-        return ("X", "magenta reverse")
+        return ("X", "magenta reverse") if with_color else ("X", "reverse")
 
     terrain = battlefield.terrain_at(sq)
     glyph = _terrain_glyph(terrain)
-    style = "" if glyph == "." else "white"
-    return (glyph, style)
+    if glyph == ".":
+        return (glyph, "")
+    return (glyph, "white") if with_color else (glyph, "dim")
 
 
 def _pick_top_creature(
@@ -137,6 +156,10 @@ class MapWidget(Static):
     Перерисовка — через :meth:`refresh_from`. Виджет хранит ссылку
     на battlefield/factions/cursor; вызывающий слой (event_renderer)
     дёргает refresh_from после каждого хода или передвижения.
+
+    ``with_color`` определяется на лету по активной теме приложения
+    (`color` → True, `monochrome` → False), чтобы тема реально
+    влияла на содержимое карты, не только на рамку.
     """
 
     DEFAULT_CSS = ""
@@ -148,7 +171,20 @@ class MapWidget(Static):
         *,
         cursor: Square | None = None,
     ) -> None:
-        self.update(render_battlefield(battlefield, factions, cursor=cursor))
+        with_color = self._is_color_theme()
+        self.update(
+            render_battlefield(
+                battlefield, factions, cursor=cursor, with_color=with_color
+            )
+        )
+
+    def _is_color_theme(self) -> bool:
+        # Theme name живёт в TuiApp как self.app._theme; если виджет
+        # используется вне TuiApp (например, MovePicker под Pilot
+        # без TuiApp) — fallback на True (цветной).
+        app = self.app
+        theme = getattr(app, "_theme", None)
+        return theme != "monochrome"
 
 
 __all__ = ["MapWidget", "render_battlefield"]

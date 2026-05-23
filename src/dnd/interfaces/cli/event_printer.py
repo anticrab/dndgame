@@ -50,6 +50,14 @@ class EventPrinter:
     def subscribe(self, bus: EventBus) -> Callable[[], None]:
         return bus.subscribe(EngineEvent, self._on_event)
 
+    def dispatch_event(self, event: EngineEvent) -> None:
+        """Публичная точка для форматирования одного события без шины.
+
+        Нужна, например, LogWidget'у в TUI, чтобы переиспользовать
+        форматтер без подписки на bus.
+        """
+        self._on_event(event)
+
     # --- private ----------------------------------------------------
 
     def _on_event(self, event: EngineEvent) -> None:

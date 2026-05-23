@@ -15,6 +15,7 @@ from textual.app import App
 
 from dnd.application.dto.player_intent import PlayerIntent
 from dnd.application.engine.game_runner import GameRunner
+from dnd.application.ports.event_bus import Unsubscribe
 from dnd.interfaces.tui.bridge import (
     EventRenderer,
     RunnerWorker,
@@ -60,6 +61,7 @@ class TuiApp(App[None]):
         self._intent_queue: queue.Queue[PlayerIntent] | None = None
         self._provider: TuiIntentProvider | None = None
         self._renderer: EventRenderer | None = None
+        self._renderer_unsubscribe: Unsubscribe | None = None
         self._worker: RunnerWorker | None = None
         self._battle_screen: BattleScreen | None = None
 
@@ -105,7 +107,9 @@ class TuiApp(App[None]):
         self._renderer = EventRenderer(
             screen, encounter, call_from_thread=self.call_from_thread
         )
-        self._renderer.subscribe(encounter.event_bus)
+        self._renderer_unsubscribe = self._renderer.subscribe(
+            encounter.event_bus
+        )
 
         runner = GameRunner(intent_provider=self._provider)
         self._worker = RunnerWorker(
@@ -115,24 +119,27 @@ class TuiApp(App[None]):
         self._worker.start()
 
     def on_unmount(self) -> None:
-        # Сигналим worker'у завершиться, разблокируем висящий
-        # provider.next_intent → worker увидит is_concluded и выйдет.
+        # Отписать renderer от шины первым делом: после exit Textual
+        # закрывает event loop, и любой call_from_thread из worker'a
+        # уйдёт в never-awaited coroutine. Отписка снимает источник.
+        if self._renderer_unsubscribe is not None:
+            self._renderer_unsubscribe()
+            self._renderer_unsubscribe = None
+        # Разблокировать висящий provider.next_intent → worker увидит
+        # EndTurnIntent и выйдет из GameRunner.
         if self._provider is not None:
             self._provider.shutdown()
 
     def _on_runner_finished(self, exc: BaseException | None) -> None:
-        del exc
-        # Вызывается в worker-thread; в main-thread шлём через
-        # call_from_thread (по требованию Textual).
-        # На MVP J просто помечаем в логе; full Victory/Defeat overlay
-        # — пост-MVP. Если приложение уже не в активном состоянии,
-        # call_from_thread может выбросить — суммируем и игнорим.
-        if self._battle_screen is None:
+        # Победа/поражение показывается через EndScreen (push'ает
+        # EventRenderer на EncounterEnded). Здесь reагируем только на
+        # незапланированное исключение в worker'е.
+        if exc is None or self._battle_screen is None:
             return
         with contextlib.suppress(Exception):  # app мог уже закрыться
             self.call_from_thread(
                 self._battle_screen.log_widget.write,
-                "[bold cyan]— Encounter complete; press Q to exit —[/]",
+                f"[bold red]— Runner error: {exc!r}; press Q to exit —[/]",
             )
 
 

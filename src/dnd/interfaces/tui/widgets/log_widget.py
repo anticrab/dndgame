@@ -39,7 +39,7 @@ class LogWidget(RichLog):
         buf = StringIO()
         console = Console(file=buf, width=120, force_terminal=True, color_system="truecolor")
         printer = self._printer_factory(console)
-        printer._on_event(event)
+        printer.dispatch_event(event)
         text = buf.getvalue().rstrip("\n")
         if text:
             for line in text.splitlines():

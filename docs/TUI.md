@@ -68,7 +68,7 @@ src/dnd/interfaces/tui/
     battle.py           — BattleScreen — основной экран боя
     target_picker.py    — модальный экран выбора цели атаки
     move_picker.py      — модальный экран выбора клетки движения
-    end_screen.py       — экран Victory / Defeat
+    end_screen.py       — модальный экран Victory / Defeat / Draw
   widgets/
     map_widget.py       — MapWidget: ASCII-карта (small-zoom)
     log_widget.py       — LogWidget: журнал событий (RichLog)
@@ -228,10 +228,24 @@ PC- vs monster-turn: для не-PARTY actor'а `BattleScreen.set_turn`
   - `a` — Attack (открывает TargetPicker)
   - `m` — Move (открывает MovePicker)
   - `d` — Dodge
-  - `h` — Dash
+  - `h` — Dash (не путать с глифом `H` высокого cover на карте)
   - `g` — Disengage
   - `e` — End turn
-  - `q` — Quit (с подтверждением)
+  - `q` — Quit (мгновенно; confirm-диалог — пост-MVP).
+* После EncounterEnded BattleScreen помечает себя `_concluded`;
+  все action-handlers сразу выходят без putного intent'а — клавиши
+  «не реагируют». Фокус переходит на EndScreen (§6.8).
+
+### 6.8 EndScreen (модальный)
+
+Точка фокуса после `EncounterEnded` (TUI.md §3, §4). Показывает:
+* вердикт — «PARTY WINS» / «MONSTERS WINS» / «DRAW»;
+* номер раунда;
+* список survivors (либо «No survivors»).
+
+Binding: `Enter` / `Esc` / `Q` → `app.exit()`. Закрытие EndScreen
+автоматически закрывает приложение — TUI MVP не предполагает
+переход в новый бой (нужен главное меню — пост-MVP).
 
 ### 6.6 TargetPicker (ModalScreen)
 
