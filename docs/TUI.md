@@ -84,14 +84,17 @@ src/dnd/interfaces/tui/
     monochrome.tcss     — bw-тема для скриншотов / colorblind (UI.md §3.2)
   screens/
     battle.py           — BattleScreen — основной экран боя
-    target_picker.py    — модальный экран выбора цели атаки
-    move_picker.py      — модальный экран выбора клетки движения
+    battle_modes/       — NORMAL/MOVE/TARGET handler'ы (этап L1)
+    keymap.py           — build_keymap actor + registry → {hotkey: Ability}
     end_screen.py       — модальный экран Victory / Defeat / Draw
   widgets/
-    map_widget.py       — MapWidget: ASCII-карта (small-zoom)
+    map_widget.py       — MapWidget: ASCII-карта (small-zoom default,
+                          viewport + auto-follow, L1)
     log_widget.py       — LogWidget: журнал событий (RichLog)
     status_widget.py    — StatusWidget: HP/AC/Init/economy PC
     initiative_widget.py — InitiativeWidget: список инициативы
+    action_bar_widget.py — ActionBarWidget: динамическая полоса
+                          хоткеев [a] Attack [d] Dodge … (L2-6/7)
   bridge/
     intent_provider.py  — TuiIntentProvider — адаптер PlayerIntentProvider
     event_renderer.py   — EventRenderer — подписчик EncounterEvent → виджеты
@@ -239,20 +242,49 @@ PC- vs monster-turn: для не-PARTY actor'а `BattleScreen.set_turn`
 * Перерисовка на `InitiativeRolled` (старт), `TurnStarted`,
   `CreatureDowned`.
 
-### 6.5 ActionsWidget
+### 6.5 ActionsWidget + ActionBarWidget
 
-* Реализуется через `BINDINGS` BattleScreen + Footer Textual.
-* Привязки:
-  - `a` — Attack (открывает TargetPicker)
-  - `m` — Move (открывает MovePicker)
-  - `d` — Dodge
-  - `h` — Dash (не путать с глифом `H` высокого cover на карте)
-  - `g` — Disengage
+* «Системные» биндинги (выход, zoom, end turn) — через `BINDINGS`
+  BattleScreen + Footer Textual:
+  - `a` — Attack (переключает в BattleMode.TARGET, §6.10)
+  - `m` — Move (переключает в BattleMode.MOVE, §6.10)
+  - `d` — Dodge, `h` — Dash, `g` — Disengage
+  - `i` — Interact, `k` — Break (TARGET по объектам)
   - `e` — End turn
+  - `+` / `=` / `-` — zoom (small ↔ medium)
   - `q` — Quit (мгновенно; confirm-диалог — пост-MVP).
+* Динамическая полоса «`[a] Attack  [d] Dodge  …`» (этап L2-6/7) —
+  отдельный виджет `ActionBarWidget`, собирается из `build_keymap(actor,
+  ability_registry)` на каждом TurnStarted. Это позволяет
+  переопределять hotkey'и per-creature (`Creature.keybindings`) и
+  динамически менять набор умений (заклинания / feat'ы) без правки
+  `BINDINGS`. Подробности — `docs/ABILITIES.md`.
 * После EncounterEnded BattleScreen помечает себя `_concluded`;
-  все action-handlers сразу выходят без putного intent'а — клавиши
+  все action-handlers сразу выходят без put'а intent'а — клавиши
   «не реагируют». Фокус переходит на EndScreen (§6.8).
+
+### 6.10 Mode-state machine (L1)
+
+После этапа L1 BattleScreen — конечный автомат над тремя режимами:
+
+* `BattleMode.NORMAL` — действия по биндингам и keymap;
+* `BattleMode.MOVE` — стрелки двигают курсор по карте, chebyshev-путь
+  рисуется как preview, `Enter` подтверждает `MoveIntent`, `Esc`
+  отменяет;
+* `BattleMode.TARGET` — `Tab` / `Shift+Tab` циклят достижимые цели
+  (выбранная подсвечена `reverse bold`), `Enter` подтверждает,
+  `Esc` отменяет.
+
+Модальных picker'ов больше нет — курсор и highlights рисуются прямо
+на текущей карте через `MapWidget.refresh_from(..., cursor=,
+highlights=, path_preview=)`. На TurnStarted mode сбрасывается в
+NORMAL (инвариант §11-2 spec).
+
+Handler'ы лежат в `interfaces/tui/screens/battle_modes/*`:
+`NormalModeHandler`, `MoveModeHandler`, `TargetModeHandler` — все
+имплементируют `ModeHandler` Protocol поверх `ModeScreenContext`
+Protocol (см. `protocol.py`), чтобы handler'ы не зависели от
+BattleScreen напрямую и тестировались через моки.
 
 ### 6.8 EndScreen (модальный)
 
@@ -265,19 +297,14 @@ Binding: `Enter` / `Esc` / `Q` → `app.exit()`. Закрытие EndScreen
 автоматически закрывает приложение — TUI MVP не предполагает
 переход в новый бой (нужен главное меню — пост-MVP).
 
-### 6.6 TargetPicker (ModalScreen)
+### 6.6 ~~TargetPicker~~ → BattleMode.TARGET (см. §6.10)
 
-* Получает на вход `actor` + список валидных целей (тех же, что
-  `_list_reachable_hostiles` в CLI).
-* `Tab` / `Shift+Tab` циклит, `Enter` подтверждает, `Esc` отменяет.
-* Возвращает `AttackIntent(target_id=...)` или `None` (отмена).
+Удалён в L1-T9. Inline TARGET mode заменяет модальный picker, чтобы
+карта оставалась в фокусе. См. §6.10.
 
-### 6.7 MovePicker (ModalScreen)
+### 6.7 ~~MovePicker~~ → BattleMode.MOVE (см. §6.10)
 
-* Курсор по карте (`←↑↓→`), `Enter` подтверждает клетку.
-* Path-preview: chebyshev-путь от actor к курсору (тот же
-  `_chebyshev_path` из CLI, перенесённый в общий helper).
-* `Esc` отменяет.
+Удалён в L1-T9 по тем же причинам. См. §6.10.
 
 ---
 

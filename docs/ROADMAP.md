@@ -155,12 +155,27 @@ Textual-приложения, MVP-граница, многопоточная с�
 - 🔜 `dnd play --tui [--theme color|monochrome]`.
 - 🔜 Headless e2e через `textual.pilot.Pilot` (CI-friendly).
 
-### Пост-MVP (этап K и далее)
+### Пост-MVP (этапы K, L, далее)
 
+- ✅ **Этап K — спрайт-система ASCII и редактор карт.** Реестр спрайтов
+  (3 zoom-уровня), MapDocument + Repository, CLI `dnd sprite|map`, TUI
+  editor (K7), 7-картный контент-набор (K8). См. `K9` аудит.
+- ✅ **Этап L1 — inline-UX и viewport.** Удалили MovePicker/TargetPicker:
+  вместо модалок BattleScreen переключается в inline-mode (NORMAL/MOVE/
+  TARGET), курсор и highlights рисуются прямо на карте. Default
+  zoom — `small` (1×1) для крупных деталей локаций; viewport с
+  auto-follow держит PC в видимой области на больших картах
+  (50×50 проверено в pilot smoke). См. `docs/TUI.md` §6.10.
+- ✅ **Этап L2 — Ability framework.** Runtime-описание умения
+  (`Ability` + `AbilityRegistry`), 6 default'ов (Attack/Dodge/Dash/
+  Disengage/Interact/Break), `Creature.ability_ids` + `.keybindings`
+  для per-creature override hotkey'ев, `ActionBarWidget` с динамической
+  полосой `[a] Attack [d] Dodge …`. См. `docs/ABILITIES.md`.
+- ⏳ **Этап L3 — LocationArt + mouse support.** Детализированные
+  крупные спрайты локаций (раз клетка 1×1, освобождаются пиксели для
+  тайлов 5×3 / 7×5 с детализацией), интеграция мыши для panning/
+  выбора цели. Отдельный спек после feedback'а пользователя по L1+L2.
 - 🔜 Главное меню, лист персонажа, экран исследования.
-- 🔜 **Спрайт-система ASCII**: реестр спрайтов с несколькими zoom-уровнями,
-  один спрайт умеет рендериться на 1×1, 3×3, 5×5 ячейках.
-- 🔜 Масштабирование под размер терминала, mockup-раскладки 120×40 / 160×50.
 - 🔜 Анимация атаки (mockup C.2), level-up / death-save overlays
   (mockup C.5/C.6).
 
@@ -168,8 +183,10 @@ Textual-приложения, MVP-граница, многопоточная с�
 клавиатурой до Victory / Defeat; обе темы работают; e2e через Pilot
 зелёный; `import textual` не утекает за пределы `interfaces/tui/`.
 
-**DoD общая (после K):** игра в TUI выглядит «как Bard's Tale / Ultima»,
-карта боя читаема на 80×24 (минимум), полнее на 120×40.
+**DoD общая (после K+L):** игра в TUI выглядит «как Bard's Tale /
+Ultima», карта боя читаема на 80×24 (минимум), полнее на 120×40;
+никаких всплывающих модалок при выборе цели/клетки; hotkey'и
+переопределяются per-creature.
 
 ---
 
