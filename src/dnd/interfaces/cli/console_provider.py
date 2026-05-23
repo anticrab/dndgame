@@ -20,17 +20,21 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from dnd.application.dto.action import Allowed
-from dnd.application.dto.ids import CreatureId
+from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
+    BreakIntent,
     DashIntent,
     DisengageIntent,
     DodgeIntent,
     EndTurnIntent,
+    InteractIntent,
     MoveIntent,
     PlayerIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
+from dnd.application.engine.actions.interact import InteractKind
+from dnd.application.engine.actions.move_path import find_walkable_path
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.engine.encounter import Encounter
 from dnd.application.engine.turn_context import TurnContext
@@ -44,6 +48,8 @@ _ACTION_CHOICES = [
     "Dodge",
     "Dash",
     "Disengage",
+    "Interact",
+    "Break",
     "End turn",
 ]
 
@@ -107,6 +113,14 @@ class ConsoleIntentProvider:
                 return self._build_attack_intent(actor, ctx, encounter, depth)
             case "Move":
                 return self._build_move_intent(actor, ctx, encounter, depth)
+            case "Interact":
+                return self._build_object_intent(
+                    actor, ctx, encounter, depth, kind="interact"
+                )
+            case "Break":
+                return self._build_object_intent(
+                    actor, ctx, encounter, depth, kind="break"
+                )
         return EndTurnIntent()
 
     # --- private -----------------------------------------------------
@@ -190,14 +204,64 @@ class ConsoleIntentProvider:
                 f"{ctx.battlefield.width}x{ctx.battlefield.height}."
             )
             return self._next_intent(actor, ctx, encounter, depth + 1)
-        # Строим прямой chebyshev-путь.
-        path = _chebyshev_path(
-            ctx.battlefield.position_of(actor.id), target
-        )
+        start = ctx.battlefield.position_of(actor.id)
+        # Тот же helper, что и TUI: A* с учётом стен и difficult terrain.
+        # Чтобы CLI и TUI выбирали одну клетку и шли одинаковым путём,
+        # — единый источник правды.
+        path = find_walkable_path(ctx.battlefield, start, target)
+        if path is None:
+            self._notify_user(
+                f"{target} is unreachable (стена / занято / отрезано)."
+            )
+            return self._next_intent(actor, ctx, encounter, depth + 1)
         if not path:
             self._notify_user("Already at the target square.")
             return self._next_intent(actor, ctx, encounter, depth + 1)
-        return MoveIntent(path=tuple(path))
+        return MoveIntent(path=path)
+
+    def _build_object_intent(
+        self,
+        actor: Creature,
+        ctx: TurnContext,
+        encounter: Encounter,
+        depth: int,
+        *,
+        kind: str,
+    ) -> PlayerIntent:
+        """Собрать InteractIntent или BreakIntent.
+
+        ``kind=="interact"`` фильтрует любые объекты в reach (5 ft) и
+        предлагает выбрать один; ``kind=="break"`` отбирает только те,
+        у которых есть hp в state — остальные ломать нечем
+        (window/door тоже сюда подходят, оба имеют hp).
+        """
+        bf = ctx.battlefield
+        pos = bf.position_of(actor.id)
+        candidates: list[tuple[ObjectId, str]] = []
+        for sq in pos.chebyshev_disk(1):
+            if not bf.in_bounds(sq):
+                continue
+            for obj in bf.objects_at(sq):
+                if kind == "break" and "hp" not in obj.state:
+                    continue
+                label = f"{obj.id} ({obj.kind}) at ({sq.x},{sq.y})"
+                candidates.append((ObjectId(str(obj.id)), label))
+        if not candidates:
+            verb = "interactable" if kind == "interact" else "breakable"
+            self._notify_user(f"No {verb} objects in reach.")
+            return self._next_intent(actor, ctx, encounter, depth + 1)
+        labels = [label for _, label in candidates]
+        picked = self._select_choice(
+            f"{kind.title()} target:", labels
+        )
+        idx = labels.index(picked)
+        obj_id, _ = candidates[idx]
+        if kind == "interact":
+            return InteractIntent(
+                target_object_id=obj_id,
+                interact_kind=InteractKind.OPEN,
+            )
+        return BreakIntent(target_object_id=obj_id)
 
 
 def _list_reachable_hostiles(
@@ -226,23 +290,6 @@ def _list_reachable_hostiles(
         if isinstance(attack.can_perform_against(actor, params, ctx), Allowed):
             result.append(cid)
     return result
-
-
-def _chebyshev_path(start: Square, target: Square) -> list[Square]:
-    """Прямой пошаговый путь по диагонали от start к target. Не
-    проверяет проходимость — MoveAction.can_perform_against это
-    сделает."""
-    if start == target:
-        return []
-    path: list[Square] = []
-    cur = start
-    while cur != target:
-        dx = (target.x > cur.x) - (target.x < cur.x)
-        dy = (target.y > cur.y) - (target.y < cur.y)
-        nxt = Square(cur.x + dx, cur.y + dy)
-        path.append(nxt)
-        cur = nxt
-    return path
 
 
 __all__ = ["ConsoleIntentProvider"]
