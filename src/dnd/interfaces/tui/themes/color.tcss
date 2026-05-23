@@ -75,3 +75,8 @@ LogWidget {
     color: $secondary;
     text-style: bold;
 }
+
+/* Утилита: скрытый виджет (используется ActionBarWidget пока он
+   дублирует Footer; восстановим при появлении per-creature
+   keybindings). */
+.-hidden { display: none; }

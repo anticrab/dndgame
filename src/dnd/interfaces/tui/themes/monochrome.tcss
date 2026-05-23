@@ -70,3 +70,5 @@ LogWidget {
     color: white;
     text-style: bold reverse;
 }
+
+.-hidden { display: none; }

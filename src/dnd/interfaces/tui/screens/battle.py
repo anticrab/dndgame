@@ -214,7 +214,11 @@ class BattleScreen(Screen[None]):
             yield MapWidget(id="map")
             yield InitiativeWidget(id="init")
         yield LogWidget(id="log", wrap=True, highlight=True, markup=True, max_lines=200)
-        yield ActionBarWidget(id="action-bar")
+        # ActionBarWidget пока скрыт — Textual Footer уже показывает
+        # тот же default-набор hotkey'ев из BINDINGS, и две одинаковые
+        # полосы внизу путают игрока. Виджет вернём, когда появятся
+        # per-creature keybindings/заклинания, которых нет в BINDINGS.
+        yield ActionBarWidget(id="action-bar", classes="-hidden")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -277,13 +281,21 @@ class BattleScreen(Screen[None]):
 
         В NORMAL overlay пустой — карта рисуется «как есть»; в MOVE/TARGET
         cursor/highlights/path_preview приходят из ``overlay_data()``.
-        follow=актор: viewport едет за PC при выходе курсора за safe-zone.
+        Viewport follow:
+        * NORMAL/MOVE — едет за PC (стрелки в MOVE двигают курсор
+          относительно карты, follow=actor чтобы PC оставался виден);
+        * TARGET — едет за выбранной целью (если все цели за пределами
+          viewport на большой карте, игрок не увидел бы подсветку
+          через Tab).
         """
         if self._current is None or self._current_battlefield is None:
             return
         cursor, highlights, path_preview = self._mode_handler.overlay_data()
         actor, _ctx, encounter = self._current
-        follow = self._current_battlefield.position_of(actor.id)
+        if self._mode is BattleMode.TARGET and cursor is not None:
+            follow = cursor
+        else:
+            follow = self._current_battlefield.position_of(actor.id)
         try:
             self.map_widget.refresh_from(
                 self._current_battlefield,

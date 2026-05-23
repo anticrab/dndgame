@@ -7,7 +7,7 @@ on_key и выполняет переход NORMAL.
 """
 from __future__ import annotations
 
-from dnd.application.engine.actions.move_path import find_chebyshev_path
+from dnd.application.engine.actions.move_path import find_walkable_path
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.screens.battle_modes.protocol import ModeScreenContext
 
@@ -49,10 +49,18 @@ class MoveModeHandler:
             bf = screen._current_battlefield
             if 0 <= new.x < bf.width and 0 <= new.y < bf.height:
                 self._cursor = new
-                self._path = find_chebyshev_path(self._start, self._cursor)
+                # Dijkstra с учётом стен и difficult terrain;
+                # None означает недостижимую клетку — preview пустой.
+                walkable = find_walkable_path(bf, self._start, self._cursor)
+                self._path = walkable if walkable is not None else ()
             return True
         if key == "enter":
-            self.confirmed_path = self._path
+            # Пустой путь подтверждать нет смысла — это либо клетка
+            # самого PC, либо недостижимая цель. В обоих случаях
+            # action MoveAction.can_perform_against всё равно отказал бы.
+            # Оставим игрока в MOVE mode — пусть выберет другую клетку.
+            if self._path:
+                self.confirmed_path = self._path
             return True
         if key == "escape":
             self.cancelled = True
