@@ -69,18 +69,24 @@ def render_battlefield(
     cursor: Square | None = None,
     with_color: bool = True,
     zoom: str = "small",
+    visible_rect: tuple[int, int, int, int] | None = None,
+    highlights: dict[Square, str] | None = None,
+    path_preview: tuple[Square, ...] = (),
 ) -> Text:
     """Сформировать ``rich.Text`` с ASCII-картой.
 
     Алгоритм по клетке (x, y) для ``zoom='small'``:
 
-    1. Если на клетке есть существа — рисуем символ фракции с
+    1. Если клетка входит в ``path_preview`` и на ней нет существ и она
+       не курсор — рисуем ``·`` (зелёный при color, пустой стиль при mono).
+    2. Иначе если на клетке есть существа — рисуем символ фракции с
        максимальным приоритетом. Если в стеке больше одного — вторая
        цифра не помещается на small-zoom, поэтому ставим символ
        старшего; стек в FOCUS-панели (пост-MVP).
-    2. Иначе если есть `cursor == (x, y)` — рисуем ``X`` в инверсии.
-    3. Иначе по типу террейна: стена / труднопроходимая / дверь /
+    3. Иначе если есть `cursor == (x, y)` — рисуем ``X`` в инверсии.
+    4. Иначе по типу террейна: стена / труднопроходимая / дверь /
        укрытие / яма / иначе `.` (пол).
+    5. Поверх — применяем ``highlights[sq]`` (суммируем к style).
 
     ``with_color=False`` отключает цветовую разметку — клетки печатаются
     plain'ом + reverse/bold там, где это семантически (курсор).
@@ -91,20 +97,43 @@ def render_battlefield(
     ``zoom='medium'``: 1 клетка = 5×3 ячеек через
     :func:`render_tile_5x3` (K5-T1). Overlay существ/курсора —
     в центральной ячейке клетки (row=1, col=2).
+
+    ``visible_rect`` — (x0, y0, x1, y1) окно видимой части в координатах
+    битфилда. При ``None`` рендерится весь битфилд.
+
+    ``path_preview`` — маршрут движения: клетки рисуются символом ``·``.
+    Существа и курсор имеют приоритет над точками пути.
+
+    ``highlights`` — подсветка целей: ``{sq: style}`` суммируется к стилю
+    glyph'а (символ не меняется). Используется в TARGET mode (L1-T8).
     """
     if zoom == "medium":
         return _render_medium(
             battlefield, factions, cursor=cursor, with_color=with_color
         )
+    if visible_rect is None:
+        x0, y0, x1, y1 = 0, 0, battlefield.width, battlefield.height
+    else:
+        x0, y0, x1, y1 = visible_rect
+        x1 = min(x1, battlefield.width)
+        y1 = min(y1, battlefield.height)
     out = Text()
-    for y in range(battlefield.height):
-        for x in range(battlefield.width):
+    path_set: frozenset[Square] = frozenset(path_preview)
+    for y in range(y0, y1):
+        for x in range(x0, x1):
             sq = Square(x, y)
+            # path preview только если на клетке нет существа и она не курсор
+            if sq in path_set and sq != cursor and not battlefield.creatures_at(sq):
+                out.append("·", style="green" if with_color else "")
+                continue
             glyph, style = _cell_glyph(
                 battlefield, factions, sq, cursor, with_color=with_color
             )
+            if highlights and sq in highlights:
+                extra = highlights[sq]
+                style = f"{style} {extra}".strip() if style else extra
             out.append(glyph, style=style)
-        if y < battlefield.height - 1:
+        if y < y1 - 1:
             out.append("\n")
     return out
 
@@ -300,17 +329,31 @@ class MapWidget(Static):
         factions: dict[CreatureId, Faction],
         *,
         cursor: Square | None = None,
+        highlights: dict[Square, str] | None = None,
+        path_preview: tuple[Square, ...] = (),
+        follow: Square | None = None,
     ) -> None:
+        self.set_world_size(battlefield.width, battlefield.height)
+        # авто-расчёт viewport под размер виджета (если layout уже выполнен)
+        if self.size.width and self.size.height:
+            self.set_viewport_size(self.size.width, self.size.height)
+        if follow is not None:
+            self._auto_follow(follow)
         with_color = self._is_color_theme()
-        self.update(
-            render_battlefield(
-                battlefield,
-                factions,
-                cursor=cursor,
-                with_color=with_color,
-                zoom=self._zoom,
-            )
-        )
+        self.update(render_battlefield(
+            battlefield, factions,
+            cursor=cursor, with_color=with_color, zoom=self._zoom,
+            visible_rect=self.visible_rect() if self._zoom == "small" else None,
+            highlights=highlights, path_preview=path_preview,
+        ))
+
+    def _auto_follow(self, target: Square) -> None:
+        """Если target вышел за safe-zone (3 клетки от края viewport) — pan."""
+        x0, y0, x1, y1 = self.visible_rect()
+        safe = 3
+        if (target.x < x0 + safe or target.x >= x1 - safe
+                or target.y < y0 + safe or target.y >= y1 - safe):
+            self.center_on(target)
 
     def _is_color_theme(self) -> bool:
         # Theme name живёт в TuiApp как self.app._theme; если виджет
