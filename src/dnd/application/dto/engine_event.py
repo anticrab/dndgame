@@ -335,3 +335,49 @@ class OpportunityAttackProvoked(EngineEvent):
     actor_id: CreatureId  # тот, кто двигается
     threatener_id: CreatureId  # тот, кто получает реакцию
     leaving_square: Square  # клетка, из которой actor вышел из зоны
+
+
+# === O-5: Inventory events ============================================
+#
+# События для логирования операций с инвентарём. Сами действия (Pickup/
+# Drop/Equip) ещё нет (O-8); события готовы заранее, чтобы EventPrinter
+# мог писать в лог уже на этапе O-6 (chest loot).
+
+
+class ItemPickedUp(EngineEvent):
+    """Существо подобрало предмет (из chest, с трупа, с пола)."""
+
+    event_type: ClassVar[str] = "inventory.item_picked_up"
+    actor_id: CreatureId
+    item_id: str
+    item_name: str
+    qty: int
+    source: str  # "chest:<obj_id>" | "corpse:<creature_id>" | "ground"
+
+
+class ItemDropped(EngineEvent):
+    """Существо выбросило предмет (в инвентарь не влезает / вручную)."""
+
+    event_type: ClassVar[str] = "inventory.item_dropped"
+    actor_id: CreatureId
+    item_id: str
+    item_name: str
+    qty: int
+
+
+class ItemEquipped(EngineEvent):
+    """Существо экипировало предмет (WEAPON / ARMOR)."""
+
+    event_type: ClassVar[str] = "inventory.item_equipped"
+    actor_id: CreatureId
+    item_id: str
+    item_name: str
+
+
+class ItemUnequipped(EngineEvent):
+    """Существо сняло предмет с экипировки."""
+
+    event_type: ClassVar[str] = "inventory.item_unequipped"
+    actor_id: CreatureId
+    item_id: str
+    item_name: str
