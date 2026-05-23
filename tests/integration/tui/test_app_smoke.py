@@ -67,9 +67,9 @@ def test_unknown_theme_raises() -> None:
         theme_css_path("phosphor")  # type: ignore[arg-type]
 
 
-def test_battle_screen_starts_with_medium_zoom() -> None:
-    """После K5-T3 default zoom MapWidget'а — medium (UI.md §3.1):
-    пользователь видит «красивый» 5×3-рендер сразу, без ручного toggle.
+def test_battle_screen_starts_with_small_zoom() -> None:
+    """L1: default zoom MapWidget'а — small (1×1 тактический обзор).
+    После playtest пользователь вернулся к 1×1; medium доступен по +/-.
     """
     app = TuiApp()  # без encounter — pure-каркас mode
 
@@ -78,15 +78,15 @@ def test_battle_screen_starts_with_medium_zoom() -> None:
             await pilot.pause(0.1)
             screen = pilot.app.screen
             mw = screen.query_one("#map", MapWidget)
-            assert mw.zoom == "medium"
+            assert mw.zoom == "small"
 
     asyncio.run(_go())
 
 
-def test_battle_screen_plus_toggles_zoom_small() -> None:
-    """`+` переключает medium ↔ small (K5-T3, BattleScreen.BINDINGS).
+def test_battle_screen_plus_toggles_zoom() -> None:
+    """`+` переключает small ↔ medium (L1: default=small).
 
-    Проверяем «туда-обратно»: один toggle → small, второй → medium.
+    Проверяем «туда-обратно»: один toggle → medium, второй → small.
     """
     app = TuiApp()
 
@@ -95,12 +95,12 @@ def test_battle_screen_plus_toggles_zoom_small() -> None:
             await pilot.pause(0.1)
             screen = pilot.app.screen
             mw = screen.query_one("#map", MapWidget)
-            assert mw.zoom == "medium"
-            await pilot.press("plus")
-            await pilot.pause(0.05)
             assert mw.zoom == "small"
             await pilot.press("plus")
             await pilot.pause(0.05)
             assert mw.zoom == "medium"
+            await pilot.press("plus")
+            await pilot.pause(0.05)
+            assert mw.zoom == "small"
 
     asyncio.run(_go())

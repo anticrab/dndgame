@@ -217,16 +217,15 @@ class MapWidget(Static):
 
     Viewer-state хранится здесь (не в EventRenderer), чтобы hotkey-
     handler в :class:`BattleScreen` мог поменять zoom, не таская
-    encounter через себя. Default — ``"medium"`` (K5-T3): сразу после
-    запуска игрок видит «красивый» 5×3-рендер; small-overview
-    включается по `+`/`-`/`=`.
+    encounter через себя. L1: возврат к 1×1 — default ``"small"``
+    (тактический обзор); medium 5×3 включается по `+`/`-`/`=`.
     """
 
     DEFAULT_CSS = ""
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
-        self._zoom: str = "medium"
+        self._zoom: str = "small"
 
     @property
     def zoom(self) -> str:
