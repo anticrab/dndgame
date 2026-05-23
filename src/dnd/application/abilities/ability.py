@@ -20,12 +20,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import NewType
 
 from dnd.application.dto.action import ActionEconomyCost
 from dnd.application.dto.player_intent import PlayerIntent
-
-AbilityId = NewType("AbilityId", str)
+from dnd.domain.values.ability_id import AbilityId
 
 
 @dataclass(frozen=True)

@@ -45,6 +45,7 @@ from dataclasses import dataclass, field
 
 from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.values.ability import AbilityScores
+from dnd.domain.values.ability_id import AbilityId
 from dnd.domain.values.creature_size import CreatureSize
 from dnd.domain.values.damage import (
     DamageInstance,
@@ -224,6 +225,27 @@ class Creature:
     Концентрация — это связь с конкретным spell-эффектом, не Condition
     (см. Книгу 2024, стр. 352, глоссарий «Концентрация»; ADR Q27).
     None для MVP-классов (Воин/Плут) и большинства NPC."""
+
+    ability_ids: tuple[AbilityId, ...] = (
+        AbilityId("weapon_attack"),
+        AbilityId("dodge"),
+        AbilityId("dash"),
+        AbilityId("disengage"),
+        AbilityId("interact"),
+        AbilityId("break_object"),
+    )
+    """Доступные существу умения (id'ы, разрешаются в Ability через
+    AbilityRegistry). Default — 6 базовых, синхронизирован с
+    register_default_abilities (L2-3). Per-creature override — через
+    Creature.create(..., ability_ids=...) или прямую сборку поля; этап
+    L2 ещё не подключает это к AI/чарактер-фабрикам, только готовит
+    инфраструктуру."""
+
+    keybindings: dict[str, AbilityId] = field(default_factory=dict)
+    """Пользовательский override hotkey'я → ability id. Пусто = используем
+    Ability.default_hotkey. Заполняется через настройки (L2 — только
+    модель; UI для редактирования — отдельный этап). Mutable dict
+    допустим: dataclass(slots=True) не frozen, поле менять можно."""
 
     # --- фабрика --------------------------------------------------------
 
