@@ -12,6 +12,24 @@
 
 ---
 
+## 0. Рекомендуемый шрифт терминала
+
+ASCII-арт карты, инициативы и боксов рассчитан на **JetBrains Mono**
+(или любой моноширинный шрифт со стабильной шириной для unicode
+box-drawing символов: `╔═╗║╚╝┌─┐│└┘`). Установите его системно и
+выберите в настройках вашего терминала:
+
+* macOS Terminal / iTerm2 → Preferences → Profiles → Text → Font →
+  JetBrains Mono.
+* gnome-terminal → Preferences → Profile → Text → Custom font →
+  JetBrains Mono.
+* Windows Terminal → Settings → Profile → Appearance → Font face →
+  JetBrains Mono.
+
+Без моноширинного шрифта рамки и сетка карты будут «плыть»:
+Textual рендерит CSS `border: round` через box-drawing символы,
+которые требуют equal-width glyph'ов.
+
 ## 1. Цель этапа J (MVP)
 
 Сделать TUI, через который реально проходится сценарий `mvp_skirmish`

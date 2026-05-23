@@ -91,9 +91,13 @@ ReactionPolicy = Callable[[OpportunityAttackProvoked, "Encounter"], None]
 def noop_reaction_policy(
     _event: OpportunityAttackProvoked, _encounter: Encounter
 ) -> None:
-    """Дефолтная политика — ничего не делает; провокация публикуется,
-    но реакция остаётся неиспользованной. Подходит для UI-режима,
-    где игрок сам решает."""
+    """Политика для UI-режима, где игрок сам решает.
+
+    Дефолтом для production не подходит: в боевке без OA-реакций
+    отходить от противника — бесплатно. Это нарушает PHB-2024 стр. 22
+    («provokes an opportunity attack»). Дефолтно подключаем
+    :func:`~dnd.application.engine.reaction_policy.auto_melee_oa_policy`
+    (см. ниже)."""
 
 
 # Стойки, очищаемые на старте каждого хода владельца
@@ -165,9 +169,14 @@ class Encounter:
         self._participants = dict(participants)
         self._factions = dict(factions)
         self._deps = deps
-        self._reaction_policy: ReactionPolicy = (
-            reaction_policy or noop_reaction_policy
-        )
+        if reaction_policy is None:
+            # Импорт здесь — иначе цикл reaction_policy.py → encounter.
+            from dnd.application.engine.reaction_policy import (
+                auto_melee_oa_policy,
+            )
+
+            reaction_policy = auto_melee_oa_policy
+        self._reaction_policy: ReactionPolicy = reaction_policy
         self._state = _State()
         self._unsubscribe_provoked: Callable[[], None] | None = None
 

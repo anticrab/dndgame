@@ -63,10 +63,9 @@ class _HostApp(App[None]):
         self.exit()
 
 
-def test_target_picker_confirm_returns_first() -> None:
-    """Enter в ListView не bubble'ит на Screen-binding (consumed
-    ListView'ом). Поэтому проверяем через action_confirm напрямую —
-    UI-уровень покликает реальный пользователь."""
+def test_target_picker_enter_returns_first() -> None:
+    """Enter в ListView ловится через ``ListView.Selected``-handler
+    в TargetPicker — выбор первой цели подтверждается."""
     targets = [(CreatureId("g1"), "g1"), (CreatureId("g2"), "g2")]
     picker = TargetPicker(targets)
     host = _HostApp(picker)
@@ -74,11 +73,28 @@ def test_target_picker_confirm_returns_first() -> None:
     async def _go() -> None:
         async with host.run_test(size=(80, 24)) as pilot:
             await pilot.pause(0.05)
-            picker.action_confirm()
+            await pilot.press("enter")
             await pilot.pause(0.1)
 
     asyncio.run(_go())
     assert host.result == CreatureId("g1")
+
+
+def test_target_picker_arrow_down_then_enter_returns_second() -> None:
+    """↓ в ListView переключает выбор; Enter подтверждает."""
+    targets = [(CreatureId("g1"), "g1"), (CreatureId("g2"), "g2")]
+    picker = TargetPicker(targets)
+    host = _HostApp(picker)
+
+    async def _go() -> None:
+        async with host.run_test(size=(80, 24)) as pilot:
+            await pilot.pause(0.05)
+            await pilot.press("down")
+            await pilot.press("enter")
+            await pilot.pause(0.1)
+
+    asyncio.run(_go())
+    assert host.result == CreatureId("g2")
 
 
 def test_target_picker_escape_returns_none() -> None:

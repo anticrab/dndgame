@@ -1,7 +1,7 @@
 /* Monochrome theme — соответствует UI.md §3.2.
  *
- * Семантика — через жирность/инверсию/подчёркивание, без цвета. Для
- * скриншотов, colorblind, старых терминалов.
+ * Семантика — через жирность/инверсию/подчёркивание, без цвета.
+ * Layout как в color.tcss; меняем только палитру.
  */
 
 Screen {
@@ -20,25 +20,26 @@ Footer {
     color: black;
 }
 
-MapWidget {
-    background: black;
-    color: white;
-    padding: 0 1;
-    border: solid white;
-}
-
-LogWidget {
-    background: black;
-    color: white;
-    border: solid white;
-}
-
 StatusWidget {
     background: black;
     color: white;
     padding: 0 1;
     border: solid white;
     text-style: bold;
+    height: 3;
+}
+
+#battle-row {
+    height: 1fr;
+}
+
+MapWidget {
+    background: black;
+    color: white;
+    padding: 0 1;
+    border: solid white;
+    width: 1fr;
+    height: 1fr;
 }
 
 InitiativeWidget {
@@ -46,6 +47,15 @@ InitiativeWidget {
     color: white;
     padding: 0 1;
     border: solid white;
+    width: 30;
+    height: 1fr;
+}
+
+LogWidget {
+    background: black;
+    color: white;
+    border: solid white;
+    height: 12;
 }
 
 .modal-box {

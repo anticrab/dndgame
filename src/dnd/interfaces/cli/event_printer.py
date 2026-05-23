@@ -44,8 +44,18 @@ class EventPrinter:
         unsubscribe()
     """
 
-    def __init__(self, console: Console | None = None) -> None:
+    def __init__(
+        self,
+        console: Console | None = None,
+        *,
+        sink: Callable[[str], None] | None = None,
+    ) -> None:
+        """Если ``sink`` задан — каждый сформатированный markup-string
+        идёт туда (для TUI: подаём в RichLog.write с markup=True,
+        чтобы Textual сам разобрал разметку). Если нет — печатаем
+        в rich.Console (CLI-режим)."""
         self._console = console or Console()
+        self._sink = sink
 
     def subscribe(self, bus: EventBus) -> Callable[[], None]:
         return bus.subscribe(EngineEvent, self._on_event)
@@ -67,6 +77,11 @@ class EventPrinter:
         handler(self, event)
 
     def _print(self, text: str) -> None:
+        if self._sink is not None:
+            # sink получает rich-markup строку как есть; интерпретация —
+            # на стороне получателя (Textual RichLog с markup=True).
+            self._sink(text)
+            return
         self._console.print(text, highlight=False)
 
     # форматеры для конкретных событий ----------------------------------

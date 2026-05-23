@@ -1,11 +1,15 @@
 """TargetPicker — модальный экран выбора цели атаки.
 
-См. ``docs/TUI.md`` §6.6. Tab / Shift+Tab — циклит, Enter подтверждает,
-Esc отменяет.
+См. ``docs/TUI.md`` §6.6.
 
-Список целей формируется снаружи (в обработчике клавиши `a` на
-BattleScreen) — модальный экран только показывает их и возвращает
-выбранный ``CreatureId`` через результат.
+Управление:
+* ↑/↓ — выбор цели в списке (ListView сам).
+* Enter — подтвердить выбранную (ловится через ``ListView.Selected``).
+* Esc — отмена → dismiss(None).
+
+ListView перехватывает Enter и поднимает свой ``Selected``-message;
+полагаться на Screen.BINDINGS `enter` ненадёжно (binding не bubble'ит
+через consumed key). Поэтому ловим именно событие виджета.
 """
 
 from __future__ import annotations
@@ -21,12 +25,14 @@ from textual.widgets import Label, ListItem, ListView
 from dnd.application.dto.ids import CreatureId
 
 
-class TargetPicker(ModalScreen[CreatureId | None]):
+class TargetPicker(ModalScreen["CreatureId | None"]):
     """Модальное окно: выбор цели. Возвращает CreatureId или None."""
 
     BINDINGS: ClassVar[list[BindingType]] = [
         ("escape", "cancel", "Cancel"),
-        ("enter", "confirm", "Confirm"),
+        # Дополнительные клавиши подтверждения — если фокус не в
+        # ListView (например, начало диалога), space всё равно работает.
+        ("space", "confirm", "Confirm"),
     ]
 
     def __init__(
@@ -38,11 +44,15 @@ class TargetPicker(ModalScreen[CreatureId | None]):
 
     def compose(self) -> ComposeResult:
         with Vertical(classes="modal-box"):
-            yield Label("Choose target:", classes="modal-title")
+            yield Label("Choose target:  (↑/↓, Enter, Esc)", classes="modal-title")
             yield ListView(
                 *(ListItem(Label(label)) for _, label in self._targets),
                 id="target-list",
             )
+
+    def on_mount(self) -> None:
+        # Передаём фокус в ListView, чтобы стрелки/Enter сразу работали.
+        self.query_one("#target-list", ListView).focus()
 
     def action_cancel(self) -> None:
         self.dismiss(None)
@@ -51,6 +61,12 @@ class TargetPicker(ModalScreen[CreatureId | None]):
         listview = self.query_one("#target-list", ListView)
         idx = listview.index or 0
         self.dismiss(self._targets[idx][0])
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        """Enter в ListView → ListView.Selected. Берём индекс выбранного
+        item'а и подтверждаем."""
+        del event
+        self.action_confirm()
 
 
 __all__ = ["TargetPicker"]

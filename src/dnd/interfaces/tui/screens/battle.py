@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from textual.app import ComposeResult
 from textual.binding import BindingType
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.message import Message
 from textual.screen import Screen
 from textual.widgets import Footer, Header
@@ -134,10 +134,9 @@ class BattleScreen(Screen[None]):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
         yield StatusWidget(id="status")
-        with Horizontal():
+        with Horizontal(id="battle-row"):
             yield MapWidget(id="map")
-            with Vertical():
-                yield InitiativeWidget(id="init")
+            yield InitiativeWidget(id="init")
         yield LogWidget(id="log", wrap=True, highlight=True, markup=True, max_lines=200)
         yield Footer()
 

@@ -2,8 +2,8 @@
  *
  * Семантика передаётся цветом: PC жёлтый, враг красный, союзник cyan.
  * Rich-разметка цветов уровня клеток применяется внутри widgets
- * (см. map_widget.render_battlefield); CSS отвечает за фон, бордюры,
- * подсветку фокуса.
+ * (см. map_widget.render_battlefield); CSS отвечает за layout, фон,
+ * бордюры.
  */
 
 Screen {
@@ -22,24 +22,27 @@ Footer {
     color: $text;
 }
 
-MapWidget {
-    background: $background;
-    color: $text;
-    padding: 0 1;
-    border: round $accent;
-}
-
-LogWidget {
-    background: $background;
-    color: $text;
-    border: round $accent;
-}
-
+/* Статус — узкая полоса сверху. */
 StatusWidget {
     background: $surface;
     color: $text;
     padding: 0 1;
     border: round $accent;
+    height: 3;
+}
+
+/* Главный ряд: карта слева растягивается, инициатива справа фикс. */
+#battle-row {
+    height: 1fr;
+}
+
+MapWidget {
+    background: $background;
+    color: $text;
+    padding: 0 1;
+    border: round $accent;
+    width: 1fr;
+    height: 1fr;
 }
 
 InitiativeWidget {
@@ -47,9 +50,19 @@ InitiativeWidget {
     color: $text;
     padding: 0 1;
     border: round $accent;
+    width: 30;
+    height: 1fr;
 }
 
-/* Модальные picker'ы (TargetPicker / MovePicker) — добавляются на J3. */
+/* Лог — фиксированная высота внизу. */
+LogWidget {
+    background: $background;
+    color: $text;
+    border: round $accent;
+    height: 12;
+}
+
+/* Модальные picker'ы (TargetPicker / MovePicker). */
 .modal-box {
     background: $surface;
     border: round $secondary;
