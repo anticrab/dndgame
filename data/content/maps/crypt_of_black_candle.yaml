@@ -281,11 +281,13 @@ tiles:
 - x: 18
   y: 1
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 19
   y: 1
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 20
   y: 1
   base: floor
@@ -293,13 +295,11 @@ tiles:
 - x: 21
   y: 1
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 22
   y: 1
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 23
   y: 1
   base: floor
@@ -437,7 +437,8 @@ tiles:
 - x: 16
   y: 2
   base: floor
-  features: []
+  features:
+  - table_small
 - x: 17
   y: 2
   base: floor
@@ -453,45 +454,45 @@ tiles:
 - x: 20
   y: 2
   base: floor
-  features:
-  - table_small
+  features: []
 - x: 21
   y: 2
   base: floor
   features: []
 - x: 22
-  y: 2
-  base: floor
-  features: []
-- x: 23
-  y: 2
-  base: floor
-  features: []
-- x: 24
-  y: 2
-  base: floor
-  features: []
-- x: 25
-  y: 2
-  base: floor
-  features: []
-- x: 26
-  y: 2
-  base: floor
-  features: []
-- x: 27
-  y: 2
-  base: floor
-  features: []
-- x: 28
-  y: 2
-  base: floor
-  features: []
-- x: 29
   y: 2
   base: floor
   features:
   - brazier
+- x: 23
+  y: 2
+  base: floor
+  features: []
+- x: 24
+  y: 2
+  base: floor
+  features: []
+- x: 25
+  y: 2
+  base: floor
+  features: []
+- x: 26
+  y: 2
+  base: floor
+  features: []
+- x: 27
+  y: 2
+  base: floor
+  features:
+  - column
+- x: 28
+  y: 2
+  base: floor
+  features: []
+- x: 29
+  y: 2
+  base: floor
+  features: []
 - x: 30
   y: 2
   base: floor
@@ -503,7 +504,8 @@ tiles:
 - x: 32
   y: 2
   base: floor
-  features: []
+  features:
+  - column
 - x: 33
   y: 2
   base: floor
@@ -523,8 +525,13 @@ tiles:
 - x: 37
   y: 2
   base: floor
-  features: []
+  features:
+  - brazier
 - x: 38
+  y: 2
+  base: floor
+  features: []
+- x: 39
   y: 2
   base: floor
   features:
@@ -566,8 +573,7 @@ tiles:
 - x: 8
   y: 3
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 9
   y: 3
   base: floor
@@ -607,7 +613,8 @@ tiles:
 - x: 18
   y: 3
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 19
   y: 3
   base: floor
@@ -619,13 +626,11 @@ tiles:
 - x: 21
   y: 3
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 22
   y: 3
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 23
   y: 3
   base: floor
@@ -733,8 +738,7 @@ tiles:
 - x: 8
   y: 4
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 9
   y: 4
   base: floor
@@ -748,14 +752,14 @@ tiles:
   base: floor
   features: []
 - x: 12
-  y: 4
-  base: floor
-  features: []
-- x: 13
   y: 4
   base: floor
   features:
   - table_small
+- x: 13
+  y: 4
+  base: floor
+  features: []
 - x: 14
   y: 4
   base: floor
@@ -775,7 +779,8 @@ tiles:
 - x: 18
   y: 4
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 19
   y: 4
   base: floor
@@ -787,13 +792,11 @@ tiles:
 - x: 21
   y: 4
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 22
   y: 4
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 23
   y: 4
   base: floor
@@ -871,167 +874,193 @@ tiles:
 - x: 1
   y: 5
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 2
+  y: 5
+  base: floor
+  features: []
+- x: 3
+  y: 5
+  base: floor
+  features: []
+- x: 4
+  y: 5
+  base: floor
+  features: []
+- x: 5
+  y: 5
+  base: floor
+  features: []
+- x: 6
+  y: 5
+  base: floor
+  features: []
+- x: 7
   y: 5
   base: floor
   features:
   - wall_full
-- x: 3
+- x: 8
   y: 5
+  base: floor
+  features: []
+- x: 9
+  y: 5
+  base: floor
+  features: []
+- x: 10
+  y: 5
+  base: floor
+  features: []
+- x: 11
+  y: 5
+  base: floor
+  features: []
+- x: 12
+  y: 5
+  base: floor
+  features: []
+- x: 13
+  y: 5
+  base: floor
+  features: []
+- x: 14
+  y: 5
+  base: floor
+  features: []
+- x: 15
+  y: 5
+  base: floor
+  features: []
+- x: 16
+  y: 5
+  base: floor
+  features: []
+- x: 17
+  y: 5
+  base: floor
+  features: []
+- x: 18
+  y: 5
+  base: floor
+  features:
+  - wall_full
+- x: 19
+  y: 5
+  base: floor
+  features: []
+- x: 20
+  y: 5
+  base: floor
+  features: []
+- x: 21
+  y: 5
+  base: floor
+  features: []
+- x: 22
+  y: 5
+  base: floor
+  features: []
+- x: 23
+  y: 5
+  base: floor
+  features: []
+- x: 24
+  y: 5
+  base: floor
+  features: []
+- x: 25
+  y: 5
+  base: floor
+  features: []
+- x: 26
+  y: 5
+  base: floor
+  features: []
+- x: 27
+  y: 5
+  base: floor
+  features: []
+- x: 28
+  y: 5
+  base: floor
+  features: []
+- x: 29
+  y: 5
+  base: floor
+  features: []
+- x: 30
+  y: 5
+  base: floor
+  features: []
+- x: 31
+  y: 5
+  base: floor
+  features: []
+- x: 32
+  y: 5
+  base: floor
+  features: []
+- x: 33
+  y: 5
+  base: floor
+  features: []
+- x: 34
+  y: 5
+  base: floor
+  features: []
+- x: 35
+  y: 5
+  base: floor
+  features: []
+- x: 36
+  y: 5
+  base: floor
+  features: []
+- x: 37
+  y: 5
+  base: floor
+  features: []
+- x: 38
+  y: 5
+  base: floor
+  features: []
+- x: 39
+  y: 5
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 6
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 6
+  base: floor
+  features:
+  - wall_full
+- x: 2
+  y: 6
+  base: floor
+  features:
+  - wall_full
+- x: 3
+  y: 6
   base: floor
   features:
   - wall_full
 - x: 4
-  y: 5
+  y: 6
   base: floor
   features:
   - wall_full
 - x: 5
-  y: 5
+  y: 6
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 6
-  y: 5
-  base: floor
-  features:
-  - wall_full
-- x: 7
-  y: 5
-  base: floor
-  features:
-  - wall_full
-- x: 8
-  y: 5
-  base: floor
-  features: []
-- x: 9
-  y: 5
-  base: floor
-  features: []
-- x: 10
-  y: 5
-  base: floor
-  features: []
-- x: 11
-  y: 5
-  base: floor
-  features: []
-- x: 12
-  y: 5
-  base: floor
-  features: []
-- x: 13
-  y: 5
-  base: floor
-  features: []
-- x: 14
-  y: 5
-  base: floor
-  features: []
-- x: 15
-  y: 5
-  base: floor
-  features: []
-- x: 16
-  y: 5
-  base: floor
-  features: []
-- x: 17
-  y: 5
-  base: floor
-  features: []
-- x: 18
-  y: 5
-  base: floor
-  features: []
-- x: 19
-  y: 5
-  base: floor
-  features: []
-- x: 20
-  y: 5
-  base: floor
-  features:
-  - table_small
-- x: 21
-  y: 5
-  base: floor
-  features:
-  - wall_full
-- x: 22
-  y: 5
-  base: floor
-  features:
-  - wall_full
-- x: 23
-  y: 5
-  base: floor
-  features: []
-- x: 24
-  y: 5
-  base: floor
-  features: []
-- x: 25
-  y: 5
-  base: floor
-  features: []
-- x: 26
-  y: 5
-  base: floor
-  features: []
-- x: 27
-  y: 5
-  base: floor
-  features: []
-- x: 28
-  y: 5
-  base: floor
-  features: []
-- x: 29
-  y: 5
-  base: floor
-  features: []
-- x: 30
-  y: 5
-  base: floor
-  features: []
-- x: 31
-  y: 5
-  base: floor
-  features: []
-- x: 32
-  y: 5
-  base: floor
-  features: []
-- x: 33
-  y: 5
-  base: floor
-  features: []
-- x: 34
-  y: 5
-  base: floor
-  features: []
-- x: 35
-  y: 5
-  base: floor
-  features: []
-- x: 36
-  y: 5
-  base: floor
-  features: []
-- x: 37
-  y: 5
-  base: floor
-  features: []
-- x: 38
-  y: 5
-  base: floor
-  features: []
-- x: 39
-  y: 5
+  y: 6
   base: floor
   features:
   - wall_full
@@ -1043,49 +1072,57 @@ tiles:
 - x: 8
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 9
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 10
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 11
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 12
   y: 6
   base: floor
-  features:
-  - column
+  features: []
 - x: 13
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 14
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 15
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 16
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 17
   y: 6
   base: floor
   features:
-  - column
+  - wall_full
 - x: 18
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 19
   y: 6
   base: floor
@@ -1093,89 +1130,136 @@ tiles:
 - x: 20
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 21
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 22
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 23
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 24
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 25
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 26
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 27
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 28
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 29
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 30
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 31
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 32
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 33
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 34
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 35
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 36
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 37
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 38
   y: 6
   base: floor
-  features: []
+  features:
+  - wall_full
 - x: 39
   y: 6
   base: floor
   features:
   - wall_full
-- x: 7
+- x: 0
   y: 7
   base: floor
   features:
   - wall_full
+- x: 1
+  y: 7
+  base: floor
+  features: []
+- x: 2
+  y: 7
+  base: floor
+  features: []
+- x: 3
+  y: 7
+  base: floor
+  features: []
+- x: 4
+  y: 7
+  base: floor
+  features: []
+- x: 5
+  y: 7
+  base: floor
+  features: []
+- x: 6
+  y: 7
+  base: floor
+  features: []
+- x: 7
+  y: 7
+  base: floor
+  features: []
 - x: 8
   y: 7
   base: floor
@@ -1235,13 +1319,11 @@ tiles:
 - x: 22
   y: 7
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 23
   y: 7
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 24
   y: 7
   base: floor
@@ -1307,11 +1389,40 @@ tiles:
   base: floor
   features:
   - wall_full
-- x: 7
+- x: 0
   y: 8
   base: floor
   features:
   - wall_full
+- x: 1
+  y: 8
+  base: floor
+  features: []
+- x: 2
+  y: 8
+  base: floor
+  features: []
+- x: 3
+  y: 8
+  base: floor
+  features:
+  - column
+- x: 4
+  y: 8
+  base: floor
+  features: []
+- x: 5
+  y: 8
+  base: floor
+  features: []
+- x: 6
+  y: 8
+  base: floor
+  features: []
+- x: 7
+  y: 8
+  base: floor
+  features: []
 - x: 8
   y: 8
   base: floor
@@ -1371,13 +1482,11 @@ tiles:
 - x: 22
   y: 8
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 23
   y: 8
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 24
   y: 8
   base: floor
@@ -1433,7 +1542,8 @@ tiles:
 - x: 37
   y: 8
   base: floor
-  features: []
+  features:
+  - column
 - x: 38
   y: 8
   base: floor
@@ -1441,12 +1551,41 @@ tiles:
 - x: 39
   y: 8
   base: floor
-  features: []
-- x: 7
+  features:
+  - wall_full
+- x: 0
   y: 9
   base: floor
   features:
   - wall_full
+- x: 1
+  y: 9
+  base: floor
+  features: []
+- x: 2
+  y: 9
+  base: floor
+  features: []
+- x: 3
+  y: 9
+  base: floor
+  features: []
+- x: 4
+  y: 9
+  base: floor
+  features: []
+- x: 5
+  y: 9
+  base: floor
+  features: []
+- x: 6
+  y: 9
+  base: floor
+  features: []
+- x: 7
+  y: 9
+  base: floor
+  features: []
 - x: 8
   y: 9
   base: floor
@@ -1506,93 +1645,110 @@ tiles:
 - x: 22
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 23
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 24
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 25
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 26
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 27
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 28
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 29
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 30
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 31
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 32
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 33
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 34
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 35
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 36
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 37
   y: 9
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 38
+  y: 9
+  base: floor
+  features: []
+- x: 39
   y: 9
   base: floor
   features:
   - wall_full
-- x: 7
+- x: 0
   y: 10
   base: floor
   features:
   - wall_full
+- x: 1
+  y: 10
+  base: floor
+  features: []
+- x: 2
+  y: 10
+  base: floor
+  features: []
+- x: 3
+  y: 10
+  base: floor
+  features:
+  - column
+- x: 4
+  y: 10
+  base: floor
+  features: []
+- x: 5
+  y: 10
+  base: floor
+  features: []
+- x: 6
+  y: 10
+  base: floor
+  features: []
+- x: 7
+  y: 10
+  base: floor
+  features: []
 - x: 8
   y: 10
   base: floor
@@ -1612,8 +1768,7 @@ tiles:
 - x: 12
   y: 10
   base: floor
-  features:
-  - column
+  features: []
 - x: 13
   y: 10
   base: floor
@@ -1633,8 +1788,7 @@ tiles:
 - x: 17
   y: 10
   base: floor
-  features:
-  - column
+  features: []
 - x: 18
   y: 10
   base: floor
@@ -1654,193 +1808,522 @@ tiles:
 - x: 22
   y: 10
   base: floor
+  features: []
+- x: 23
+  y: 10
+  base: floor
+  features: []
+- x: 24
+  y: 10
+  base: floor
+  features: []
+- x: 25
+  y: 10
+  base: floor
+  features: []
+- x: 26
+  y: 10
+  base: floor
+  features: []
+- x: 27
+  y: 10
+  base: floor
+  features: []
+- x: 28
+  y: 10
+  base: floor
+  features: []
+- x: 29
+  y: 10
+  base: floor
+  features: []
+- x: 30
+  y: 10
+  base: floor
+  features: []
+- x: 31
+  y: 10
+  base: floor
+  features: []
+- x: 32
+  y: 10
+  base: floor
+  features: []
+- x: 33
+  y: 10
+  base: floor
+  features: []
+- x: 34
+  y: 10
+  base: floor
+  features: []
+- x: 35
+  y: 10
+  base: floor
+  features: []
+- x: 36
+  y: 10
+  base: floor
+  features: []
+- x: 37
+  y: 10
+  base: floor
+  features:
+  - column
+- x: 38
+  y: 10
+  base: floor
+  features: []
+- x: 39
+  y: 10
+  base: floor
   features:
   - wall_full
+- x: 0
+  y: 11
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 11
+  base: floor
+  features: []
+- x: 2
+  y: 11
+  base: floor
+  features: []
+- x: 3
+  y: 11
+  base: floor
+  features: []
+- x: 4
+  y: 11
+  base: floor
+  features: []
+- x: 5
+  y: 11
+  base: floor
+  features: []
+- x: 6
+  y: 11
+  base: floor
+  features: []
 - x: 7
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 8
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 9
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 10
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 11
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 12
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 13
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 14
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 15
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 16
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 17
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 18
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 19
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 20
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 21
   y: 11
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 22
+  y: 11
+  base: floor
+  features: []
+- x: 23
+  y: 11
+  base: floor
+  features: []
+- x: 24
+  y: 11
+  base: floor
+  features: []
+- x: 25
+  y: 11
+  base: floor
+  features: []
+- x: 26
+  y: 11
+  base: floor
+  features: []
+- x: 27
+  y: 11
+  base: floor
+  features: []
+- x: 28
+  y: 11
+  base: floor
+  features: []
+- x: 29
+  y: 11
+  base: floor
+  features: []
+- x: 30
+  y: 11
+  base: floor
+  features: []
+- x: 31
+  y: 11
+  base: floor
+  features: []
+- x: 32
+  y: 11
+  base: floor
+  features: []
+- x: 33
+  y: 11
+  base: floor
+  features: []
+- x: 34
+  y: 11
+  base: floor
+  features: []
+- x: 35
+  y: 11
+  base: floor
+  features: []
+- x: 36
+  y: 11
+  base: floor
+  features: []
+- x: 37
+  y: 11
+  base: floor
+  features: []
+- x: 38
+  y: 11
+  base: floor
+  features: []
+- x: 39
   y: 11
   base: floor
   features:
   - wall_full
 - x: 0
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 1
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 2
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 3
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 4
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 5
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 6
-  y: 13
+  y: 12
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 7
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 8
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 9
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 10
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 11
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 12
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 13
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 14
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 15
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 16
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 17
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 18
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 19
-  y: 13
+  y: 12
   base: floor
   features:
   - wall_full
 - x: 20
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 21
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 22
+  y: 12
+  base: floor
+  features: []
+- x: 23
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 24
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 25
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 26
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 27
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 28
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 29
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 30
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 31
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 32
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 33
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 34
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 35
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 36
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 37
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 38
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 39
+  y: 12
+  base: floor
+  features:
+  - wall_full
+- x: 0
   y: 13
   base: floor
   features:
   - wall_full
+- x: 1
+  y: 13
+  base: floor
+  features: []
+- x: 2
+  y: 13
+  base: floor
+  features: []
+- x: 3
+  y: 13
+  base: floor
+  features: []
+- x: 4
+  y: 13
+  base: floor
+  features: []
+- x: 5
+  y: 13
+  base: floor
+  features: []
+- x: 6
+  y: 13
+  base: floor
+  features: []
+- x: 7
+  y: 13
+  base: floor
+  features: []
+- x: 8
+  y: 13
+  base: floor
+  features: []
+- x: 9
+  y: 13
+  base: floor
+  features: []
+- x: 10
+  y: 13
+  base: floor
+  features: []
+- x: 11
+  y: 13
+  base: floor
+  features: []
+- x: 12
+  y: 13
+  base: floor
+  features: []
+- x: 13
+  y: 13
+  base: floor
+  features: []
+- x: 14
+  y: 13
+  base: floor
+  features: []
+- x: 15
+  y: 13
+  base: floor
+  features: []
+- x: 16
+  y: 13
+  base: floor
+  features: []
+- x: 17
+  y: 13
+  base: floor
+  features: []
+- x: 18
+  y: 13
+  base: floor
+  features: []
+- x: 19
+  y: 13
+  base: floor
+  features: []
+- x: 20
+  y: 13
+  base: floor
+  features: []
 - x: 21
   y: 13
   base: floor
@@ -1849,88 +2332,71 @@ tiles:
 - x: 22
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 23
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 24
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 25
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 26
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 27
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 28
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 29
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 30
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 31
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 32
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 33
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 34
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 35
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 36
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 37
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 38
   y: 13
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 39
   y: 13
   base: floor
@@ -1968,13 +2434,12 @@ tiles:
 - x: 7
   y: 14
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 8
   y: 14
   base: floor
   features:
-  - wall_full
+  - brazier
 - x: 9
   y: 14
   base: floor
@@ -1989,131 +2454,136 @@ tiles:
   features: []
 - x: 12
   y: 14
-  base: floor
-  features: []
-- x: 13
-  y: 14
-  base: floor
-  features: []
-- x: 14
-  y: 14
-  base: floor
-  features: []
-- x: 15
-  y: 14
-  base: floor
-  features: []
-- x: 16
-  y: 14
-  base: floor
-  features: []
-- x: 17
-  y: 14
-  base: floor
-  features: []
-- x: 18
-  y: 14
-  base: floor
-  features: []
-- x: 19
-  y: 14
-  base: floor
-  features: []
-- x: 20
-  y: 14
-  base: floor
-  features: []
-- x: 21
-  y: 14
-  base: floor
-  features: []
-- x: 22
-  y: 14
-  base: floor
-  features: []
-- x: 23
-  y: 14
-  base: floor
-  features: []
-- x: 24
-  y: 14
-  base: floor
-  features: []
-- x: 25
-  y: 14
-  base: floor
-  features: []
-- x: 26
-  y: 14
-  base: floor
-  features: []
-- x: 27
-  y: 14
-  base: floor
-  features: []
-- x: 28
-  y: 14
-  base: floor
-  features: []
-- x: 29
-  y: 14
-  base: floor
-  features: []
-- x: 30
-  y: 14
-  base: floor
-  features: []
-- x: 31
-  y: 14
-  base: floor
-  features: []
-- x: 32
-  y: 14
-  base: floor
-  features: []
-- x: 33
-  y: 14
-  base: floor
-  features: []
-- x: 34
-  y: 14
-  base: floor
-  features: []
-- x: 35
-  y: 14
-  base: floor
-  features: []
-- x: 36
-  y: 14
-  base: floor
-  features: []
-- x: 37
-  y: 14
-  base: floor
-  features:
-  - wall_full
-- x: 38
-  y: 14
-  base: stone
-  features: []
-- x: 0
-  y: 15
-  base: floor
-  features:
-  - wall_full
-- x: 1
-  y: 15
-  base: floor
-  features: []
-- x: 2
-  y: 15
-  base: floor
-  features: []
-- x: 3
-  y: 15
   base: floor
   features:
   - chair
+- x: 13
+  y: 14
+  base: floor
+  features: []
+- x: 14
+  y: 14
+  base: floor
+  features: []
+- x: 15
+  y: 14
+  base: floor
+  features: []
+- x: 16
+  y: 14
+  base: floor
+  features: []
+- x: 17
+  y: 14
+  base: floor
+  features: []
+- x: 18
+  y: 14
+  base: floor
+  features: []
+- x: 19
+  y: 14
+  base: floor
+  features: []
+- x: 20
+  y: 14
+  base: floor
+  features: []
+- x: 21
+  y: 14
+  base: floor
+  features:
+  - wall_full
+- x: 22
+  y: 14
+  base: floor
+  features: []
+- x: 23
+  y: 14
+  base: floor
+  features: []
+- x: 24
+  y: 14
+  base: floor
+  features: []
+- x: 25
+  y: 14
+  base: floor
+  features: []
+- x: 26
+  y: 14
+  base: floor
+  features: []
+- x: 27
+  y: 14
+  base: floor
+  features: []
+- x: 28
+  y: 14
+  base: floor
+  features: []
+- x: 29
+  y: 14
+  base: floor
+  features: []
+- x: 30
+  y: 14
+  base: floor
+  features: []
+- x: 31
+  y: 14
+  base: floor
+  features: []
+- x: 32
+  y: 14
+  base: floor
+  features: []
+- x: 33
+  y: 14
+  base: floor
+  features: []
+- x: 34
+  y: 14
+  base: floor
+  features: []
+- x: 35
+  y: 14
+  base: floor
+  features: []
+- x: 36
+  y: 14
+  base: floor
+  features: []
+- x: 37
+  y: 14
+  base: floor
+  features: []
+- x: 38
+  y: 14
+  base: floor
+  features: []
+- x: 39
+  y: 14
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 15
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 15
+  base: floor
+  features: []
+- x: 2
+  y: 15
+  base: floor
+  features: []
+- x: 3
+  y: 15
+  base: floor
+  features: []
 - x: 4
   y: 15
   base: floor
@@ -2150,7 +2620,7 @@ tiles:
   y: 15
   base: floor
   features:
-  - brazier
+  - table_small
 - x: 13
   y: 15
   base: floor
@@ -2162,8 +2632,7 @@ tiles:
 - x: 15
   y: 15
   base: floor
-  features:
-  - column
+  features: []
 - x: 16
   y: 15
   base: floor
@@ -2199,40 +2668,38 @@ tiles:
 - x: 24
   y: 15
   base: floor
-  features:
-  - column
+  features: []
 - x: 25
   y: 15
-  base: floor
+  base: dirt
   features: []
 - x: 26
   y: 15
-  base: floor
+  base: dirt
   features: []
 - x: 27
   y: 15
-  base: floor
+  base: dirt
   features: []
 - x: 28
   y: 15
-  base: floor
+  base: dirt
   features: []
 - x: 29
   y: 15
-  base: floor
+  base: dirt
   features: []
 - x: 30
   y: 15
-  base: floor
-  features:
-  - brazier
+  base: dirt
+  features: []
 - x: 31
   y: 15
-  base: floor
+  base: dirt
   features: []
 - x: 32
   y: 15
-  base: floor
+  base: dirt
   features: []
 - x: 33
   y: 15
@@ -2256,8 +2723,13 @@ tiles:
   features: []
 - x: 38
   y: 15
-  base: stone
+  base: floor
   features: []
+- x: 39
+  y: 15
+  base: floor
+  features:
+  - wall_full
 - x: 0
   y: 16
   base: floor
@@ -2273,996 +2745,1185 @@ tiles:
   features: []
 - x: 3
   y: 16
+  base: floor
+  features: []
+- x: 4
+  y: 16
+  base: floor
+  features: []
+- x: 5
+  y: 16
+  base: floor
+  features: []
+- x: 6
+  y: 16
+  base: floor
+  features: []
+- x: 7
+  y: 16
+  base: floor
+  features: []
+- x: 8
+  y: 16
+  base: floor
+  features:
+  - brazier
+- x: 9
+  y: 16
+  base: floor
+  features: []
+- x: 10
+  y: 16
+  base: floor
+  features: []
+- x: 11
+  y: 16
+  base: floor
+  features: []
+- x: 12
+  y: 16
+  base: floor
+  features:
+  - chair
+- x: 13
+  y: 16
+  base: floor
+  features: []
+- x: 14
+  y: 16
+  base: floor
+  features: []
+- x: 15
+  y: 16
+  base: floor
+  features: []
+- x: 16
+  y: 16
+  base: floor
+  features: []
+- x: 17
+  y: 16
+  base: floor
+  features: []
+- x: 18
+  y: 16
+  base: floor
+  features: []
+- x: 19
+  y: 16
+  base: floor
+  features: []
+- x: 20
+  y: 16
+  base: floor
+  features: []
+- x: 21
+  y: 16
+  base: floor
+  features:
+  - wall_full
+- x: 22
+  y: 16
+  base: floor
+  features: []
+- x: 23
+  y: 16
+  base: floor
+  features: []
+- x: 24
+  y: 16
+  base: floor
+  features: []
+- x: 25
+  y: 16
+  base: dirt
+  features: []
+- x: 26
+  y: 16
+  base: water
+  features: []
+- x: 27
+  y: 16
+  base: water
+  features: []
+- x: 28
+  y: 16
+  base: water
+  features: []
+- x: 29
+  y: 16
+  base: water
+  features: []
+- x: 30
+  y: 16
+  base: dirt
+  features: []
+- x: 31
+  y: 16
+  base: dirt
+  features: []
+- x: 32
+  y: 16
+  base: floor
+  features: []
+- x: 33
+  y: 16
+  base: floor
+  features: []
+- x: 34
+  y: 16
+  base: floor
+  features: []
+- x: 35
+  y: 16
+  base: floor
+  features: []
+- x: 36
+  y: 16
+  base: floor
+  features: []
+- x: 37
+  y: 16
+  base: floor
+  features: []
+- x: 38
+  y: 16
+  base: floor
+  features: []
+- x: 39
+  y: 16
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 17
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 17
+  base: floor
+  features: []
+- x: 2
+  y: 17
+  base: floor
+  features: []
+- x: 3
+  y: 17
+  base: floor
+  features: []
+- x: 4
+  y: 17
+  base: floor
+  features: []
+- x: 5
+  y: 17
+  base: floor
+  features: []
+- x: 6
+  y: 17
+  base: floor
+  features: []
+- x: 7
+  y: 17
+  base: floor
+  features: []
+- x: 8
+  y: 17
+  base: floor
+  features: []
+- x: 9
+  y: 17
+  base: floor
+  features: []
+- x: 10
+  y: 17
+  base: floor
+  features: []
+- x: 11
+  y: 17
+  base: floor
+  features: []
+- x: 12
+  y: 17
+  base: floor
+  features: []
+- x: 13
+  y: 17
+  base: floor
+  features: []
+- x: 14
+  y: 17
+  base: floor
+  features: []
+- x: 15
+  y: 17
+  base: floor
+  features: []
+- x: 16
+  y: 17
+  base: floor
+  features: []
+- x: 17
+  y: 17
+  base: floor
+  features: []
+- x: 18
+  y: 17
+  base: floor
+  features: []
+- x: 19
+  y: 17
+  base: floor
+  features: []
+- x: 20
+  y: 17
+  base: floor
+  features: []
+- x: 21
+  y: 17
+  base: floor
+  features:
+  - wall_full
+- x: 22
+  y: 17
+  base: floor
+  features: []
+- x: 23
+  y: 17
+  base: floor
+  features: []
+- x: 24
+  y: 17
+  base: floor
+  features: []
+- x: 25
+  y: 17
+  base: dirt
+  features: []
+- x: 26
+  y: 17
+  base: water
+  features: []
+- x: 27
+  y: 17
+  base: water
+  features: []
+- x: 28
+  y: 17
+  base: water
+  features: []
+- x: 29
+  y: 17
+  base: water
+  features: []
+- x: 30
+  y: 17
+  base: dirt
+  features: []
+- x: 31
+  y: 17
+  base: dirt
+  features: []
+- x: 32
+  y: 17
+  base: floor
+  features: []
+- x: 33
+  y: 17
+  base: floor
+  features: []
+- x: 34
+  y: 17
+  base: floor
+  features: []
+- x: 35
+  y: 17
+  base: floor
+  features: []
+- x: 36
+  y: 17
+  base: floor
+  features: []
+- x: 37
+  y: 17
+  base: floor
+  features: []
+- x: 38
+  y: 17
+  base: floor
+  features: []
+- x: 39
+  y: 17
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 2
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 3
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 4
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 5
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 6
+  y: 18
+  base: floor
+  features: []
+- x: 7
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 8
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 9
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 10
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 11
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 12
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 14
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 15
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 16
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 17
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 18
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 19
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 20
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 21
+  y: 18
+  base: floor
+  features: []
+- x: 22
+  y: 18
+  base: floor
+  features: []
+- x: 23
+  y: 18
+  base: floor
+  features: []
+- x: 24
+  y: 18
+  base: floor
+  features: []
+- x: 25
+  y: 18
+  base: dirt
+  features: []
+- x: 26
+  y: 18
+  base: dirt
+  features: []
+- x: 27
+  y: 18
+  base: dirt
+  features: []
+- x: 28
+  y: 18
+  base: dirt
+  features: []
+- x: 29
+  y: 18
+  base: dirt
+  features: []
+- x: 30
+  y: 18
+  base: dirt
+  features: []
+- x: 31
+  y: 18
+  base: dirt
+  features: []
+- x: 32
+  y: 18
+  base: dirt
+  features: []
+- x: 33
+  y: 18
+  base: floor
+  features: []
+- x: 34
+  y: 18
+  base: floor
+  features: []
+- x: 35
+  y: 18
+  base: floor
+  features: []
+- x: 36
+  y: 18
+  base: floor
+  features: []
+- x: 37
+  y: 18
+  base: floor
+  features: []
+- x: 38
+  y: 18
+  base: floor
+  features: []
+- x: 39
+  y: 18
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 19
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 19
+  base: floor
+  features: []
+- x: 2
+  y: 19
+  base: floor
+  features: []
+- x: 3
+  y: 19
+  base: floor
+  features: []
+- x: 4
+  y: 19
+  base: floor
+  features: []
+- x: 5
+  y: 19
+  base: floor
+  features: []
+- x: 6
+  y: 19
+  base: floor
+  features: []
+- x: 7
+  y: 19
+  base: floor
+  features: []
+- x: 8
+  y: 19
+  base: floor
+  features: []
+- x: 9
+  y: 19
+  base: floor
+  features: []
+- x: 10
+  y: 19
+  base: floor
+  features: []
+- x: 11
+  y: 19
+  base: floor
+  features: []
+- x: 12
+  y: 19
+  base: floor
+  features: []
+- x: 13
+  y: 19
+  base: floor
+  features: []
+- x: 14
+  y: 19
+  base: floor
+  features: []
+- x: 15
+  y: 19
+  base: floor
+  features: []
+- x: 16
+  y: 19
+  base: floor
+  features: []
+- x: 17
+  y: 19
+  base: floor
+  features: []
+- x: 18
+  y: 19
+  base: floor
+  features: []
+- x: 19
+  y: 19
+  base: floor
+  features: []
+- x: 20
+  y: 19
+  base: floor
+  features: []
+- x: 21
+  y: 19
+  base: floor
+  features: []
+- x: 22
+  y: 19
+  base: floor
+  features: []
+- x: 23
+  y: 19
+  base: floor
+  features: []
+- x: 24
+  y: 19
+  base: floor
+  features: []
+- x: 25
+  y: 19
+  base: floor
+  features: []
+- x: 26
+  y: 19
+  base: floor
+  features: []
+- x: 27
+  y: 19
+  base: floor
+  features: []
+- x: 28
+  y: 19
+  base: floor
+  features: []
+- x: 29
+  y: 19
+  base: floor
+  features: []
+- x: 30
+  y: 19
+  base: floor
+  features: []
+- x: 31
+  y: 19
+  base: floor
+  features: []
+- x: 32
+  y: 19
+  base: floor
+  features: []
+- x: 33
+  y: 19
+  base: floor
+  features: []
+- x: 34
+  y: 19
+  base: floor
+  features: []
+- x: 35
+  y: 19
+  base: floor
+  features: []
+- x: 36
+  y: 19
+  base: floor
+  features: []
+- x: 37
+  y: 19
+  base: floor
+  features: []
+- x: 38
+  y: 19
+  base: floor
+  features: []
+- x: 39
+  y: 19
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 20
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 20
+  base: floor
+  features: []
+- x: 2
+  y: 20
+  base: floor
+  features: []
+- x: 3
+  y: 20
+  base: floor
+  features:
+  - brazier
+- x: 4
+  y: 20
+  base: floor
+  features: []
+- x: 5
+  y: 20
+  base: floor
+  features: []
+- x: 6
+  y: 20
+  base: floor
+  features: []
+- x: 7
+  y: 20
+  base: floor
+  features: []
+- x: 8
+  y: 20
+  base: floor
+  features: []
+- x: 9
+  y: 20
+  base: floor
+  features:
+  - column
+- x: 10
+  y: 20
+  base: floor
+  features: []
+- x: 11
+  y: 20
+  base: floor
+  features: []
+- x: 12
+  y: 20
+  base: floor
+  features: []
+- x: 13
+  y: 20
+  base: floor
+  features: []
+- x: 14
+  y: 20
+  base: floor
+  features: []
+- x: 15
+  y: 20
+  base: floor
+  features: []
+- x: 16
+  y: 20
+  base: floor
+  features: []
+- x: 17
+  y: 20
+  base: floor
+  features:
+  - column
+- x: 18
+  y: 20
+  base: floor
+  features: []
+- x: 19
+  y: 20
+  base: floor
+  features: []
+- x: 20
+  y: 20
+  base: floor
+  features: []
+- x: 21
+  y: 20
+  base: floor
+  features: []
+- x: 22
+  y: 20
+  base: floor
+  features: []
+- x: 23
+  y: 20
+  base: floor
+  features: []
+- x: 24
+  y: 20
+  base: floor
+  features: []
+- x: 25
+  y: 20
+  base: floor
+  features: []
+- x: 26
+  y: 20
+  base: floor
+  features: []
+- x: 27
+  y: 20
+  base: floor
+  features: []
+- x: 28
+  y: 20
+  base: floor
+  features: []
+- x: 29
+  y: 20
+  base: floor
+  features: []
+- x: 30
+  y: 20
+  base: floor
+  features: []
+- x: 31
+  y: 20
+  base: floor
+  features: []
+- x: 32
+  y: 20
+  base: floor
+  features: []
+- x: 33
+  y: 20
+  base: floor
+  features: []
+- x: 34
+  y: 20
+  base: floor
+  features: []
+- x: 35
+  y: 20
+  base: floor
+  features: []
+- x: 36
+  y: 20
+  base: floor
+  features: []
+- x: 37
+  y: 20
+  base: floor
+  features: []
+- x: 38
+  y: 20
+  base: floor
+  features: []
+- x: 39
+  y: 20
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 21
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 21
+  base: floor
+  features: []
+- x: 2
+  y: 21
+  base: floor
+  features: []
+- x: 3
+  y: 21
   base: floor
   features:
   - table_small
 - x: 4
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 5
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 6
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 7
-  y: 16
+  y: 21
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 8
-  y: 16
+  y: 21
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 9
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 10
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 11
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 12
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 13
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 14
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 15
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 16
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 17
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 18
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 19
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 20
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 21
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 22
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 23
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 24
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 25
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 26
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 27
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 28
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 29
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 30
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 31
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 32
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 33
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 34
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 35
-  y: 16
+  y: 21
   base: floor
-  features: []
+  features:
+  - brazier
 - x: 36
-  y: 16
+  y: 21
   base: floor
   features: []
 - x: 37
-  y: 16
+  y: 21
+  base: floor
+  features: []
+- x: 38
+  y: 21
+  base: floor
+  features: []
+- x: 39
+  y: 21
   base: floor
   features:
   - wall_full
-- x: 38
-  y: 16
-  base: stone
-  features: []
 - x: 0
-  y: 17
+  y: 22
   base: floor
   features:
   - wall_full
 - x: 1
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 2
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 3
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 4
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 5
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 6
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 7
-  y: 17
+  y: 22
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 8
-  y: 17
+  y: 22
   base: floor
-  features:
-  - wall_full
+  features: []
 - x: 9
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 10
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 11
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 12
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 13
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 14
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 15
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 16
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 17
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 18
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 19
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 20
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 21
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 22
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 23
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 24
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 25
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 26
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 27
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 28
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 29
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 30
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 31
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 32
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 33
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 34
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 35
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 36
-  y: 17
+  y: 22
   base: floor
   features: []
 - x: 37
-  y: 17
+  y: 22
+  base: floor
+  features: []
+- x: 38
+  y: 22
+  base: floor
+  features: []
+- x: 39
+  y: 22
   base: floor
   features:
   - wall_full
-- x: 38
-  y: 17
-  base: stone
-  features: []
 - x: 0
-  y: 18
+  y: 23
   base: floor
   features:
   - wall_full
 - x: 1
-  y: 18
+  y: 23
   base: floor
   features:
   - wall_full
 - x: 2
-  y: 18
+  y: 23
   base: floor
   features:
   - wall_full
 - x: 3
-  y: 18
+  y: 23
   base: floor
   features:
   - wall_full
 - x: 4
-  y: 18
+  y: 23
   base: floor
   features:
   - wall_full
 - x: 5
-  y: 18
+  y: 23
   base: floor
   features:
   - wall_full
 - x: 6
-  y: 18
-  base: floor
-  features:
-  - wall_full
-- x: 7
-  y: 18
-  base: floor
-  features:
-  - wall_full
-- x: 8
-  y: 18
-  base: floor
-  features: []
-- x: 9
-  y: 18
-  base: floor
-  features: []
-- x: 10
-  y: 18
-  base: floor
-  features: []
-- x: 11
-  y: 18
-  base: floor
-  features: []
-- x: 12
-  y: 18
-  base: floor
-  features: []
-- x: 13
-  y: 18
-  base: floor
-  features: []
-- x: 14
-  y: 18
-  base: floor
-  features: []
-- x: 15
-  y: 18
-  base: floor
-  features: []
-- x: 16
-  y: 18
-  base: floor
-  features: []
-- x: 17
-  y: 18
-  base: floor
-  features: []
-- x: 18
-  y: 18
-  base: floor
-  features: []
-- x: 19
-  y: 18
-  base: floor
-  features: []
-- x: 20
-  y: 18
-  base: floor
-  features:
-  - column
-- x: 21
-  y: 18
-  base: floor
-  features: []
-- x: 22
-  y: 18
-  base: floor
-  features: []
-- x: 23
-  y: 18
-  base: floor
-  features: []
-- x: 24
-  y: 18
-  base: floor
-  features: []
-- x: 25
-  y: 18
-  base: floor
-  features:
-  - column
-- x: 26
-  y: 18
-  base: floor
-  features: []
-- x: 27
-  y: 18
-  base: floor
-  features: []
-- x: 28
-  y: 18
-  base: floor
-  features: []
-- x: 29
-  y: 18
-  base: floor
-  features: []
-- x: 30
-  y: 18
-  base: floor
-  features: []
-- x: 31
-  y: 18
-  base: floor
-  features: []
-- x: 32
-  y: 18
-  base: floor
-  features: []
-- x: 33
-  y: 18
-  base: floor
-  features: []
-- x: 34
-  y: 18
-  base: floor
-  features: []
-- x: 35
-  y: 18
-  base: floor
-  features: []
-- x: 36
-  y: 18
-  base: floor
-  features: []
-- x: 37
-  y: 18
-  base: floor
-  features:
-  - wall_full
-- x: 38
-  y: 18
-  base: stone
-  features: []
-- x: 7
-  y: 19
-  base: floor
-  features:
-  - wall_full
-- x: 8
-  y: 19
-  base: floor
-  features: []
-- x: 9
-  y: 19
-  base: floor
-  features: []
-- x: 10
-  y: 19
-  base: floor
-  features: []
-- x: 11
-  y: 19
-  base: floor
-  features: []
-- x: 12
-  y: 19
-  base: floor
-  features: []
-- x: 13
-  y: 19
-  base: floor
-  features: []
-- x: 14
-  y: 19
-  base: floor
-  features: []
-- x: 15
-  y: 19
-  base: floor
-  features: []
-- x: 16
-  y: 19
-  base: floor
-  features: []
-- x: 17
-  y: 19
-  base: floor
-  features: []
-- x: 18
-  y: 19
-  base: floor
-  features: []
-- x: 19
-  y: 19
-  base: floor
-  features: []
-- x: 20
-  y: 19
-  base: floor
-  features: []
-- x: 21
-  y: 19
-  base: floor
-  features: []
-- x: 22
-  y: 19
-  base: floor
-  features: []
-- x: 23
-  y: 19
-  base: floor
-  features: []
-- x: 24
-  y: 19
-  base: floor
-  features: []
-- x: 25
-  y: 19
-  base: floor
-  features: []
-- x: 26
-  y: 19
-  base: floor
-  features: []
-- x: 27
-  y: 19
-  base: floor
-  features: []
-- x: 28
-  y: 19
-  base: floor
-  features: []
-- x: 29
-  y: 19
-  base: floor
-  features: []
-- x: 30
-  y: 19
-  base: floor
-  features: []
-- x: 31
-  y: 19
-  base: floor
-  features: []
-- x: 32
-  y: 19
-  base: floor
-  features: []
-- x: 33
-  y: 19
-  base: floor
-  features: []
-- x: 34
-  y: 19
-  base: floor
-  features: []
-- x: 35
-  y: 19
-  base: floor
-  features: []
-- x: 36
-  y: 19
-  base: floor
-  features: []
-- x: 37
-  y: 19
-  base: floor
-  features: []
-- x: 38
-  y: 19
-  base: floor
-  features:
-  - wall_full
-- x: 7
-  y: 20
-  base: floor
-  features:
-  - wall_full
-- x: 8
-  y: 20
-  base: floor
-  features: []
-- x: 9
-  y: 20
-  base: floor
-  features: []
-- x: 10
-  y: 20
-  base: floor
-  features: []
-- x: 11
-  y: 20
-  base: floor
-  features: []
-- x: 12
-  y: 20
-  base: dirt
-  features: []
-- x: 13
-  y: 20
-  base: dirt
-  features: []
-- x: 14
-  y: 20
-  base: dirt
-  features: []
-- x: 15
-  y: 20
-  base: dirt
-  features: []
-- x: 16
-  y: 20
-  base: dirt
-  features: []
-- x: 17
-  y: 20
-  base: dirt
-  features: []
-- x: 18
-  y: 20
-  base: dirt
-  features: []
-- x: 19
-  y: 20
-  base: dirt
-  features: []
-- x: 20
-  y: 20
-  base: dirt
-  features: []
-- x: 21
-  y: 20
-  base: dirt
-  features: []
-- x: 22
-  y: 20
-  base: dirt
-  features: []
-- x: 23
-  y: 20
-  base: dirt
-  features: []
-- x: 24
-  y: 20
-  base: floor
-  features: []
-- x: 25
-  y: 20
-  base: floor
-  features: []
-- x: 26
-  y: 20
-  base: floor
-  features: []
-- x: 27
-  y: 20
-  base: floor
-  features: []
-- x: 28
-  y: 20
-  base: floor
-  features: []
-- x: 29
-  y: 20
-  base: floor
-  features: []
-- x: 30
-  y: 20
-  base: floor
-  features: []
-- x: 31
-  y: 20
-  base: floor
-  features: []
-- x: 32
-  y: 20
-  base: floor
-  features: []
-- x: 33
-  y: 20
-  base: floor
-  features: []
-- x: 34
-  y: 20
-  base: floor
-  features: []
-- x: 35
-  y: 20
-  base: floor
-  features: []
-- x: 36
-  y: 20
-  base: floor
-  features: []
-- x: 37
-  y: 20
-  base: floor
-  features: []
-- x: 38
-  y: 20
-  base: floor
-  features:
-  - wall_full
-- x: 7
-  y: 21
-  base: floor
-  features:
-  - wall_full
-- x: 8
-  y: 21
-  base: floor
-  features: []
-- x: 9
-  y: 21
-  base: floor
-  features: []
-- x: 10
-  y: 21
-  base: floor
-  features: []
-- x: 11
-  y: 21
-  base: floor
-  features: []
-- x: 12
-  y: 21
-  base: dirt
-  features: []
-- x: 13
-  y: 21
-  base: dirt
-  features: []
-- x: 14
-  y: 21
-  base: water
-  features: []
-- x: 15
-  y: 21
-  base: water
-  features: []
-- x: 16
-  y: 21
-  base: water
-  features: []
-- x: 17
-  y: 21
-  base: water
-  features: []
-- x: 18
-  y: 21
-  base: water
-  features: []
-- x: 19
-  y: 21
-  base: water
-  features: []
-- x: 20
-  y: 21
-  base: dirt
-  features: []
-- x: 21
-  y: 21
-  base: dirt
-  features: []
-- x: 22
-  y: 21
-  base: dirt
-  features: []
-- x: 23
-  y: 21
-  base: dirt
-  features: []
-- x: 24
-  y: 21
-  base: floor
-  features: []
-- x: 25
-  y: 21
-  base: floor
-  features: []
-- x: 26
-  y: 21
-  base: floor
-  features: []
-- x: 27
-  y: 21
-  base: floor
-  features: []
-- x: 28
-  y: 21
-  base: floor
-  features: []
-- x: 29
-  y: 21
-  base: floor
-  features: []
-- x: 30
-  y: 21
-  base: floor
-  features: []
-- x: 31
-  y: 21
-  base: floor
-  features: []
-- x: 32
-  y: 21
-  base: floor
-  features: []
-- x: 33
-  y: 21
-  base: floor
-  features: []
-- x: 34
-  y: 21
-  base: floor
-  features: []
-- x: 35
-  y: 21
-  base: floor
-  features: []
-- x: 36
-  y: 21
-  base: floor
-  features: []
-- x: 37
-  y: 21
-  base: floor
-  features: []
-- x: 38
-  y: 21
-  base: floor
-  features:
-  - wall_full
-- x: 7
-  y: 22
-  base: floor
-  features:
-  - wall_full
-- x: 8
-  y: 22
-  base: floor
-  features: []
-- x: 9
-  y: 22
-  base: floor
-  features: []
-- x: 10
-  y: 22
-  base: floor
-  features: []
-- x: 11
-  y: 22
-  base: floor
-  features: []
-- x: 12
-  y: 22
-  base: dirt
-  features: []
-- x: 13
-  y: 22
-  base: dirt
-  features: []
-- x: 14
-  y: 22
-  base: dirt
-  features: []
-- x: 15
-  y: 22
-  base: dirt
-  features: []
-- x: 16
-  y: 22
-  base: dirt
-  features: []
-- x: 17
-  y: 22
-  base: dirt
-  features: []
-- x: 18
-  y: 22
-  base: dirt
-  features: []
-- x: 19
-  y: 22
-  base: dirt
-  features: []
-- x: 20
-  y: 22
-  base: dirt
-  features: []
-- x: 21
-  y: 22
-  base: dirt
-  features: []
-- x: 22
-  y: 22
-  base: dirt
-  features: []
-- x: 23
-  y: 22
-  base: dirt
-  features: []
-- x: 24
-  y: 22
-  base: floor
-  features: []
-- x: 25
-  y: 22
-  base: floor
-  features: []
-- x: 26
-  y: 22
-  base: floor
-  features: []
-- x: 27
-  y: 22
-  base: floor
-  features: []
-- x: 28
-  y: 22
-  base: floor
-  features: []
-- x: 29
-  y: 22
-  base: floor
-  features: []
-- x: 30
-  y: 22
-  base: floor
-  features: []
-- x: 31
-  y: 22
-  base: floor
-  features: []
-- x: 32
-  y: 22
-  base: floor
-  features: []
-- x: 33
-  y: 22
-  base: floor
-  features: []
-- x: 34
-  y: 22
-  base: floor
-  features: []
-- x: 35
-  y: 22
-  base: floor
-  features: []
-- x: 36
-  y: 22
-  base: floor
-  features: []
-- x: 37
-  y: 22
-  base: floor
-  features: []
-- x: 38
-  y: 22
+  y: 23
   base: floor
   features:
   - wall_full
@@ -3422,6 +4083,11 @@ tiles:
   features:
   - wall_full
 - x: 38
+  y: 23
+  base: floor
+  features:
+  - wall_full
+- x: 39
   y: 23
   base: floor
   features:
@@ -3438,72 +4104,109 @@ objects:
     ac: 13
 - id: door-1
   kind: door
-  x: 21
+  x: 18
   y: 2
   state:
     open: false
     locked: false
     hp: 10
     ac: 13
-- id: barrel-2
-  kind: barrel
-  x: 24
-  y: 2
-  state:
-    open: false
-    hp: 6
-    ac: 12
-- id: chest-3
-  kind: chest
-  x: 27
-  y: 4
+- id: door-2
+  kind: door
+  x: 5
+  y: 6
   state:
     open: false
     locked: false
-    hp: 8
-    ac: 14
-- id: chest-4
-  kind: chest
-  x: 32
-  y: 4
+    hp: 10
+    ac: 13
+- id: door-3
+  kind: door
+  x: 12
+  y: 6
   state:
     open: false
     locked: false
-    hp: 8
-    ac: 14
+    hp: 10
+    ac: 13
+- id: door-4
+  kind: door
+  x: 19
+  y: 6
+  state:
+    open: false
+    locked: false
+    hp: 10
+    ac: 13
 - id: door-5
   kind: door
-  x: 22
-  y: 6
+  x: 6
+  y: 12
   state:
     open: false
     locked: false
     hp: 10
     ac: 13
-- id: chest-6
+- id: door-6
+  kind: door
+  x: 22
+  y: 12
+  state:
+    open: false
+    locked: false
+    hp: 10
+    ac: 13
+- id: chest-7
   kind: chest
-  x: 32
-  y: 6
+  x: 3
+  y: 14
   state:
     open: false
     locked: false
     hp: 8
     ac: 14
-- id: door-7
-  kind: door
-  x: 7
+- id: chest-8
+  kind: chest
+  x: 3
   y: 15
   state:
     open: false
     locked: false
-    hp: 10
-    ac: 13
-- id: door-locked-8
+    hp: 8
+    ac: 14
+- id: door-locked-9
   kind: door
-  x: 37
+  x: 21
   y: 15
   state:
     open: false
     locked: true
     hp: 12
     ac: 14
+- id: chest-10
+  kind: chest
+  x: 3
+  y: 16
+  state:
+    open: false
+    locked: false
+    hp: 8
+    ac: 14
+- id: door-11
+  kind: door
+  x: 6
+  y: 18
+  state:
+    open: false
+    locked: false
+    hp: 10
+    ac: 13
+- id: door-12
+  kind: door
+  x: 21
+  y: 18
+  state:
+    open: false
+    locked: false
+    hp: 10
+    ac: 13

@@ -136,21 +136,21 @@
       faction: party
     - template_id: goblin
       instance_id: goblin1
-      at: [13, 3]
+      at: [11, 2]
       faction: monsters
     - template_id: goblin_archer
       instance_id: goblin_archer2
-      at: [27, 6]
+      at: [25, 4]
       faction: monsters
-    - template_id: goblin
-      instance_id: goblin3
-      at: [12, 8]
+    - template_id: goblin_archer
+      instance_id: goblin_archer3
+      at: [28, 14]
       faction: monsters
     - template_id: goblin
       instance_id: goblin4
-      at: [33, 15]
+      at: [16, 15]
       faction: monsters
-    - template_id: goblin_archer
-      instance_id: goblin_archer5
-      at: [27, 20]
+    - template_id: goblin
+      instance_id: goblin5
+      at: [22, 20]
       faction: monsters
