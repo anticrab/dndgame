@@ -163,7 +163,11 @@ def find_walkable_path(
                 continue
             if not battlefield.passable_between(cur, nb):
                 continue
-            if battlefield.creatures_at(nb):
+            # CRITICAL fix: A* main loop тоже должен уважать is_alive,
+            # иначе труп блокирует обходной маршрут (fast-path выше
+            # фильтрует правильно, а Dijkstra — нет). Аудит code-review
+            # после O-5: репродуцировано на крипте.
+            if _cell_blocked_by_creatures(battlefield, nb, is_alive):
                 continue
             cost = 10 if terrain.difficult else 5
             ng = g_cur + cost

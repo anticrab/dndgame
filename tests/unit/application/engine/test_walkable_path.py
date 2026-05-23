@@ -132,3 +132,36 @@ def test_living_creature_still_blocks_with_filter() -> None:
         is_alive=lambda cid: True,  # все живые → блокируют как раньше
     )
     assert path is None
+
+
+def test_dead_creature_does_not_block_path_when_walls_force_detour() -> None:
+    """C-1 regression: трупы должны быть проходимы и в A*-обходе,
+    не только в chebyshev fast-path. Сценарий: стена прямо, труп в
+    единственно возможной обходной клетке. Раньше fast-path
+    fail'ил (стена), а Dijkstra игнорировал is_alive и считал труп
+    блокировкой → path = None."""
+    bf = _open(5, 3)
+    # стена прямо от (0,1) к (4,1): cells (2,1) wall
+    bf.set_terrain(Square(2, 1), WALL)
+    # обходной путь сверху и снизу. Сверху труп в (2,0).
+    # Снизу всё свободно (2,2).
+    bf.place_creature(CreatureId("corpse_up"), Square(2, 0))
+    path = find_walkable_path(
+        bf, Square(0, 1), Square(4, 1),
+        is_alive=lambda cid: cid != CreatureId("corpse_up"),
+    )
+    # Должен найти путь — либо через (2,0) (труп проходим), либо (2,2).
+    assert path is not None
+    # А вот если is_alive говорит «все живые» — оба узких прохода
+    # заблокированы (живой блокер сверху, стена прямо), снизу свободно.
+    bf2 = _open(3, 3)
+    bf2.set_terrain(Square(1, 1), WALL)
+    bf2.place_creature(CreatureId("alive_up"), Square(1, 0))
+    path2 = find_walkable_path(
+        bf2, Square(0, 1), Square(2, 1),
+        is_alive=lambda cid: True,
+    )
+    # Должен пройти снизу через (1, 2) — никаких блокировок там нет.
+    assert path2 is not None
+    assert Square(1, 0) not in path2
+    assert Square(1, 1) not in path2

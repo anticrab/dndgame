@@ -13,7 +13,9 @@ from uuid import UUID
 CreatureId = NewType("CreatureId", str)
 PlayerId = NewType("PlayerId", str)
 SpellId = NewType("SpellId", str)
-ItemId = NewType("ItemId", str)
+# ItemId намеренно живёт в dnd.domain.values.item — это часть
+# доменного фундамента инвентаря (этап O), а не application-DTO.
+# Импортируйте напрямую: `from dnd.domain.values.item import ItemId`.
 ScenarioId = NewType("ScenarioId", str)
 LocationId = NewType("LocationId", str)
 EncounterId = NewType("EncounterId", str)

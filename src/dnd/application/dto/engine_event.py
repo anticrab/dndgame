@@ -23,6 +23,7 @@ from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import EngineRollResult
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.item import ItemId
 from dnd.domain.values.square import Square
 
 
@@ -349,9 +350,9 @@ class ItemPickedUp(EngineEvent):
 
     event_type: ClassVar[str] = "inventory.item_picked_up"
     actor_id: CreatureId
-    item_id: str
+    item_id: ItemId
     item_name: str
-    qty: int
+    qty: int = Field(ge=1)
     source: str  # "chest:<obj_id>" | "corpse:<creature_id>" | "ground"
 
 
@@ -360,9 +361,9 @@ class ItemDropped(EngineEvent):
 
     event_type: ClassVar[str] = "inventory.item_dropped"
     actor_id: CreatureId
-    item_id: str
+    item_id: ItemId
     item_name: str
-    qty: int
+    qty: int = Field(ge=1)
 
 
 class ItemEquipped(EngineEvent):
@@ -370,7 +371,7 @@ class ItemEquipped(EngineEvent):
 
     event_type: ClassVar[str] = "inventory.item_equipped"
     actor_id: CreatureId
-    item_id: str
+    item_id: ItemId
     item_name: str
 
 
@@ -379,5 +380,5 @@ class ItemUnequipped(EngineEvent):
 
     event_type: ClassVar[str] = "inventory.item_unequipped"
     actor_id: CreatureId
-    item_id: str
+    item_id: ItemId
     item_name: str
