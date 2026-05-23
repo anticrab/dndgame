@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.engine.actions.interact import InteractKind
+from dnd.domain.values.item import ItemId
 from dnd.domain.values.square import Square
 
 
@@ -86,6 +87,23 @@ class BreakIntent(_IntentBase):
     target_object_id: ObjectId
 
 
+class PickupIntent(_IntentBase):
+    """Игрок забирает предмет из сундука / другого контейнера (этап O-8).
+
+    Free object interaction (как и Interact-open) — не тратит action.
+    Контейнер должен быть в reach (5 ft) и открыт (или будет открыт
+    автоматически, если ``locked=False``).
+
+    ``qty`` — сколько единиц взять. ``None`` означает «всё из этого
+    стака»; для non-stackable items эквивалентно 1.
+    """
+
+    kind: Literal["pickup"] = "pickup"
+    target_object_id: ObjectId
+    item_id: ItemId
+    qty: int | None = Field(default=None, ge=1)
+
+
 PlayerIntent = Annotated[
     AttackIntent
     | MoveIntent
@@ -94,7 +112,8 @@ PlayerIntent = Annotated[
     | DisengageIntent
     | EndTurnIntent
     | InteractIntent
-    | BreakIntent,
+    | BreakIntent
+    | PickupIntent,
     Field(discriminator="kind"),
 ]
 
@@ -108,5 +127,6 @@ __all__ = [
     "EndTurnIntent",
     "InteractIntent",
     "MoveIntent",
+    "PickupIntent",
     "PlayerIntent",
 ]

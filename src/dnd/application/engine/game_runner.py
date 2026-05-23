@@ -32,12 +32,14 @@ from dnd.application.dto.player_intent import (
     EndTurnIntent,
     InteractIntent,
     MoveIntent,
+    PickupIntent,
     PlayerIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.break_object import BreakAction, BreakParams
 from dnd.application.engine.actions.interact import InteractAction, InteractParams
 from dnd.application.engine.actions.move import MoveAction, MoveParams
+from dnd.application.engine.actions.pickup import PickupAction, PickupParams
 from dnd.application.engine.actions.stances import (
     DashAction,
     DisengageAction,
@@ -50,6 +52,7 @@ from dnd.application.engine.ai.simple_monster import (
 )
 from dnd.application.engine.encounter import Encounter
 from dnd.application.engine.turn_context import TurnContext
+from dnd.application.ports.item_repository import ItemRepository
 from dnd.application.ports.player_intent_provider import PlayerIntentProvider
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
@@ -74,9 +77,14 @@ class GameRunner:
         intent_provider: PlayerIntentProvider,
         monster_turn: Callable[[Creature, TurnContext, Encounter], None]
         | None = None,
+        item_repository: ItemRepository | None = None,
     ) -> None:
         self._intent_provider = intent_provider
         self._monster_turn = monster_turn or self._default_monster_turn
+        # ItemRepository нужен PickupAction'у. Если runner создан без
+        # него (старые тесты / CLI без item content), PickupIntent
+        # тихо реджектится в _log_rejected. См. _do_pickup.
+        self._item_repository = item_repository
 
     def run(self, encounter: Encounter) -> None:
         """Прогнать бой от ``start()`` до ``EncounterEnded``.
@@ -165,6 +173,9 @@ class GameRunner:
         if isinstance(intent, BreakIntent):
             self._do_break(actor, intent, ctx)
             return
+        if isinstance(intent, PickupIntent):
+            self._do_pickup(actor, intent, ctx)
+            return
         # EndTurnIntent обрабатывается в _run_pc_turn до вызова.
         # Защита от расширения PlayerIntent без обновления GameRunner.
         raise TypeError(f"unknown PlayerIntent: {type(intent).__name__}")
@@ -207,6 +218,26 @@ class GameRunner:
             action.execute(actor, params, ctx)
         else:
             self._log_rejected(actor, "interact", _avail_reason(avail))
+
+    def _do_pickup(
+        self, actor: Creature, intent: PickupIntent, ctx: TurnContext
+    ) -> None:
+        if self._item_repository is None:
+            self._log_rejected(
+                actor, "pickup", "no_item_repository (runner not wired)"
+            )
+            return
+        params = PickupParams(
+            target_object_id=intent.target_object_id,
+            item_id=intent.item_id,
+            qty=intent.qty,
+        )
+        action = PickupAction(item_repository=self._item_repository)
+        avail = action.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "pickup", _avail_reason(avail))
 
     def _do_break(
         self, actor: Creature, intent: BreakIntent, ctx: TurnContext
