@@ -1,0 +1,269 @@
+id: dungeon_hall
+name: Dungeon Hall
+width: 15
+height: 8
+tiles:
+- x: 0
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 1
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 1
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 2
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 2
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 3
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 3
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 4
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 4
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 5
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 5
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 6
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 6
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 7
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 7
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 8
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 8
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 9
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 9
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 10
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 10
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 11
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 11
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 12
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 12
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 13
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 13
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 1
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 1
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 2
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 2
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 3
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 3
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 4
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 4
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 5
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 5
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 6
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 6
+  base: stone
+  features:
+  - wall_full
+- x: 7
+  y: 1
+  base: stone
+  features:
+  - wall_v
+- x: 7
+  y: 2
+  base: stone
+  features:
+  - wall_v
+- x: 7
+  y: 3
+  base: stone
+  features:
+  - wall_v
+- x: 7
+  y: 5
+  base: stone
+  features:
+  - wall_v
+- x: 7
+  y: 6
+  base: stone
+  features:
+  - wall_v
+- x: 3
+  y: 2
+  base: stone
+  features:
+  - brazier
+- x: 11
+  y: 5
+  base: stone
+  features:
+  - brazier
+objects:
+- id: door-main
+  kind: door
+  x: 7
+  y: 4
+  state:
+    open: false
+    locked: false
+    hp: 10
+    ac: 13
+- id: chest-treasure
+  kind: chest
+  x: 12
+  y: 2
+  state:
+    open: false
+    locked: true
+    hp: 8
+    ac: 15

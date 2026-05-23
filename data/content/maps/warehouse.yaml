@@ -1,0 +1,305 @@
+id: warehouse
+name: Warehouse
+width: 14
+height: 10
+tiles:
+- x: 0
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 1
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 2
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 2
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 3
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 3
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 4
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 4
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 5
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 5
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 6
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 6
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 7
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 7
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 8
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 8
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 9
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 9
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 10
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 10
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 11
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 11
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 12
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 12
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 0
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 9
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 1
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 1
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 2
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 2
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 3
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 3
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 4
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 4
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 5
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 5
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 6
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 6
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 7
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 7
+  base: floor
+  features:
+  - wall_full
+- x: 0
+  y: 8
+  base: floor
+  features:
+  - wall_full
+- x: 13
+  y: 8
+  base: floor
+  features:
+  - wall_full
+- x: 3
+  y: 2
+  base: floor
+  features:
+  - table_long
+- x: 4
+  y: 2
+  base: floor
+  features:
+  - table_long
+- x: 5
+  y: 2
+  base: floor
+  features:
+  - table_long
+- x: 10
+  y: 6
+  base: floor
+  features:
+  - table_small
+- x: 10
+  y: 7
+  base: floor
+  features:
+  - chair
+objects:
+- id: door-main
+  kind: door
+  x: 0
+  y: 5
+  state:
+    open: false
+    locked: false
+    hp: 10
+    ac: 13
+- id: window-north
+  kind: window
+  x: 7
+  y: 0
+  state:
+    open: false
+    hp: 4
+    ac: 12
+- id: barrel-1
+  kind: barrel
+  x: 2
+  y: 4
+  state:
+    hp: 6
+    ac: 12
+- id: barrel-2
+  kind: barrel
+  x: 2
+  y: 5
+  state:
+    hp: 6
+    ac: 12
+- id: barrel-3
+  kind: barrel
+  x: 11
+  y: 2
+  state:
+    hp: 6
+    ac: 12
+- id: barrel-4
+  kind: barrel
+  x: 11
+  y: 3
+  state:
+    hp: 6
+    ac: 12
+- id: chest-loot
+  kind: chest
+  x: 12
+  y: 8
+  state:
+    open: false
+    locked: false
+    hp: 8
+    ac: 14

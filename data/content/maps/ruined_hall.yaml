@@ -1,0 +1,326 @@
+id: ruined_hall
+name: Ruined Hall
+width: 16
+height: 12
+tiles:
+- x: 0
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 1
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 1
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 2
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 2
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 3
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 3
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 4
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 4
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 5
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 5
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 6
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 6
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 7
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 7
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 8
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 8
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 9
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 9
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 10
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 10
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 11
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 11
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 12
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 12
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 13
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 13
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 14
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 0
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 11
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 1
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 1
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 2
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 2
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 3
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 3
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 4
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 4
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 5
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 5
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 6
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 6
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 7
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 8
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 8
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 9
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 9
+  base: stone
+  features:
+  - wall_full
+- x: 0
+  y: 10
+  base: stone
+  features:
+  - wall_full
+- x: 15
+  y: 10
+  base: stone
+  features:
+  - wall_full
+- x: 4
+  y: 3
+  base: stone
+  features:
+  - column
+- x: 4
+  y: 8
+  base: stone
+  features:
+  - column
+- x: 8
+  y: 3
+  base: stone
+  features:
+  - column
+- x: 8
+  y: 8
+  base: stone
+  features:
+  - column
+- x: 12
+  y: 3
+  base: stone
+  features:
+  - column
+- x: 12
+  y: 8
+  base: stone
+  features:
+  - column
+- x: 2
+  y: 6
+  base: stone
+  features:
+  - low_cover_obj
+- x: 6
+  y: 5
+  base: stone
+  features:
+  - low_cover_obj
+- x: 10
+  y: 7
+  base: stone
+  features:
+  - low_cover_obj
+- x: 14
+  y: 4
+  base: stone
+  features:
+  - low_cover_obj
+- x: 7
+  y: 6
+  base: stone
+  features:
+  - high_cover_obj
+- x: 8
+  y: 6
+  base: stone
+  features:
+  - high_cover_obj
+objects: []
