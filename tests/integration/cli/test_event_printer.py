@@ -76,6 +76,8 @@ def test_prints_attack_hit_then_damage() -> None:
             is_critical_hit=False,
             is_critical_miss=False,
             hit=True,
+            d20_raw=18,
+            total=23,
         )
     )
     bus.publish(
@@ -87,6 +89,8 @@ def test_prints_attack_hit_then_damage() -> None:
             raw_amount=8,
             final_amount=8,
             is_critical=False,
+            hp_after=2,
+            hp_max=10,
         )
     )
     out = buf.getvalue()
@@ -94,6 +98,9 @@ def test_prints_attack_hit_then_damage() -> None:
     assert "AC 15" in out
     assert "8" in out
     assert "slashing" in out
+    # CL-UX003 + CL-UX006:
+    assert "d20=18" in out
+    assert "HP 2/10" in out
 
 
 def test_prints_critical_hit() -> None:
@@ -107,6 +114,8 @@ def test_prints_critical_hit() -> None:
             is_critical_hit=True,
             is_critical_miss=False,
             hit=True,
+            d20_raw=20,
+            total=25,
         )
     )
     assert "CRITICAL HIT" in buf.getvalue()

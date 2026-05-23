@@ -27,6 +27,11 @@
       at: [3, 2]
       faction: monsters
 
+# Аудит 16 SC-R-NEW-001: до появления InteractAction/OpenDoorAction
+# ставить closed_door в проходимом коридоре нельзя — сценарий иначе
+# неразрешим (бой завершается только по MAX_ROUNDS=100, потому что
+# монстр-AI не умеет открывать двери). В MVP коридор «всегда открыт»;
+# closed_door вернётся вместе с InteractAction (см. ROADMAP §6).
 - id: mvp_room
   name: "MVP Room with walls"
   map:
@@ -35,11 +40,10 @@
     legend:
       ".": floor
       "#": wall
-      "+": closed_door
     grid:
       - "#######"
       - "#.....#"
-      - "#..+..#"
+      - "#.....#"
       - "#.....#"
       - "#######"
   spawns:

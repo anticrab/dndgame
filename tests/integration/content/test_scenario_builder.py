@@ -28,7 +28,7 @@ from dnd.composition import build_scripted_dependencies
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.square import Square
-from dnd.domain.values.terrain import CLOSED_DOOR, FLOOR, WALL
+from dnd.domain.values.terrain import FLOOR, WALL
 from dnd.infrastructure.content.yaml_repository import YamlContentRepository
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -62,8 +62,9 @@ def test_mvp_room_terrain(repo: YamlContentRepository) -> None:
     assert bf.terrain_at(Square(6, 0)) is WALL
     assert bf.terrain_at(Square(0, 4)) is WALL
     assert bf.terrain_at(Square(6, 4)) is WALL
-    # Дверь по центру.
-    assert bf.terrain_at(Square(3, 2)) is CLOSED_DOOR
+    # Аудит 16 SC-R-NEW-001: до появления InteractAction CLOSED_DOOR
+    # в сценарии убрана — иначе бой неразрешим. Сейчас (3,2) — пол.
+    assert bf.terrain_at(Square(3, 2)) is FLOOR
     # Внутренние клетки — FLOOR.
     assert bf.terrain_at(Square(1, 1)) is FLOOR
 

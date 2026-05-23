@@ -164,16 +164,25 @@ class HelpAction:
 
 
 class SearchKind(StrEnum):
-    PERCEPTION = "perception"  # Wisdom (Perception)
-    INVESTIGATION = "investigation"  # Intelligence (Investigation)
+    """Навыки действия Search по PHB-2024 стр. 357.
+
+    Книга прямо называет четыре варианта, все на основе Wisdom: Insight,
+    Medicine, Perception, Survival. Investigation (Intelligence) в этой
+    таблице **не упомянут** и относится к другим способам поиска (вне
+    действия Search).
+    """
+
+    INSIGHT = "insight"  # Wisdom (Insight) — «прочитать намерения»
+    MEDICINE = "medicine"  # Wisdom (Medicine) — «понять состояние»
+    PERCEPTION = "perception"  # Wisdom (Perception) — «заметить»
+    SURVIVAL = "survival"  # Wisdom (Survival) — «найти следы»
 
 
 class SearchParams(ActionParams):
     """Параметры Search.
 
-    ``skill_mod`` — сборный модификатор: ability_mod (WIS для perception,
-    INT для investigation) + proficiency (если есть). Ситуативные
-    модификаторы — через ModifierApplier.
+    ``skill_mod`` — сборный модификатор: Wisdom-mod + proficiency (если
+    есть). Ситуативные модификаторы — через ModifierApplier.
     """
 
     kind: SearchKind

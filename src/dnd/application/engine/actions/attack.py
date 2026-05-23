@@ -192,6 +192,18 @@ class AttackAction:
         if target is None:
             return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
 
+        # PHB-2024 стр. 18-20: атака идёт на «существо, которое ты можешь
+        # видеть» — сам ты не «другое существо».
+        if target.id == actor.id:
+            return Forbidden(reason=ForbiddenReason.SELF_TARGET)
+
+        # Поверженные на 0 HP — не валидная цель стандартной атаки
+        # (coup-de-grace в 5e-2024 моделировать не нужно). UI-фильтр
+        # (console_provider) сам по себе ненадёжен: scripted/AI/TUI/
+        # master intent может пройти мимо него.
+        if not target.is_alive or target.is_at_zero_hp:
+            return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
+
         attacker_pos = ctx.battlefield.position_of(actor.id)
         target_pos = ctx.battlefield.position_of(target.id)
 
@@ -343,6 +355,9 @@ class AttackAction:
         else:
             hit = attack_roll.total >= effective_ac
 
+        # d20_raw=None бывает для не-d20 бросков; здесь это всегда d20,
+        # но pydantic-поле int — гонзим к 0 на всякий случай.
+        d20_raw_safe = attack_roll.d20_raw if attack_roll.d20_raw is not None else 0
         ctx.event_bus.publish(
             AttackRolled(
                 attacker_id=actor.id,
@@ -352,6 +367,10 @@ class AttackAction:
                 is_critical_hit=is_crit,
                 is_critical_miss=is_crit_miss,
                 hit=hit,
+                d20_raw=d20_raw_safe,
+                total=attack_roll.total,
+                advantage=attack_ctx.advantage,
+                disadvantage=attack_ctx.disadvantage,
             )
         )
 
@@ -405,6 +424,8 @@ class AttackAction:
                     raw_amount=raw_damage,
                     final_amount=damage_result.final_amount,
                     is_critical=is_crit,
+                    hp_after=target.hit_points.current,
+                    hp_max=target.hit_points.maximum,
                 )
             )
             published.append("damage.dealt")

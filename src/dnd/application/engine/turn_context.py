@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.entities.creature import Creature
     from dnd.domain.ports.rng import RNG
+    from dnd.domain.values.faction import Faction
 
 
 @dataclass(slots=True)
@@ -61,6 +62,13 @@ class TurnContext:
     participants: dict[CreatureId, Creature]
 
     movement_remaining_ft: int  # = speed * 1.0 в начале хода
+
+    # Нужно MoveAction'у для PHB-2024 стр. 24: проход сквозь враждебных
+    # запрещён, через союзника — стоит как difficult terrain (×2),
+    # завершить ход в чужой клетке нельзя. Если ctx собирают вручную
+    # без factions — fallback: «другие» трактуются как союзники
+    # (легально для unit-тестов MoveAction без полноценного Encounter).
+    factions: dict[CreatureId, Faction] = field(default_factory=dict)
 
     round_number: int = 1
     turn_number_in_round: int = 0

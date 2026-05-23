@@ -341,7 +341,10 @@ def test_search_rejects_wrong_params() -> None:
         SearchAction().execute(actor, NoParams(), ctx)
 
 
-def test_search_investigation_kind() -> None:
+def test_search_survival_kind() -> None:
+    # Аудит 16 HS-R-NEW-002: PHB-2024 стр. 357 называет Insight /
+    # Medicine / Perception / Survival (все Wisdom). Investigation
+    # (Int) в книге для Search не упомянут.
     actor, _ally, _target, ctx, bus = _setup_three(
         Square(1, 1), Square(2, 1), Square(2, 2),
         rng_rolls=[10],
@@ -350,11 +353,11 @@ def test_search_investigation_kind() -> None:
     bus.subscribe(EngineEvent, captured.append)
     SearchAction().execute(
         actor,
-        SearchParams(kind=SearchKind.INVESTIGATION, skill_mod=2),
+        SearchParams(kind=SearchKind.SURVIVAL, skill_mod=2),
         ctx,
     )
     search = next(e for e in captured if isinstance(e, SearchPerformed))
-    assert search.skill_kind == "investigation"
+    assert search.skill_kind == "survival"
 
 
 def test_help_rejects_wrong_params() -> None:

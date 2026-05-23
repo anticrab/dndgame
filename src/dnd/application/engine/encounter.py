@@ -347,6 +347,7 @@ class Encounter:
             event_bus=self._deps.event_bus,
             rng=self._deps.rng,
             participants=self._participants,
+            factions=self._factions,
             movement_remaining_ft=self._effective_speed_ft(actor),
             round_number=self._state.round_number,
             turn_number_in_round=self._state.current_turn_index,
@@ -480,6 +481,29 @@ class Encounter:
         self._deps.event_bus.publish(RoundStarted(round_number=n))
 
     # --- условие конца (F3) ------------------------------------------
+
+    def outcome_decided(self) -> bool:
+        """Решён ли исход боя прямо сейчас (без публикации события).
+
+        Возвращает True, когда живых из разных воюющих фракций уже не
+        больше одной — то есть `_check_end_condition` опубликовал бы
+        EncounterEnded, если бы его вызвали сию секунду. Используется
+        GameRunner внутри цикла PC-турна, чтобы досрочно прерваться
+        сразу после удара, убившего последнего врага (иначе игрок
+        получает ещё один prompt уже в законченном бою).
+        """
+        return self._is_outcome_decided()
+
+    def _is_outcome_decided(self) -> bool:
+        alive_by_faction: dict[Faction, list[CreatureId]] = {}
+        for cid, cr in self._participants.items():
+            if not cr.is_alive:
+                continue
+            alive_by_faction.setdefault(self._factions[cid], []).append(cid)
+        combat_factions = [
+            f for f in alive_by_faction if f is not Faction.NEUTRAL
+        ]
+        return len(combat_factions) <= 1
 
     def _check_end_condition(self) -> bool:
         """Проверить, не закончился ли бой. Если да — опубликовать

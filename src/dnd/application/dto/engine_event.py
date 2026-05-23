@@ -102,6 +102,12 @@ class AttackRolled(EngineEvent):
     is_critical_hit: bool
     is_critical_miss: bool  # natural 1
     hit: bool
+    # Прозрачность броска — чтобы UI/лог мог показать «d20=18 +5 → 23
+    # adv vs AC 16», а не только итог hit/miss.
+    d20_raw: int  # сырой d20 (для adv/dis — выбранный из двух)
+    total: int  # d20 + бонусы (что сравнивалось с effective_ac)
+    advantage: bool = False
+    disadvantage: bool = False
 
 
 class DamageDealt(EngineEvent):
@@ -110,6 +116,10 @@ class DamageDealt(EngineEvent):
     ``final_amount`` — урон уже после resistance/vulnerability/immunity
     (= ``DamageResult.final_amount``). ``raw_amount`` — что выпало на
     кубах до применения мультипликаторов.
+
+    ``hp_after`` / ``hp_max`` — снапшот HP цели после применения, чтобы
+    UI мог показывать `(HP 8/20)` сразу в строке урона без отдельного
+    лукапа Creature.
     """
 
     event_type: ClassVar[str] = "damage.dealt"
@@ -120,6 +130,8 @@ class DamageDealt(EngineEvent):
     raw_amount: int
     final_amount: int
     is_critical: bool
+    hp_after: int
+    hp_max: int
 
 
 class AttackResolved(EngineEvent):
@@ -255,15 +267,31 @@ class HelpGranted(EngineEvent):
 
 
 class SearchPerformed(EngineEvent):
-    """Search-action: бросок ABILITY_CHECK (Perception/Investigation).
+    """Search-action: бросок ABILITY_CHECK Wisdom (PHB-2024 стр. 357 —
+    Insight / Medicine / Perception / Survival; все четыре — Wisdom).
     Скрытие/обнаружение чего конкретно — решает сценарий (подписчик)
-    через сравнение ``total`` с DC."""
+    через сравнение ``total`` с DC.
+    """
 
     event_type: ClassVar[str] = "search.performed"
     actor_id: CreatureId
-    skill_kind: str  # "perception" | "investigation"
+    skill_kind: str  # "insight" | "medicine" | "perception" | "survival"
     roll_id: RollId
     total: int
+
+
+class StanceTaken(EngineEvent):
+    """Actor встал в одну из стоек (Dodge / Dash / Disengage).
+    Подписчик (EventPrinter) пишет, например, `aelar takes Dodge`.
+
+    ``stance`` — строковое имя из ``CombatStance`` (StrEnum). Не несём
+    весь enum, чтобы DTO не зависел от domain.entities. Подписчик
+    форматирует по строке.
+    """
+
+    event_type: ClassVar[str] = "stance.taken"
+    actor_id: CreatureId
+    stance: str  # "dodging" | "dashing" | "disengaged"
 
 
 class OpportunityAttackProvoked(EngineEvent):

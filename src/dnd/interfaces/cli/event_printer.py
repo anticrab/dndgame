@@ -26,6 +26,7 @@ from dnd.application.dto.engine_event import (
     RoundEnded,
     RoundStarted,
     SearchPerformed,
+    StanceTaken,
     TurnEnded,
     TurnStarted,
 )
@@ -91,16 +92,31 @@ class EventPrinter:
             outcome = "[green]hit[/]"
         else:
             outcome = "[red]miss[/]"
+        adv_tag = ""
+        if event.advantage and not event.disadvantage:
+            adv_tag = " [cyan]adv[/]"
+        elif event.disadvantage and not event.advantage:
+            adv_tag = " [yellow]dis[/]"
+        elif event.advantage and event.disadvantage:
+            adv_tag = " [dim]adv+dis→flat[/]"
+        roll_tag = (
+            f"d20={event.d20_raw}→{event.total}{adv_tag}"
+            if event.d20_raw
+            else f"total={event.total}{adv_tag}"
+        )
+        # Круглые скобки, а не квадратные — rich-разметка съедает
+        # `[...]` как inline style и весь блок исчез бы из вывода.
         self._print(
             f"  {event.attacker_id} attacks {event.target_id} "
-            f"(AC {event.effective_ac}): {outcome}"
+            f"({roll_tag} vs AC {event.effective_ac}): {outcome}"
         )
 
     def _on_damage(self, event: DamageDealt) -> None:
         crit = " [bold]crit![/]" if event.is_critical else ""
+        hp_tag = f" (HP {event.hp_after}/{event.hp_max})"
         self._print(
             f"  → {event.target_id} takes [red]{event.final_amount}[/] "
-            f"{event.damage_type.value}{crit} (raw {event.raw_amount})"
+            f"{event.damage_type.value}{crit}{hp_tag}"
         )
 
     def _on_attack_resolved(self, event: AttackResolved) -> None:
@@ -139,9 +155,20 @@ class EventPrinter:
             verdict = "[bold yellow]DRAW[/]"
         else:
             verdict = f"[bold green]{event.winners.value.upper()} WINS[/]"
+        if event.survivors:
+            survivors = ", ".join(event.survivors)
+            tail = f"\nSurvivors: {survivors}"
+        else:
+            tail = "\nNo survivors."
         self._print(
             f"\n[bold]=== ENCOUNTER ENDED ===[/]\n{verdict} "
-            f"(round {event.round_number})"
+            f"(round {event.round_number}){tail}"
+        )
+
+    def _on_stance(self, event: StanceTaken) -> None:
+        # CL-UX002: Dodge/Dash/Disengage больше не «беззвучные».
+        self._print(
+            f"  [cyan]{event.actor_id} takes {event.stance.upper()}[/]"
         )
 
     # Карта типов → обработчики. ClassVar т.к. shared, не per-instance.
@@ -160,6 +187,7 @@ class EventPrinter:
         HelpGranted: lambda self, e: self._on_help(e),
         SearchPerformed: lambda self, e: self._on_search(e),
         EncounterEnded: lambda self, e: self._on_encounter_ended(e),
+        StanceTaken: lambda self, e: self._on_stance(e),
     }
 
 

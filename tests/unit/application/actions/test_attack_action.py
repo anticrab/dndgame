@@ -179,6 +179,32 @@ def test_against_no_target_in_participants() -> None:
 
 
 @pytest.mark.rules
+def test_against_self_target_forbidden() -> None:
+    """Аудит 16 AT-R-NEW-003: атака на самого себя — Forbidden."""
+    attacker, _target, ctx, _ = _setup(rng_rolls=[])
+    av = AttackAction().can_perform_against(
+        attacker, _params(attacker.id), ctx
+    )
+    assert isinstance(av, Forbidden)
+    assert av.reason is ForbiddenReason.SELF_TARGET
+
+
+@pytest.mark.rules
+def test_against_dead_target_forbidden() -> None:
+    """Аудит 16 AT-R-NEW-004: атака на цель с 0 HP — Forbidden."""
+    from dnd.domain.values.damage import DamageInstance
+
+    attacker, target, ctx, _ = _setup(rng_rolls=[])
+    target.take_damage(DamageInstance(amount=999, type_=DamageType.SLASHING))
+    assert target.is_at_zero_hp
+    av = AttackAction().can_perform_against(
+        attacker, _params(target.id), ctx
+    )
+    assert isinstance(av, Forbidden)
+    assert av.reason is ForbiddenReason.TARGET_DOWN
+
+
+@pytest.mark.rules
 def test_against_no_line_of_sight() -> None:
     """Стена между атакующим и целью блокирует LoS."""
     attacker, target, ctx, _ = _setup(

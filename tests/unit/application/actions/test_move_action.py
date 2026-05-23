@@ -208,6 +208,79 @@ def test_valid_path_allowed() -> None:
     assert isinstance(av, Allowed)
 
 
+@pytest.mark.rules
+def test_cannot_end_path_on_occupied_square() -> None:
+    """PHB-2024 стр. 24: нельзя добровольно завершить ход в клетке,
+    занятой другим существом."""
+    actor, ctx, _ = _setup(others=((_make_creature("ally"), Square(3, 2)),))
+    av = MoveAction().can_perform_against(
+        actor, MoveParams(path=(Square(3, 2),)), ctx
+    )
+    assert isinstance(av, Forbidden)
+    assert av.reason is ForbiddenReason.SQUARE_OCCUPIED
+
+
+@pytest.mark.rules
+def test_cannot_path_through_hostile_with_factions() -> None:
+    """PHB-2024 стр. 24: нельзя проходить сквозь враждебных."""
+    from dnd.domain.values.faction import Faction
+
+    enemy = _make_creature("goblin")
+    actor, ctx, _ = _setup(others=((enemy, Square(3, 2)),))
+    ctx.factions[actor.id] = Faction.PARTY
+    ctx.factions[enemy.id] = Faction.MONSTERS
+    av = MoveAction().can_perform_against(
+        actor,
+        MoveParams(path=(Square(3, 2), Square(4, 2))),
+        ctx,
+    )
+    assert isinstance(av, Forbidden)
+    assert av.reason is ForbiddenReason.PATH_THROUGH_HOSTILE
+
+
+@pytest.mark.rules
+def test_path_through_ally_costs_double() -> None:
+    """PHB-2024 стр. 24: проход через союзника = difficult terrain
+    (×2). 30ft speed, путь 2 клетки через союзника → 5 + (5+5) = 15ft."""
+    from dnd.domain.values.faction import Faction
+
+    ally = _make_creature("ally")
+    actor, ctx, _ = _setup(others=((ally, Square(3, 2)),), speed_ft=15)
+    ctx.factions[actor.id] = Faction.PARTY
+    ctx.factions[ally.id] = Faction.PARTY
+    # 2 клетки через союзника: 5 (через ally, +5 difficult) + 5 = 15ft.
+    av = MoveAction().can_perform_against(
+        actor,
+        MoveParams(path=(Square(3, 2), Square(4, 2))),
+        ctx,
+    )
+    assert isinstance(av, Allowed)
+    # Ровно 15ft хватает, 10ft нет:
+    ctx.movement_remaining_ft = 10
+    av_short = MoveAction().can_perform_against(
+        actor,
+        MoveParams(path=(Square(3, 2), Square(4, 2))),
+        ctx,
+    )
+    assert isinstance(av_short, Forbidden)
+    assert av_short.reason is ForbiddenReason.NOT_ENOUGH_MOVEMENT
+
+
+def test_legacy_ctx_without_factions_treats_others_as_passable() -> None:
+    """Без factions в ctx сквозной проход через «другого» проходит
+    как через союзника (×2). Это безопасный fallback — старые тесты
+    MoveAction не сломались."""
+    other = _make_creature("other")
+    actor, ctx, _ = _setup(others=((other, Square(3, 2)),), speed_ft=15)
+    # ctx.factions пустой
+    av = MoveAction().can_perform_against(
+        actor,
+        MoveParams(path=(Square(3, 2), Square(4, 2))),
+        ctx,
+    )
+    assert isinstance(av, Allowed)
+
+
 # -- execute (без провокаций) ------------------------------------------
 
 

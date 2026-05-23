@@ -59,6 +59,7 @@ from dnd.domain.conditions.builtin import (
     UNCONSCIOUS,
 )
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.faction import Faction
 from dnd.domain.values.square import Square
 
 # Состояния, отключающие движение в MVP.
@@ -132,9 +133,11 @@ class MoveAction:
             )
 
         start = ctx.battlefield.position_of(actor.id)
+        actor_faction = ctx.factions.get(actor.id)
+        last_idx = len(params.path) - 1
         prev = start
         total_cost = 0
-        for step in params.path:
+        for idx, step in enumerate(params.path):
             if not ctx.battlefield.in_bounds(step):
                 return Forbidden(
                     reason=ForbiddenReason.INVALID_PATH,
@@ -151,7 +154,20 @@ class MoveAction:
                     reason=ForbiddenReason.IMPASSABLE_TERRAIN,
                     details=str(step),
                 )
-            total_cost += 10 if terrain.difficult else 5
+
+            # PHB-2024 стр. 24 «Перемещение около других существ»:
+            #   * финал пути занят кем-то ≠ actor → отказ;
+            #   * промежуточная клетка с врагом → нельзя сквозь;
+            #   * промежуточная с союзником/нейтралом → проход стоит ×2.
+            extra_cost = self._occupancy_check(
+                ctx, step, actor.id, actor_faction, is_final=(idx == last_idx)
+            )
+            if isinstance(extra_cost, Forbidden):
+                return extra_cost
+
+            step_cost = 10 if terrain.difficult else 5
+            step_cost += extra_cost
+            total_cost += step_cost
             prev = step
 
         if total_cost > ctx.movement_remaining_ft:
@@ -160,6 +176,53 @@ class MoveAction:
                 details=f"need {total_cost}, have {ctx.movement_remaining_ft}",
             )
         return Allowed()
+
+    @staticmethod
+    def _occupancy_check(
+        ctx: TurnContext,
+        step: Square,
+        actor_id: CreatureId,
+        actor_faction: Faction | None,
+        *,
+        is_final: bool,
+    ) -> int | Forbidden:
+        """Проверка занятой клетки на пути (PHB-2024 стр. 24).
+
+        Возвращает:
+        * ``Forbidden`` — нельзя войти (final занят / сквозь враждебного);
+        * ``int`` — дополнительная стоимость прохода (5 фт «как difficult»
+          для союзника/нейтрала, иначе 0). Складывается со стоимостью
+          terrain'а.
+
+        Семантика «hostile» определяется по ``ctx.factions``: совпадает
+        с actor — союзник; иначе враждебный. Если factions не известны
+        (legacy ctx), все «другие» считаются союзниками — это безопасный
+        fallback (см. ``TurnContext.factions`` docstring).
+        """
+        occupants = ctx.battlefield.creatures_at(step)
+        others = [cid for cid in occupants if cid != actor_id]
+        if not others:
+            return 0
+        if is_final:
+            return Forbidden(
+                reason=ForbiddenReason.SQUARE_OCCUPIED,
+                details=str(step),
+            )
+        # Промежуточная клетка с кем-то: классифицируем по фракции.
+        for cid in others:
+            other_faction = ctx.factions.get(cid)
+            if (
+                actor_faction is not None
+                and other_faction is not None
+                and other_faction is not actor_faction
+                and other_faction is not Faction.NEUTRAL
+            ):
+                return Forbidden(
+                    reason=ForbiddenReason.PATH_THROUGH_HOSTILE,
+                    details=str(step),
+                )
+        # Только союзники/нейтралы → проход как difficult terrain (+5).
+        return 5
 
     # --- execute -------------------------------------------------------
 
@@ -191,9 +254,20 @@ class MoveAction:
             else self._collect_threateners(actor, ctx)
         )
 
-        for step in params.path:
+        actor_faction = ctx.factions.get(actor.id)
+        last_idx = len(params.path) - 1
+        for idx, step in enumerate(params.path):
             terrain = ctx.battlefield.terrain_at(step)
             cost = 10 if terrain.difficult else 5
+
+            # PHB-2024 стр. 24: проход через союзника = +5. Валидация
+            # уже прошла can_perform_against, здесь только досчитываем
+            # стоимость симметрично.
+            extra = MoveAction._occupancy_check(
+                ctx, step, actor.id, actor_faction, is_final=(idx == last_idx)
+            )
+            if isinstance(extra, int):
+                cost += extra
 
             # Провокации: для тех threatener'ов, в чьей reach был prev,
             # но не будет step.

@@ -69,6 +69,10 @@ class ForbiddenReason(StrEnum):
     CONDITION_BLOCKS_ACTION = "condition_blocks_action"
     INVALID_PATH = "invalid_path"  # путь не соседний/вне границ/etc.
     IMPASSABLE_TERRAIN = "impassable_terrain"  # стена/закрытая дверь на пути
+    SELF_TARGET = "self_target"  # атака не на «другое существо» (PHB-2024 стр. 18).
+    TARGET_DOWN = "target_down"  # цель уже на 0 HP / не is_alive.
+    SQUARE_OCCUPIED = "square_occupied"  # путь упирается в чужую клетку.
+    PATH_THROUGH_HOSTILE = "path_through_hostile"  # PHB-2024 стр. 24.
     CUSTOM = "custom"
 
 

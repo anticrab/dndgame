@@ -17,7 +17,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from dnd.application.dto.action import Allowed
+from dnd.application.dto.action import (
+    ActionAvailability,
+    Allowed,
+    Forbidden,
+)
 from dnd.application.dto.action import NoParams as _NoParams
 from dnd.application.dto.player_intent import (
     AttackIntent,
@@ -110,6 +114,11 @@ class GameRunner:
         for _ in range(_MAX_INTENTS_PER_TURN):
             if not actor.is_alive or actor.is_at_zero_hp:
                 return
+            # Если исход боя уже решён (последний враг повержен этой
+            # атакой) — выходим, не дожидаясь end_turn. Иначе игрок
+            # получает ещё один prompt в уже законченном бою.
+            if encounter.is_concluded or encounter.outcome_decided():
+                return
             intent = self._intent_provider.next_intent(actor, ctx, encounter)
             if isinstance(intent, EndTurnIntent):
                 return
@@ -154,24 +163,26 @@ class GameRunner:
         self, actor: Creature, intent: AttackIntent, ctx: TurnContext
     ) -> None:
         if actor.equipped_weapon is None:
-            _log.info("attack ignored: %s has no equipped_weapon", actor.id)
+            self._log_rejected(actor, "attack", "no_equipped_weapon")
             return
         params = weapon_attack_params(actor, intent.target_id)
         attack = AttackAction()
-        if isinstance(
-            attack.can_perform_against(actor, params, ctx), Allowed
-        ):
+        avail = attack.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
             attack.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "attack", _avail_reason(avail))
 
     def _do_move(
         self, actor: Creature, intent: MoveIntent, ctx: TurnContext
     ) -> None:
         params = MoveParams(path=intent.path)
         move = MoveAction()
-        if isinstance(
-            move.can_perform_against(actor, params, ctx), Allowed
-        ):
+        avail = move.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
             move.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "move", _avail_reason(avail))
 
     def _do_stance(
         self,
@@ -179,8 +190,29 @@ class GameRunner:
         actor: Creature,
         ctx: TurnContext,
     ) -> None:
-        if isinstance(action.can_perform(actor, ctx), Allowed):
+        avail = action.can_perform(actor, ctx)
+        if isinstance(avail, Allowed):
             action.execute(actor, _NoParams(), ctx)
+        else:
+            self._log_rejected(
+                actor, action.__class__.__name__.lower(), _avail_reason(avail)
+            )
+
+    @staticmethod
+    def _log_rejected(actor: Creature, action_id: str, reason: str) -> None:
+        """Логировать причину Forbidden-intent'а.
+
+        Раньше невыполнимые intents молча проглатывались, и игрок не
+        видел причины. Через `_log.info` UI (CLI/TUI) может подключить
+        свой handler и показать notify-сообщение без введения нового
+        EngineEvent.
+        """
+        _log.info(
+            "intent rejected: actor=%s action=%s reason=%s",
+            actor.id,
+            action_id,
+            reason,
+        )
 
     # --- Monster turn -------------------------------------------------
 
@@ -190,6 +222,14 @@ class GameRunner:
     ) -> None:
         predicate = is_hostile_from_factions(actor.id, encounter.factions)
         take_monster_turn(actor, ctx, is_hostile=predicate)
+
+
+def _avail_reason(avail: ActionAvailability) -> str:
+    if isinstance(avail, Forbidden):
+        return f"{avail.reason.value}" + (
+            f"({avail.details})" if avail.details else ""
+        )
+    return "unknown"
 
 
 __all__ = ["GameRunner"]

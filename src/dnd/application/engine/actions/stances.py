@@ -33,6 +33,7 @@ from dnd.application.dto.action import (
     Forbidden,
     ForbiddenReason,
 )
+from dnd.application.dto.engine_event import StanceTaken
 from dnd.application.dto.ids import ActionId
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.conditions.builtin import (
@@ -103,9 +104,13 @@ class DodgeAction:
     ) -> ActionOutcome:
         ctx.spend(ActionEconomyCost.ACTION)
         actor.combat_stances.add(CombatStance.DODGING.value)
+        ctx.event_bus.publish(
+            StanceTaken(actor_id=actor.id, stance=CombatStance.DODGING.value)
+        )
         return ActionOutcome(
             success=True,
             consumed=ActionEconomyCost.ACTION,
+            events_published=("stance.taken",),
             notes="dodging until next turn",
         )
 
@@ -150,9 +155,13 @@ class DashAction:
         ctx.spend(ActionEconomyCost.ACTION)
         ctx.movement_remaining_ft += actor.speed_ft
         actor.combat_stances.add(CombatStance.DASHING.value)
+        ctx.event_bus.publish(
+            StanceTaken(actor_id=actor.id, stance=CombatStance.DASHING.value)
+        )
         return ActionOutcome(
             success=True,
             consumed=ActionEconomyCost.ACTION,
+            events_published=("stance.taken",),
             notes=f"+{actor.speed_ft} ft movement this turn",
         )
 
@@ -191,9 +200,13 @@ class DisengageAction:
         ctx.spend(ActionEconomyCost.ACTION)
         ctx.disengaged = True
         actor.combat_stances.add(CombatStance.DISENGAGED.value)
+        ctx.event_bus.publish(
+            StanceTaken(actor_id=actor.id, stance=CombatStance.DISENGAGED.value)
+        )
         return ActionOutcome(
             success=True,
             consumed=ActionEconomyCost.ACTION,
+            events_published=("stance.taken",),
             notes="disengaged: no opportunity attacks this turn",
         )
 

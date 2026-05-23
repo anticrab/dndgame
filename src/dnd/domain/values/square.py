@@ -24,6 +24,9 @@ class Square:
     x: int
     y: int
 
+    def __str__(self) -> str:
+        return f"({self.x},{self.y})"
+
     def distance_to(self, other: Square) -> int:
         """Дистанция в **клетках** (Chebyshev).
 
