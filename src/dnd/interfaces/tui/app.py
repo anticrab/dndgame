@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING
 
 from textual.app import App
 
+from dnd.application.abilities.defaults import register_default_abilities
+from dnd.application.abilities.registry import AbilityRegistry
 from dnd.application.dto.player_intent import PlayerIntent
 from dnd.application.engine.game_runner import GameRunner
 from dnd.application.ports.event_bus import Unsubscribe
@@ -57,6 +59,7 @@ class TuiApp(App[None]):
         encounter: Encounter | None = None,
         theme: ThemeName = "color",
         editor: EditorBundle | None = None,
+        ability_registry: AbilityRegistry | None = None,
     ) -> None:
         # CSS_PATH читается из атрибутов экземпляра в __init__ Textual.
         # Подставляем тему до super().__init__.
@@ -65,6 +68,13 @@ class TuiApp(App[None]):
         self._theme: ThemeName = theme
         self._encounter = encounter
         self._editor = editor
+        # Если registry не передан — собираем дефолтный с 6 базовыми
+        # умениями. Прокидываем в BattleScreen для динамического keymap
+        # и action-bar (L2-7).
+        if ability_registry is None:
+            ability_registry = AbilityRegistry()
+            register_default_abilities(ability_registry)
+        self._ability_registry: AbilityRegistry = ability_registry
         self._intent_queue: queue.Queue[PlayerIntent] | None = None
         self._provider: TuiIntentProvider | None = None
         self._renderer: EventRenderer | None = None
@@ -80,11 +90,14 @@ class TuiApp(App[None]):
             return
 
         if self._encounter is None:
-            self.push_screen(BattleScreen())
+            self.push_screen(BattleScreen(ability_registry=self._ability_registry))
             return
 
         self._intent_queue = queue.Queue()
-        self._battle_screen = BattleScreen(intent_queue=self._intent_queue)
+        self._battle_screen = BattleScreen(
+            intent_queue=self._intent_queue,
+            ability_registry=self._ability_registry,
+        )
         self.push_screen(self._battle_screen)
         # Bridge + worker запускаются на BattleScreen.Ready (см.
         # _on_battle_screen_ready): иначе worker может выпустить

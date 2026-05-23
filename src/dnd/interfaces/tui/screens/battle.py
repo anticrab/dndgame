@@ -28,6 +28,7 @@ Action-меню — через `BINDINGS` (см. ниже). Handlers форми�
 
 from __future__ import annotations
 
+import contextlib
 import queue
 from typing import TYPE_CHECKING, ClassVar
 
@@ -39,6 +40,9 @@ from textual.message import Message
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
+from dnd.application.abilities.ability import Ability
+from dnd.application.abilities.defaults import register_default_abilities
+from dnd.application.abilities.registry import AbilityRegistry
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
 from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
@@ -61,7 +65,9 @@ from dnd.interfaces.tui.screens.battle_modes.move_mode import MoveModeHandler
 from dnd.interfaces.tui.screens.battle_modes.normal_mode import NormalModeHandler
 from dnd.interfaces.tui.screens.battle_modes.protocol import BattleMode, ModeHandler
 from dnd.interfaces.tui.screens.battle_modes.target_mode import TargetModeHandler
+from dnd.interfaces.tui.screens.keymap import build_keymap
 from dnd.interfaces.tui.widgets import (
+    ActionBarWidget,
     InitiativeWidget,
     LogWidget,
     MapWidget,
@@ -115,6 +121,7 @@ class BattleScreen(Screen[None]):
         self,
         *,
         intent_queue: queue.Queue[PlayerIntent] | None = None,
+        ability_registry: AbilityRegistry | None = None,
     ) -> None:
         super().__init__()
         self._intent_queue = intent_queue
@@ -135,8 +142,23 @@ class BattleScreen(Screen[None]):
         self._current_battlefield: Battlefield | None = None
         self._reachable_targets: list[tuple[CreatureId, Square]] = []
         # Различает kind intent'а при подтверждении в TARGET mode
-        # (attack vs interact vs break). Меняется в action_intent_*.
+        # (attack vs interact vs break). Меняется в action_intent_*
+        # и в _trigger_ability (для custom rebound'ов).
         self._pending_target_kind: str = "attack"
+        # --- abilities (L2-7) ---------------------------------------
+        # Registry — default = 6 базовых (см. register_default_abilities).
+        # При custom rebinding (actor.keybindings) build_keymap соберёт
+        # маппинг override-хоткея → Ability, и BattleScreen.on_key
+        # запустит соответствующее умение через intent_factory.
+        if ability_registry is None:
+            ability_registry = AbilityRegistry()
+            register_default_abilities(ability_registry)
+        self._ability_registry: AbilityRegistry = ability_registry
+        self._keymap: dict[str, Ability] = {}
+        # Ability, ожидающая выбора цели в TARGET mode. None — TARGET
+        # был открыт классическим action_intent_attack/interact/break,
+        # confirm-логика берёт kind из _pending_target_kind как раньше.
+        self._pending_ability: Ability | None = None
 
     # --- public API для bridge --------------------------------------
 
@@ -160,6 +182,15 @@ class BattleScreen(Screen[None]):
         if self._mode is not BattleMode.NORMAL:
             self.enter_mode(BattleMode.NORMAL)
         self.status_widget.refresh_from(actor, ctx)
+        # L2-7: пересобираем keymap под текущего актора (его
+        # ability_ids + keybindings override'ы) и обновляем
+        # action-bar. Делаем после refresh_from чтобы виджеты были
+        # точно смонтированы — query_one на TurnStarted безопасен.
+        self._keymap = build_keymap(actor, self._ability_registry)
+        # Action-bar может ещё не быть смонтирован в первых event'ах
+        # (initial ComposeResult); следующий TurnStarted обновит его.
+        with contextlib.suppress(Exception):
+            self.action_bar_widget.set_keymap(self._keymap)
 
     def clear_active_turn(self) -> None:
         """Сбросить состояние (вне-PC ход). Дополнительная защита от
@@ -183,6 +214,7 @@ class BattleScreen(Screen[None]):
             yield MapWidget(id="map")
             yield InitiativeWidget(id="init")
         yield LogWidget(id="log", wrap=True, highlight=True, markup=True, max_lines=200)
+        yield ActionBarWidget(id="action-bar")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -206,6 +238,10 @@ class BattleScreen(Screen[None]):
     @property
     def log_widget(self) -> LogWidget:
         return self.query_one("#log", LogWidget)
+
+    @property
+    def action_bar_widget(self) -> ActionBarWidget:
+        return self.query_one("#action-bar", ActionBarWidget)
 
     # --- intent helpers ---------------------------------------------
 
@@ -264,10 +300,12 @@ class BattleScreen(Screen[None]):
     def on_key(self, event: _events.Key) -> None:
         """Делегировать клавишу активному mode-handler'у.
 
-        В NORMAL mode мы ничего не делаем — отрабатывают BINDINGS
-        (Textual вызывает on_key до dispatch'а в bindings, но мы
-        возвращаем False/None и event дойдёт до actions). В MOVE/TARGET
-        стрелки/Tab/Enter/Esc — handler'а зона ответственности.
+        В NORMAL mode сначала смотрим custom keymap (rebound hotkey'и
+        из ``actor.keybindings``) — default hotkey'и оставляем на
+        откуп Textual BINDINGS (то есть action_intent_*), чтобы не
+        дублировать поведение и не сломать существующий тест-suite.
+        В MOVE/TARGET стрелки/Tab/Enter/Esc — handler'а зона
+        ответственности.
 
         После on_key проверяем флаги handler'а: cancelled → вернуться
         в NORMAL; confirmed_path/target → положить Intent + NORMAL.
@@ -275,7 +313,15 @@ class BattleScreen(Screen[None]):
         if self._concluded:
             return
         if self._mode is BattleMode.NORMAL:
-            return  # BINDINGS обработают
+            ab = self._keymap.get(event.key) if self._keymap else None
+            # default hotkey уже обрабатывается соответствующим BINDING'ом
+            # (action_intent_attack и т.д.). Запускаем через keymap
+            # только override — например, actor.keybindings={"z": ...}.
+            if ab is not None and event.key != ab.default_hotkey:
+                self._trigger_ability(ab)
+                event.stop()
+                event.prevent_default()
+            return
         handled = self._mode_handler.on_key(self, event.key)
         if not handled:
             return
@@ -305,11 +351,17 @@ class BattleScreen(Screen[None]):
     def _submit_target_intent(self, target: CreatureId) -> None:
         """Сформировать Intent для подтверждённой цели TARGET mode.
 
-        ``_pending_target_kind`` различает три сценария:
-        * ``attack`` — ``AttackIntent`` (target — CreatureId как есть);
-        * ``interact`` — ``InteractIntent`` (target обёрнут в ObjectId);
-        * ``break`` — ``BreakIntent`` (target обёрнут в ObjectId).
+        Если в TARGET вошли через custom-ability (``_pending_ability``
+        задан), используем её фабрику — это пробрасывает rebound
+        hotkey'и через ту же confirm-логику. Иначе fallback на
+        ``_pending_target_kind`` (attack/interact/break) — это путь
+        через action_intent_attack/interact/break и BINDINGS.
         """
+        if self._pending_ability is not None:
+            intent = self._pending_ability.intent_factory(target)
+            self._pending_ability = None
+            self._put_intent(intent)
+            return
         kind = self._pending_target_kind
         if kind == "attack":
             self._put_intent(AttackIntent(target_id=target))
@@ -324,6 +376,41 @@ class BattleScreen(Screen[None]):
             self._put_intent(
                 BreakIntent(target_object_id=ObjectId(str(target)))
             )
+
+    def _trigger_ability(self, ab: Ability) -> None:
+        """Запустить ability через её ``intent_factory``.
+
+        * Без target/path — сразу строим intent и кладём в очередь;
+        * requires_target — собираем reachable targets (на сейчас:
+          живые враги по логике attack-action) и переходим в TARGET mode
+          с ``_pending_ability`` — confirm дёрнет factory(target_id);
+        * requires_path — TODO (Move сейчас НЕ ability, идёт через
+          отдельный hotkey ``m`` → MoveModeHandler). Логируем и выходим.
+        """
+        if self._current is None:
+            return
+        actor, ctx, encounter = self._current
+        if ab.requires_target:
+            targets = _list_reachable_hostiles(actor, ctx, encounter)
+            if not targets:
+                self.log_widget.write(
+                    f"[bold]No targets in reach for {ab.name}.[/]"
+                )
+                return
+            bf = encounter.battlefield
+            self._current_battlefield = bf
+            self._reachable_targets = [(cid, bf.position_of(cid)) for cid in targets]
+            self._pending_ability = ab
+            self.enter_mode(BattleMode.TARGET)
+            return
+        if ab.requires_path:
+            self.log_widget.write(
+                f"[bold]Path-abilities пока не поддерживаются; "
+                f"используйте m для движения ({ab.name}).[/]"
+            )
+            return
+        intent = ab.intent_factory()
+        self._put_intent(intent)
 
     # --- action handlers --------------------------------------------
 
