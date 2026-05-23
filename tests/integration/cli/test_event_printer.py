@@ -17,10 +17,12 @@ from dnd.application.dto.engine_event import (
     DamageDealt,
     EncounterEnded,
     InitiativeRolled,
+    ObjectDamaged,
+    ObjectInteracted,
     RoundStarted,
     TurnStarted,
 )
-from dnd.application.dto.ids import CreatureId, RollId
+from dnd.application.dto.ids import CreatureId, ObjectId, RollId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
@@ -156,3 +158,76 @@ def test_prints_encounter_draw_when_winners_none() -> None:
         EncounterEnded(winners=None, round_number=100, survivors=())
     )
     assert "DRAW" in buf.getvalue()
+
+
+# K9 S1-3: рендер ObjectInteracted/ObjectDamaged ----------------------
+
+
+def test_prints_object_interacted_open() -> None:
+    _, buf, bus = _printer_with_buffer()
+    bus.publish(
+        ObjectInteracted(
+            actor_id=CreatureId("aelar"),
+            object_id=ObjectId("door-1"),
+            kind="open",
+            loot=(),
+        )
+    )
+    out = buf.getvalue()
+    assert "aelar" in out
+    assert "open" in out
+    assert "door-1" in out
+
+
+def test_prints_object_interacted_chest_with_loot() -> None:
+    _, buf, bus = _printer_with_buffer()
+    bus.publish(
+        ObjectInteracted(
+            actor_id=CreatureId("aelar"),
+            object_id=ObjectId("chest-1"),
+            kind="open",
+            loot=("gold", "potion"),
+        )
+    )
+    out = buf.getvalue()
+    assert "chest-1" in out
+    assert "loot:" in out
+    assert "gold" in out
+    assert "potion" in out
+
+
+def test_prints_object_damaged_not_broken() -> None:
+    _, buf, bus = _printer_with_buffer()
+    bus.publish(
+        ObjectDamaged(
+            attacker_id=CreatureId("aelar"),
+            object_id=ObjectId("barrel-1"),
+            raw_amount=4,
+            final_amount=4,
+            hp_after=2,
+            broken=False,
+        )
+    )
+    out = buf.getvalue()
+    assert "aelar" in out
+    assert "barrel-1" in out
+    assert "4" in out
+    assert "HP 2" in out
+    assert "BROKEN" not in out
+
+
+def test_prints_object_damaged_broken() -> None:
+    _, buf, bus = _printer_with_buffer()
+    bus.publish(
+        ObjectDamaged(
+            attacker_id=CreatureId("aelar"),
+            object_id=ObjectId("barrel-1"),
+            raw_amount=10,
+            final_amount=6,
+            hp_after=0,
+            broken=True,
+        )
+    )
+    out = buf.getvalue()
+    assert "BROKEN" in out
+    assert "HP 0" in out

@@ -168,3 +168,159 @@ def test_build_battlefield_rejects_unknown_symbol() -> None:
     )
     with pytest.raises(ValueError, match="unknown legend symbol"):
         build_battlefield_from_map(bad)
+
+
+# K9 S1-1: scenarios с map_id (K8 maps) -------------------------------
+
+
+@pytest.mark.parametrize(
+    "scenario_id",
+    [
+        "open_field",
+        "dungeon_hall",
+        "warehouse",
+        "bridge_crossing",
+        "forest_clearing",
+    ],
+)
+def test_k8_scenarios_load_via_map_id(
+    repo: YamlContentRepository, scenario_id: str
+) -> None:
+    """Каждый K8-сценарий имеет map_id, без inline map, и загружается
+    через MapRepository + SpriteRegistry."""
+    from dnd.infrastructure.content.yaml_map_repository import YamlMapRepository
+    from dnd.infrastructure.content.yaml_sprite_registry import YamlSpriteRegistry
+
+    scenario = repo.scenario_by_id(scenario_id)
+    assert scenario.map_id == scenario_id
+    assert scenario.map is None
+
+    deps, _bus, _rng = build_scripted_dependencies(
+        battlefield=Battlefield(1, 1), rolls=[]
+    )
+    map_repo = YamlMapRepository(_DEFAULT_CONTENT / "maps")
+    sprites = YamlSpriteRegistry(_DEFAULT_CONTENT / "sprites")
+    enc = build_encounter_from_scenario(
+        scenario,
+        content=repo,
+        deps=deps,
+        map_repository=map_repo,
+        sprite_registry=sprites,
+    )
+    # Битфилд из MapDocument: имеет размеры, спавны размещены.
+    assert enc.battlefield.width >= 5
+    assert enc.battlefield.height >= 5
+    assert len(enc.participants) == 2
+
+
+def test_warehouse_has_interactable_objects(
+    repo: YamlContentRepository,
+) -> None:
+    """warehouse.yaml содержит дверь/окно/бочки/сундук — они должны
+    оказаться в Battlefield._objects через build_battlefield_from_document."""
+    from dnd.infrastructure.content.yaml_map_repository import YamlMapRepository
+    from dnd.infrastructure.content.yaml_sprite_registry import YamlSpriteRegistry
+
+    scenario = repo.scenario_by_id("warehouse")
+    deps, _bus, _rng = build_scripted_dependencies(
+        battlefield=Battlefield(1, 1), rolls=[]
+    )
+    map_repo = YamlMapRepository(_DEFAULT_CONTENT / "maps")
+    sprites = YamlSpriteRegistry(_DEFAULT_CONTENT / "sprites")
+    enc = build_encounter_from_scenario(
+        scenario,
+        content=repo,
+        deps=deps,
+        map_repository=map_repo,
+        sprite_registry=sprites,
+    )
+    # warehouse.yaml: 1 door + 1 window + 4 barrels + 1 chest = 7.
+    # Используем publicапи: object_at для двери.
+    from dnd.application.dto.ids import ObjectId
+
+    door = enc.battlefield.object_at(ObjectId("door-main"))
+    assert door.kind.value == "door"
+
+
+def test_scenario_with_map_id_without_repo_raises() -> None:
+    """Если сценарий с map_id, но не передан map_repository — ValueError."""
+    from dnd.application.dto.templates import (
+        ScenarioTemplate,
+        SpawnTemplate,
+    )
+
+    repo = YamlContentRepository(_DEFAULT_CONTENT)
+    scenario = ScenarioTemplate(
+        id="virtual", name="virtual", map_id="warehouse",
+        spawns=(
+            SpawnTemplate(
+                template_id="warrior_lv1",
+                instance_id="x",
+                at=(0, 0),
+                faction=Faction.PARTY,
+            ),
+        ),
+    )
+    deps, _bus, _rng = build_scripted_dependencies(
+        battlefield=Battlefield(1, 1), rolls=[]
+    )
+    with pytest.raises(ValueError, match="map_repository"):
+        build_encounter_from_scenario(scenario, content=repo, deps=deps)
+
+
+def test_scenario_template_xor_map_and_map_id() -> None:
+    """ScenarioTemplate требует ровно одно из map / map_id."""
+    from dnd.application.dto.templates import (
+        MapTemplate,
+        ScenarioTemplate,
+        SpawnTemplate,
+    )
+
+    map_t = MapTemplate(
+        width=2, height=2, legend={".": "floor"}, grid=("..", ".."),
+    )
+    sp = (
+        SpawnTemplate(
+            template_id="x", instance_id="i", at=(0, 0), faction=Faction.PARTY
+        ),
+    )
+    # Оба заданы — ошибка.
+    with pytest.raises(ValueError, match="exactly one"):
+        ScenarioTemplate(id="a", name="a", map=map_t, map_id="x", spawns=sp)
+    # Ни одного — ошибка.
+    with pytest.raises(ValueError, match="exactly one"):
+        ScenarioTemplate(id="a", name="a", spawns=sp)
+
+
+def test_dnd_play_warehouse_via_cli_runner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """E2E smoke: `dnd play warehouse` — scenario загружается через CLI.
+
+    Прерываем сразу EndTurnIntent, чтобы тест был быстрым (не играем
+    бой целиком), но загрузчик scenario+map+sprites должен отработать.
+    """
+    import dnd.interfaces.cli.app as app_module
+    from dnd.application.dto.player_intent import EndTurnIntent
+    from dnd.interfaces.cli.scripted_provider import ScriptedIntentProvider
+
+    # Подменим ConsoleIntentProvider — иначе он повиснет на input().
+    scripted = ScriptedIntentProvider([EndTurnIntent()] * 200)
+    monkeypatch.setattr(
+        "dnd.interfaces.cli.app.ConsoleIntentProvider"
+        if hasattr(app_module, "ConsoleIntentProvider")
+        else "dnd.interfaces.cli.console_provider.ConsoleIntentProvider",
+        lambda: scripted,
+    )
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app_module.app, ["play", "warehouse"]
+    )
+    # Главное — scenario найден, encounter собрался; код выхода 0 или
+    # завершение по MAX_ROUNDS — оба ОК. Старый баг был
+    # «Scenario not found», который exit_code=2 + stderr про not found.
+    assert "Scenario not found" not in (result.stderr or "") + result.output
+    # Имя сценария напечатано в лог:
+    assert "Warehouse" in result.output

@@ -55,3 +55,73 @@
       instance_id: goblin1
       at: [5, 3]
       faction: monsters
+
+# K9 S1-1: сценарии для playtest-карт K8. Каждый ссылается на
+# MapDocument из data/content/maps/<id>.yaml через поле `map_id`
+# (новый путь scenario_builder). Inline `map` не задан — XOR-валидатор
+# ScenarioTemplate проверит, что задан ровно один из двух.
+
+- id: open_field
+  name: "Open Field"
+  map_id: open_field
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [1, 1]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [10, 6]
+      faction: monsters
+
+- id: dungeon_hall
+  name: "Dungeon Hall"
+  map_id: dungeon_hall
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [3, 3]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [11, 4]
+      faction: monsters
+
+- id: warehouse
+  name: "Warehouse"
+  map_id: warehouse
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [2, 2]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [10, 7]
+      faction: monsters
+
+- id: bridge_crossing
+  name: "Bridge Crossing"
+  map_id: bridge_crossing
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [2, 2]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [15, 3]
+      faction: monsters
+
+- id: forest_clearing
+  name: "Forest Clearing"
+  map_id: forest_clearing
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [1, 1]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [8, 8]
+      faction: monsters

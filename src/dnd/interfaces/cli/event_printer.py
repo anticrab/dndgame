@@ -22,6 +22,8 @@ from dnd.application.dto.engine_event import (
     InitiativeRolled,
     MoveCompleted,
     MoveStepTaken,
+    ObjectDamaged,
+    ObjectInteracted,
     OpportunityAttackProvoked,
     RoundEnded,
     RoundStarted,
@@ -194,6 +196,24 @@ class EventPrinter:
             f"  [cyan]{event.actor_id} takes {event.stance.upper()}[/]"
         )
 
+    def _on_interacted(self, event: ObjectInteracted) -> None:
+        # K9 S1-3: лог InteractAction (free object interaction PHB-2024 стр. 21).
+        loot_part = (
+            f" → loot: {', '.join(event.loot)}" if event.loot else ""
+        )
+        self._print(
+            f"  ✋ {event.actor_id} {event.kind} {event.object_id}"
+            f"{loot_part}"
+        )
+
+    def _on_obj_damaged(self, event: ObjectDamaged) -> None:
+        # K9 S1-3: лог BreakAction по InteractableObject.
+        tag = " [bold red]BROKEN[/]" if event.broken else ""
+        self._print(
+            f"  💥 {event.attacker_id} hits {event.object_id} for "
+            f"{event.final_amount} (HP {event.hp_after}){tag}"
+        )
+
     # Карта типов → обработчики. ClassVar т.к. shared, не per-instance.
     _dispatch: ClassVar[dict[type[EngineEvent], Callable[[Any, Any], None]]] = {
         InitiativeRolled: lambda self, e: self._on_initiative(e),
@@ -211,6 +231,8 @@ class EventPrinter:
         SearchPerformed: lambda self, e: self._on_search(e),
         EncounterEnded: lambda self, e: self._on_encounter_ended(e),
         StanceTaken: lambda self, e: self._on_stance(e),
+        ObjectInteracted: lambda self, e: self._on_interacted(e),
+        ObjectDamaged: lambda self, e: self._on_obj_damaged(e),
     }
 
 

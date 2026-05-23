@@ -1,8 +1,12 @@
 id: pc_humanoid
 category: creature
 name: Player Character (humanoid)
-# Реальный Creature/PlayerCharacter — в K7.
-# Пока — placeholder для существования директории.
+# Существо на клетке — фича для editor'а и preview. Реальный Creature
+# не размещается через sprite-меху, это лишь визуальный отпечаток.
+blocks_los: false
+cover: none
+blocks_passage_dirs: []
+passable_cost_ft: 5
 glyph_5x3:
   - "  o  "
   - " /|\\ "

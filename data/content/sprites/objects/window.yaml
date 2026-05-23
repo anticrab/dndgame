@@ -1,8 +1,12 @@
 id: window
 category: object
 name: Window
-# Реальный InteractableObject (ObjectKind.WINDOW) — в K6.
-# Пока — placeholder для существования директории.
+# Окно: непроходимо (по стене), но LoS-прозрачно — можно стрелять
+# сквозь. Three-quarters cover (стрельбе мешает рама).
+blocks_los: false
+cover: three_quarters
+blocks_passage_dirs: [n, s, e, w, ne, nw, se, sw]
+passable_cost_ft: 0
 glyph_5x3:
   - "─────"
   - "─ ─ ─"

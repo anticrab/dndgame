@@ -1,8 +1,12 @@
 id: chest
 category: object
 name: Chest
-# Реальный InteractableObject (ObjectKind.CHEST) — в K6.
-# Пока — placeholder для существования директории.
+# Сундук: непрозрачен (можно укрыться за ним для half cover), но не
+# блокирует LoS (низкий). Сам по себе непроходим (стоит на клетке).
+blocks_los: false
+cover: half
+blocks_passage_dirs: [n, s, e, w, ne, nw, se, sw]
+passable_cost_ft: 0
 glyph_5x3:
   - "     "
   - " ▄▄▄ "

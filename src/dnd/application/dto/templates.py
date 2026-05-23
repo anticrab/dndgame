@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from dnd.domain.values.attack_kind import AttackKind
 from dnd.domain.values.damage import DamageType
@@ -101,14 +101,32 @@ class ScenarioTemplate(BaseModel):
 
     Полный сценарий с диалогами, локациями, exploration и т.п. —
     отдельная сущность (пост-MVP).
+
+    Карта задаётся **одним из двух способов** (XOR):
+
+    * ``map: MapTemplate`` — inline grid+legend (legacy MVP-формат).
+    * ``map_id: str`` — ссылка на ``MapDocument`` из ``MapRepository``
+      (K8: data/content/maps/{id}.yaml). В этом случае Battlefield
+      строится через Tile API + objects.
+
+    Один из двух обязательно должен быть задан (model_validator).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
     name: str
-    map: MapTemplate
+    map: MapTemplate | None = None
+    map_id: str | None = None
     spawns: tuple[SpawnTemplate, ...]
+
+    @model_validator(mode="after")
+    def _check_map_xor(self) -> ScenarioTemplate:
+        if (self.map is None) == (self.map_id is None):
+            raise ValueError(
+                "ScenarioTemplate requires exactly one of `map` or `map_id`"
+            )
+        return self
 
 
 __all__ = [

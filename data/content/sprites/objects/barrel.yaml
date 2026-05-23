@@ -1,8 +1,11 @@
 id: barrel
 category: object
 name: Barrel
-# Реальный InteractableObject (ObjectKind.BARREL) — в K6.
-# Пока — placeholder для существования директории.
+# Бочка: непроходима, даёт половинное укрытие, не блокирует LoS.
+blocks_los: false
+cover: half
+blocks_passage_dirs: [n, s, e, w, ne, nw, se, sw]
+passable_cost_ft: 0
 glyph_5x3:
   - "  ▄  "
   - " ███ "

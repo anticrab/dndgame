@@ -1,11 +1,17 @@
 id: door
 category: object
 name: Door
-# Будет реальный ObjectKind/InteractableObject метаданные в K6.
-# Пока — placeholder для существования директории.
+# Дверь: блокирует LoS и проход (north/south) пока закрыта; половинное
+# укрытие, если закрыта и просвечивает (стрельба через щель). После
+# реализации open/closed state в Tile-слое — это будут два отдельных
+# sprite (`door_closed` / `door_open`), пока — закрытая по умолчанию.
+blocks_los: true
+cover: total
+blocks_passage_dirs: [n, s, e, w, ne, nw, se, sw]
+passable_cost_ft: 0
 glyph_5x3:
-  - "  ┌  "
-  - "  │  "
-  - "  └  "
+  - "     "
+  - " ┌─┐ "
+  - "     "
 glyph_1x1: "+"
 color_token: object

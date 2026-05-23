@@ -77,8 +77,14 @@ def play(
         build_encounter_from_scenario,
     )
     from dnd.composition import build_default_runtime_services
+    from dnd.infrastructure.content.yaml_map_repository import (
+        YamlMapRepository,
+    )
     from dnd.infrastructure.content.yaml_repository import (
         YamlContentRepository,
+    )
+    from dnd.infrastructure.content.yaml_sprite_registry import (
+        YamlSpriteRegistry,
     )
 
     repo = YamlContentRepository(Path(content_dir))
@@ -88,9 +94,18 @@ def play(
         typer.echo(f"Scenario not found: {scenario_id}", err=True)
         raise typer.Exit(code=2) from None
 
+    # K9 S1-1: для scenarios с map_id нужны MapRepository и SpriteRegistry,
+    # чтобы загрузить MapDocument и построить Tile-aware Battlefield.
+    # Для legacy inline-map путь не задействует их (None допустимо).
     services = build_default_runtime_services()
+    map_repo = YamlMapRepository(Path(content_dir) / "maps")
+    sprite_reg = YamlSpriteRegistry(Path(content_dir) / "sprites")
     enc = build_encounter_from_scenario(
-        scenario, content=repo, services=services
+        scenario,
+        content=repo,
+        services=services,
+        map_repository=map_repo,
+        sprite_registry=sprite_reg,
     )
 
     if tui:
