@@ -1,0 +1,62 @@
+/* Monochrome theme — соответствует UI.md §3.2.
+ *
+ * Семантика — через жирность/инверсию/подчёркивание, без цвета. Для
+ * скриншотов, colorblind, старых терминалов.
+ */
+
+Screen {
+    background: black;
+    color: white;
+}
+
+Header {
+    background: white;
+    color: black;
+    text-style: bold;
+}
+
+Footer {
+    background: white;
+    color: black;
+}
+
+MapWidget {
+    background: black;
+    color: white;
+    padding: 0 1;
+    border: solid white;
+}
+
+LogWidget {
+    background: black;
+    color: white;
+    border: solid white;
+}
+
+StatusWidget {
+    background: black;
+    color: white;
+    padding: 0 1;
+    border: solid white;
+    text-style: bold;
+}
+
+InitiativeWidget {
+    background: black;
+    color: white;
+    padding: 0 1;
+    border: solid white;
+}
+
+.modal-box {
+    background: black;
+    border: double white;
+    padding: 1 2;
+    width: 60;
+    height: auto;
+}
+
+.modal-title {
+    color: white;
+    text-style: bold reverse;
+}

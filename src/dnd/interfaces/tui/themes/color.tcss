@@ -1,0 +1,64 @@
+/* Color theme (default) — соответствует UI.md §3.1.
+ *
+ * Семантика передаётся цветом: PC жёлтый, враг красный, союзник cyan.
+ * Rich-разметка цветов уровня клеток применяется внутри widgets
+ * (см. map_widget.render_battlefield); CSS отвечает за фон, бордюры,
+ * подсветку фокуса.
+ */
+
+Screen {
+    background: $background;
+    color: $text;
+}
+
+Header {
+    background: $surface;
+    color: $text;
+    text-style: bold;
+}
+
+Footer {
+    background: $surface;
+    color: $text;
+}
+
+MapWidget {
+    background: $background;
+    color: $text;
+    padding: 0 1;
+    border: round $accent;
+}
+
+LogWidget {
+    background: $background;
+    color: $text;
+    border: round $accent;
+}
+
+StatusWidget {
+    background: $surface;
+    color: $text;
+    padding: 0 1;
+    border: round $accent;
+}
+
+InitiativeWidget {
+    background: $surface;
+    color: $text;
+    padding: 0 1;
+    border: round $accent;
+}
+
+/* Модальные picker'ы (TargetPicker / MovePicker) — добавляются на J3. */
+.modal-box {
+    background: $surface;
+    border: round $secondary;
+    padding: 1 2;
+    width: 60;
+    height: auto;
+}
+
+.modal-title {
+    color: $secondary;
+    text-style: bold;
+}
