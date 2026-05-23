@@ -34,6 +34,14 @@ def test_cover_ac_bonus_per_book(cover: CoverLevel, expected_bonus: int) -> None
     assert cover.ac_bonus == expected_bonus
 
 
+def test_cover_level_rank_order() -> None:
+    """CoverLevel.rank монотонен: NONE < HALF < THREE_QUARTERS < TOTAL.
+    Используется для max-выбора в Tile.aggregate_cover (PHB-2024 стр. 25)."""
+    assert CoverLevel.NONE.rank < CoverLevel.HALF.rank
+    assert CoverLevel.HALF.rank < CoverLevel.THREE_QUARTERS.rank
+    assert CoverLevel.THREE_QUARTERS.rank < CoverLevel.TOTAL.rank
+
+
 @pytest.mark.rules
 def test_total_cover_means_not_targetable() -> None:
     """Книга стр. 25: «нельзя выбрать целью напрямую»."""

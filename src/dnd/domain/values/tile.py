@@ -16,13 +16,6 @@ from dnd.domain.values.direction import Direction
 from dnd.domain.values.sprite_meta import FeatureKind, TerrainBase
 from dnd.domain.values.terrain import CoverLevel
 
-_COVER_RANK: dict[CoverLevel, int] = {
-    CoverLevel.NONE: 0,
-    CoverLevel.HALF: 1,
-    CoverLevel.THREE_QUARTERS: 2,
-    CoverLevel.TOTAL: 3,
-}
-
 
 class Tile(BaseModel):
     """Композит: пол + наклеенные features.
@@ -30,7 +23,7 @@ class Tile(BaseModel):
     ``features`` — tuple для иммутабельности и хешируемости.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     base: TerrainBase
     features: tuple[FeatureKind, ...] = ()
@@ -38,10 +31,13 @@ class Tile(BaseModel):
     def allows_entry_from(self, direction: Direction) -> bool:
         """Можно ли войти в клетку с указанного направления.
 
-        Семантика: если хоть один feature на клетке блокирует это
-        направление — нельзя. Также если хоть один feature имеет
-        ``passable_cost_ft=0`` И блокирует все 4 ортогонала — это
-        непроходимая «масса» (column/wall full), любой вход блокирован.
+        Возвращает False если:
+        * база не passable (например, вода);
+        * хоть один feature блокирует это направление
+          (direction ∈ feature.blocks_passage_dirs).
+
+        Колонна (`blocks_passage_dirs = все 4 ортогонала`) автоматически
+        блокирует любой ortho-вход через per-direction-проверку.
         """
         if not self.base.passable:
             return False
@@ -57,26 +53,21 @@ class Tile(BaseModel):
         только наиболее защищающая степень»)."""
         if not self.features:
             return CoverLevel.NONE
-        return max(
-            (f.cover for f in self.features), key=lambda c: _COVER_RANK[c]
-        )
+        return max((f.cover for f in self.features), key=lambda c: c.rank)
 
     def movement_cost_ft(self) -> int:
-        """Стоимость входа в клетку (PHB-2024). Базовый 5 фт;
-        difficult terrain → 10 фт; features могут добавить (например,
-        мебель — +5).
+        """Стоимость входа в клетку (PHB-2024 стр. 23 «Difficult Terrain»).
 
-        Если хоть один feature ``passable_cost_ft == 0`` — клетка
-        непроходима в принципе; вызывающий должен дополнительно
-        проверять через ``allows_entry_from``.
+        Правило книги: difficult НЕ стакается — клетка либо difficult, либо
+        нет, независимо от количества источников. Берём максимум стоимости
+        среди (base, *features), исключая 0-cost (непроходимые — отдельно
+        через allows_entry_from).
         """
-        base_cost = 10 if self.base.difficult else 5
-        extra = sum(
-            max(0, f.passable_cost_ft - 5)  # surplus сверх стандарта
-            for f in self.features
-            if f.passable_cost_ft > 0  # 0 = непроходимо, не считаем
-        )
-        return base_cost + extra
+        candidates = [10 if self.base.difficult else 5]
+        for f in self.features:
+            if f.passable_cost_ft > 0:
+                candidates.append(f.passable_cost_ft)
+        return max(candidates)
 
 
 __all__ = ["Tile"]

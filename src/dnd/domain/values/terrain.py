@@ -46,6 +46,17 @@ class CoverLevel(StrEnum):
     def can_be_targeted(self) -> bool:
         return self is not CoverLevel.TOTAL
 
+    @property
+    def rank(self) -> int:
+        """Порядковый ранг для max-выбора (0..3). PHB-2024 стр. 25:
+        «применяется только наиболее защищающая степень»."""
+        return {
+            CoverLevel.NONE: 0,
+            CoverLevel.HALF: 1,
+            CoverLevel.THREE_QUARTERS: 2,
+            CoverLevel.TOTAL: 3,
+        }[self]
+
 
 @dataclass(frozen=True, slots=True)
 class Terrain:
