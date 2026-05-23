@@ -44,6 +44,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
+from dnd.domain.entities.inventory import Inventory
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.ability_id import AbilityId
 from dnd.domain.values.creature_size import CreatureSize
@@ -247,6 +248,12 @@ class Creature:
     модель; UI для редактирования — отдельный этап). Mutable dict
     допустим: dataclass(slots=True) не frozen, поле менять можно."""
 
+    inventory: Inventory = field(default_factory=Inventory)
+    """Рюкзак существа. Default — пустой без лимитов (для упрощения
+    тестов и legacy-сетапа). При создании PC через сценарий или
+    monster-фабрику сюда кладётся стартовый набор. Этап O-7 будет
+    лутать содержимое с трупов через InteractAction."""
+
     # --- фабрика --------------------------------------------------------
 
     @classmethod
@@ -266,6 +273,7 @@ class Creature:
         immunities: frozenset[str] = frozenset(),
         proficiency_bonus: int = 2,
         equipped_weapon: WeaponProfile | None = None,
+        inventory: Inventory | None = None,
     ) -> Creature:
         """Создать существо с полными HP.
 
@@ -300,6 +308,7 @@ class Creature:
             immunities=immunities,
             proficiency_bonus=proficiency_bonus,
             equipped_weapon=equipped_weapon,
+            inventory=inventory if inventory is not None else Inventory(),
         )
 
     # --- состояние HP ---------------------------------------------------

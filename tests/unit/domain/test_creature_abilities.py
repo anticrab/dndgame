@@ -52,3 +52,36 @@ def test_each_creature_has_own_keybindings_dict() -> None:
     c2 = _make()
     c1.keybindings["z"] = AbilityId("weapon_attack")
     assert c2.keybindings == {}
+
+
+def test_creature_has_empty_inventory_by_default() -> None:
+    """O-4: новые существа без явного inventory получают пустой."""
+    c = _make()
+    assert c.inventory.slot_count() == 0
+    assert c.inventory.total_weight_lb() == 0
+
+
+def test_creature_keeps_each_inventory_separate() -> None:
+    """default_factory=Inventory — у каждого инстанса свой рюкзак,
+    не shared mutable default."""
+    c1 = _make()
+    c2 = _make()
+    from dnd.domain.values.item import Item, ItemId, ItemKind
+    c1.inventory.add(Item(id=ItemId("x"), name="X", kind=ItemKind.MISC))
+    assert c2.inventory.slot_count() == 0
+
+
+def test_creature_accepts_preloaded_inventory_via_create() -> None:
+    """Стартовый набор — через kwarg Creature.create(inventory=...)."""
+    from dnd.domain.entities.inventory import Inventory
+    from dnd.domain.values.item import Item, ItemId, ItemKind
+    inv = Inventory()
+    inv.add(Item(id=ItemId("gold"), name="Gold", kind=ItemKind.MISC,
+                 stackable=True), qty=10)
+    c = Creature.create(
+        id_=CreatureId("y"), name="Y",
+        abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
+        max_hp=10, armor_class=10, speed_ft=30, equipped_weapon=LONGSWORD,
+        inventory=inv,
+    )
+    assert c.inventory.find_by_id(ItemId("gold")).qty == 10  # type: ignore[union-attr]
