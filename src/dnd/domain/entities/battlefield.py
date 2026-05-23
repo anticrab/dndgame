@@ -35,9 +35,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from dnd.application.dto.ids import CreatureId
+from dnd.application.dto.ids import CreatureId, ObjectId
+from dnd.domain.entities.interactable import InteractableObject
+from dnd.domain.values.direction import Direction
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import FLOOR, CoverLevel, Terrain
+from dnd.domain.values.tile import Tile
+from dnd.domain.values.tile_aliases import FLOOR_TILE, WALL_TILE
 
 
 class Battlefield:
@@ -72,6 +76,15 @@ class Battlefield:
         # на нескольких клетках (Large+, post-MVP), это станет
         # `dict[CreatureId, set[Square]]`; пока — одиночная клетка.
         self._creature_position: dict[CreatureId, Square] = {}
+
+        # Аудит K1-T6: новый Tile-aware слой (параллельно со старым Terrain).
+        # Старый _terrain не трогаем — все существующие методы работают как раньше.
+        # Tile хранится только для не-FLOOR_TILE клеток (как и terrain — экономия).
+        self._tiles: dict[Square, Tile] = {}
+        # Реестр интерактивных объектов: дверей, сундуков, бочек, окон.
+        self._objects: dict[ObjectId, InteractableObject] = {}
+        # Обратный индекс: какие объекты стоят на клетке (может быть несколько).
+        self._objects_by_square: dict[Square, list[ObjectId]] = defaultdict(list)
 
     # --- размеры и границы --------------------------------------------
 
@@ -111,6 +124,80 @@ class Battlefield:
             self._terrain.pop(square, None)
         else:
             self._terrain[square] = terrain
+
+    # --- Tiles (новый API K1-T6) --------------------------------------
+
+    def tile_at(self, square: Square) -> Tile:
+        """Tile на клетке. Default — ``FLOOR_TILE`` для не-выставленных.
+
+        Вне границ — ``WALL_TILE`` (по аналогии с ``_OUT_OF_BOUNDS`` для
+        старого ``terrain_at``): это даёт алгоритмам поиска пути и
+        видимости безопасное обращение к краям карты.
+        """
+        if not self.in_bounds(square):
+            return WALL_TILE
+        return self._tiles.get(square, FLOOR_TILE)
+
+    def set_tile(self, square: Square, tile: Tile) -> None:
+        """Установить tile в клетке. Вне границ — ``ValueError``."""
+        if not self.in_bounds(square):
+            raise ValueError(f"square {square} is out of bounds")
+        self._tiles[square] = tile
+
+    def passable_between(self, frm: Square, to: Square) -> bool:
+        """Можно ли пройти из ``frm`` в ``to`` (учитывая features обеих клеток).
+
+        Не учитывает occupancy существ — это уровень ``MoveAction``.
+        Правила:
+
+        * Та же самая клетка → True (no-op шаг).
+        * Любая из клеток вне границ → False.
+        * Не-соседние (не Чебышев-1) → False.
+        * Иначе: проверяем, что features ``frm`` не блокируют выход в
+          направлении движения, и что ``to.allows_entry_from`` пускает
+          с противоположной стороны.
+        """
+        if not (self.in_bounds(frm) and self.in_bounds(to)):
+            return False
+        if frm == to:
+            return True
+        try:
+            direction = Direction.from_squares(frm, to)
+        except ValueError:
+            return False  # не соседние
+        # Выход из frm в direction блокирует ли feature?
+        from_tile = self.tile_at(frm)
+        for f in from_tile.features:
+            if direction in f.blocks_passage_dirs:
+                return False
+        # Вход в to с противоположной стороны?
+        to_tile = self.tile_at(to)
+        return to_tile.allows_entry_from(direction.opposite())
+
+    # --- Interactable objects (новый API K1-T6) -----------------------
+
+    def place_object(self, obj: InteractableObject) -> None:
+        """Поставить объект на карту по ``obj.pos``.
+
+        Вне границ — ``ValueError``. Несколько объектов на одной клетке
+        допустимо (бочка возле двери и т.п.).
+        """
+        if not self.in_bounds(obj.pos):
+            raise ValueError(f"object pos {obj.pos} out of bounds")
+        self._objects[obj.id] = obj
+        self._objects_by_square[obj.pos].append(obj.id)
+
+    def object_at(self, object_id: ObjectId) -> InteractableObject:
+        """Лукап объекта по id. ``KeyError`` если такого нет."""
+        try:
+            return self._objects[object_id]
+        except KeyError as exc:
+            raise KeyError(f"unknown object: {object_id!r}") from exc
+
+    def objects_at(self, square: Square) -> tuple[InteractableObject, ...]:
+        """Все объекты на клетке. Пустой tuple если ничего нет."""
+        ids = self._objects_by_square.get(square, ())
+        return tuple(self._objects[i] for i in ids)
 
     # --- занятость существ --------------------------------------------
 
