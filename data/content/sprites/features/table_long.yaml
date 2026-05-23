@@ -5,9 +5,11 @@ blocks_los: false
 cover: half
 blocks_passage_dirs: []
 passable_cost_ft: 10
+# Edge-padding: оставляем по 1 пустой ячейке слева/справа, чтобы две
+# соседние table_long не сливались в одну непрерывную линию через всю карту.
 glyph_5x3:
   - "     "
-  - "═════"
+  - " ─T─ "
   - "     "
 glyph_1x1: "T"
 color_token: object

@@ -33,7 +33,7 @@ from textual.message import Message
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
-from dnd.application.dto.action import Allowed
+from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
 from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
@@ -187,10 +187,25 @@ class BattleScreen(Screen[None]):
         if self._concluded or self._current is None:
             return
         actor, ctx, encounter = self._current
+        # Сначала проверяем что атака в принципе возможна (action / conditions),
+        # чтобы дать точный feedback вместо misleading "No reachable targets".
+        global_check = AttackAction().can_perform(actor, ctx)
+        if isinstance(global_check, Forbidden):
+            self.log_widget.write(_explain_forbidden("attack", global_check))
+            return
         targets = _list_reachable_hostiles(actor, ctx, encounter)
         if not targets:
-            # bold вместо цвета — работает в обеих темах.
-            self.log_widget.write("[bold]No reachable targets.[/]")
+            # Здесь точно "нет валидных целей" (action есть, но никого в reach
+            # или нет LoS) — посчитаем живых врагов на карте чтобы
+            # подсказать «move closer».
+            hostile_count = _count_living_hostiles(actor, encounter)
+            if hostile_count == 0:
+                self.log_widget.write("[bold]No enemies left.[/]")
+            else:
+                self.log_widget.write(
+                    f"[bold]No targets in reach[/] "
+                    f"({hostile_count} enemy alive). Move closer (m) first."
+                )
             return
 
         # TargetPicker принимает list[tuple[str, str]] — оборачиваем
@@ -216,7 +231,13 @@ class BattleScreen(Screen[None]):
     def action_intent_move(self) -> None:
         if self._concluded or self._current is None:
             return
-        actor, _ctx, encounter = self._current
+        actor, ctx, encounter = self._current
+        # Проверяем что движение в принципе возможно (есть футы, не Incapacitated).
+        from dnd.application.engine.actions.move import MoveAction
+        move_check = MoveAction().can_perform(actor, ctx)
+        if isinstance(move_check, Forbidden):
+            self.log_widget.write(_explain_forbidden("move", move_check))
+            return
         start = encounter.battlefield.position_of(actor.id)
 
         from dnd.domain.values.square import Square
@@ -234,15 +255,33 @@ class BattleScreen(Screen[None]):
     def action_intent_dodge(self) -> None:
         if self._concluded or self._current is None:
             return
+        actor, ctx, _ = self._current
+        from dnd.application.engine.actions.stances import DodgeAction
+        check = DodgeAction().can_perform(actor, ctx)
+        if isinstance(check, Forbidden):
+            self.log_widget.write(_explain_forbidden("dodge", check))
+            return
         self._put_intent(DodgeIntent())
 
     def action_intent_dash(self) -> None:
         if self._concluded or self._current is None:
             return
+        actor, ctx, _ = self._current
+        from dnd.application.engine.actions.stances import DashAction
+        check = DashAction().can_perform(actor, ctx)
+        if isinstance(check, Forbidden):
+            self.log_widget.write(_explain_forbidden("dash", check))
+            return
         self._put_intent(DashIntent())
 
     def action_intent_disengage(self) -> None:
         if self._concluded or self._current is None:
+            return
+        actor, ctx, _ = self._current
+        from dnd.application.engine.actions.stances import DisengageAction
+        check = DisengageAction().can_perform(actor, ctx)
+        if isinstance(check, Forbidden):
+            self.log_widget.write(_explain_forbidden("disengage", check))
             return
         self._put_intent(DisengageIntent())
 
@@ -339,6 +378,46 @@ class BattleScreen(Screen[None]):
         """Выход. TuiApp на on_unmount позаботится о shutdown
         provider'a и worker'a."""
         self.app.exit()
+
+
+_FORBIDDEN_MESSAGES: dict[ForbiddenReason, str] = {
+    ForbiddenReason.NO_ECONOMY_LEFT: (
+        "[bold]Action already used this turn.[/] "
+        "Press [bold]e[/] to end turn, or use bonus action."
+    ),
+    ForbiddenReason.INCAPACITATED: "[bold]Incapacitated — cannot act.[/]",
+    ForbiddenReason.CONDITION_BLOCKS_ACTION: (
+        "[bold]Blocked by condition.[/] Wait it out (end turn)."
+    ),
+    ForbiddenReason.NOT_ENOUGH_MOVEMENT: (
+        "[bold]No movement left.[/] Try [bold]Dash[/] (h) for extra movement."
+    ),
+}
+
+
+def _explain_forbidden(action_name: str, forbidden: Forbidden) -> str:
+    """Перевести Forbidden причину в дружелюбное сообщение для лога."""
+    msg = _FORBIDDEN_MESSAGES.get(forbidden.reason)
+    if msg is None:
+        details = f" ({forbidden.details})" if forbidden.details else ""
+        msg = f"[bold]Cannot {action_name}: {forbidden.reason.value}{details}[/]"
+    return msg
+
+
+def _count_living_hostiles(actor: Creature, encounter: Encounter) -> int:
+    actor_faction = encounter.factions.get(actor.id)
+    count = 0
+    for cid, cr in encounter.participants.items():
+        if cid == actor.id or not cr.is_alive:
+            continue
+        other_faction = encounter.factions.get(cid)
+        if other_faction is None or other_faction == actor_faction:
+            continue
+        from dnd.domain.values.faction import Faction as _F
+        if other_faction is _F.NEUTRAL:
+            continue
+        count += 1
+    return count
 
 
 def _list_reachable_hostiles(

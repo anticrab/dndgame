@@ -5,9 +5,10 @@ blocks_los: false
 cover: half
 blocks_passage_dirs: [n, s, e, w]
 passable_cost_ft: 0
+# Edge-padding: брезер не должен сливаться с соседями.
 glyph_5x3:
-  - "  ^  "
-  - " ███ "
+  - "  *  "
+  - "  &  "
   - "  ┴  "
 glyph_1x1: "B"
 color_token: effect

@@ -5,9 +5,10 @@ blocks_los: false
 cover: half
 blocks_passage_dirs: []
 passable_cost_ft: 10
+# Edge-padding (1 пустая ячейка с краёв): не сливается с соседними фичами.
 glyph_5x3:
-  - "     "
-  - " /-\\ "
-  - "     "
-glyph_1x1: "/"
+  - "  ┌  "
+  - "  o  "
+  - "  ┘  "
+glyph_1x1: "t"
 color_token: object
