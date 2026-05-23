@@ -214,9 +214,36 @@ class MapWidget(Static):
     ``with_color`` определяется на лету по активной теме приложения
     (`color` → True, `monochrome` → False), чтобы тема реально
     влияла на содержимое карты, не только на рамку.
+
+    Viewer-state хранится здесь (не в EventRenderer), чтобы hotkey-
+    handler в :class:`BattleScreen` мог поменять zoom, не таская
+    encounter через себя. Default — ``"medium"`` (K5-T3): сразу после
+    запуска игрок видит «красивый» 5×3-рендер; small-overview
+    включается по `+`/`-`/`=`.
     """
 
     DEFAULT_CSS = ""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+        self._zoom: str = "medium"
+
+    @property
+    def zoom(self) -> str:
+        return self._zoom
+
+    def set_zoom(self, zoom: str) -> None:
+        """Переключить zoom. Допустимы только ``"small"`` и ``"medium"``;
+        иначе — :class:`ValueError` (защита от опечатки в коде-вызывателе).
+        Перерисовка — за вызывающим (refresh_from случится на следующем
+        event'е движка)."""
+        if zoom not in ("small", "medium"):
+            raise ValueError(f"unknown zoom: {zoom!r}")
+        self._zoom = zoom
+
+    def toggle_zoom(self) -> None:
+        """Инвертировать zoom — удобство для hotkey'ев `+`/`-`/`=`."""
+        self._zoom = "small" if self._zoom == "medium" else "medium"
 
     def refresh_from(
         self,
@@ -228,7 +255,11 @@ class MapWidget(Static):
         with_color = self._is_color_theme()
         self.update(
             render_battlefield(
-                battlefield, factions, cursor=cursor, with_color=with_color
+                battlefield,
+                factions,
+                cursor=cursor,
+                with_color=with_color,
+                zoom=self._zoom,
             )
         )
 

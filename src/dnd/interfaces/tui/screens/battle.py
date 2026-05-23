@@ -87,6 +87,12 @@ class BattleScreen(Screen[None]):
         ("h", "intent_dash", "Dash"),
         ("g", "intent_disengage", "Disengage"),
         ("e", "intent_end_turn", "End turn"),
+        # Zoom-toggle (K5-T3, medium ↔ small). Три формы клавиши: `+` и
+        # `=` (на большинстве раскладок `+` — это Shift+`=`, но Textual
+        # видит литерал `=` как `equals_sign`), `-` для симметрии.
+        ("plus", "toggle_zoom", "Zoom"),
+        ("equals_sign", "toggle_zoom", "Zoom"),
+        ("minus", "toggle_zoom", "Zoom"),
         ("q", "quit_app", "Quit"),
     ]
 
@@ -235,6 +241,23 @@ class BattleScreen(Screen[None]):
         if self._concluded or self._current is None:
             return
         self._put_intent(EndTurnIntent())
+
+    def action_toggle_zoom(self) -> None:
+        """Переключить zoom MapWidget'а (medium ↔ small).
+
+        Сразу перерисовать карту мы не можем — у screen'а нет ссылки
+        на encounter (она живёт в EventRenderer'е). Это сознательно:
+        viewer-state хранится в виджете, и ближайший
+        ``EventRenderer._refresh_map_main`` уже использует
+        ``self._zoom`` — игрок увидит новый zoom на следующем событии
+        движка (turn / move / damage). В простое (между ходами) рендер
+        не моргает зря — это feature, не bug. Если когда-нибудь
+        потребуется немедленный отклик — храним последний bf/factions
+        в MapWidget'е и зовём refresh_from без параметров.
+        """
+        if self._concluded:
+            return
+        self.map_widget.toggle_zoom()
 
     def action_quit_app(self) -> None:
         """Выход. TuiApp на on_unmount позаботится о shutdown
