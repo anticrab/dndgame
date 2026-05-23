@@ -130,3 +130,45 @@ def _dummy_console_fixture() -> object:
 def _dummy_console() -> object:
     from rich.console import Console
     return Console()
+
+
+def test_render_medium_uses_tile_when_set() -> None:
+    """Medium-zoom: 5×3 ячеек на клетку через Tile."""
+    from dnd.domain.values.tile_aliases import WALL_TILE
+    bf = Battlefield(3, 1)
+    bf.set_tile(Square(1, 0), WALL_TILE)
+    text = render_battlefield(bf, {}, zoom="medium")
+    # 3 строки по 15 ячеек (3 клетки × 5).
+    assert text.plain.count("\n") == 2  # 3 строки → 2 \n
+    lines = text.plain.split("\n")
+    assert all(len(line) == 15 for line in lines), [(len(ln), ln) for ln in lines]
+    # Стена в средней клетке — заполнена █████.
+    assert "█" in lines[0]
+
+
+def test_render_medium_default_floor_empty() -> None:
+    """Default tile (FLOOR_TILE) — 5 пробелов на клетку."""
+    bf = Battlefield(2, 1)
+    text = render_battlefield(bf, {}, zoom="medium")
+    lines = text.plain.split("\n")
+    assert lines == ["          ", "          ", "          "]  # 10 spaces each
+
+
+def test_render_medium_creature_in_center() -> None:
+    """Creature на клетке: символ фракции в центре 5×3 (row=1, col=2)."""
+    bf = Battlefield(1, 1)
+    pc = CreatureId("hero")
+    bf.place_creature(pc, Square(0, 0))
+    factions = {pc: Faction.PARTY}
+    text = render_battlefield(bf, factions, zoom="medium")
+    lines = text.plain.split("\n")
+    # Row 1, col 2 = '@'
+    assert lines[1][2] == "@"
+
+
+def test_render_medium_cursor_on_empty_cell() -> None:
+    """Cursor на пустой клетке — 'X' в центре."""
+    bf = Battlefield(1, 1)
+    text = render_battlefield(bf, {}, cursor=Square(0, 0), zoom="medium")
+    lines = text.plain.split("\n")
+    assert lines[1][2] == "X"

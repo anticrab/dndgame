@@ -18,6 +18,7 @@ from textual.widgets import Static
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import CoverLevel, Terrain
+from dnd.interfaces.tui.widgets.tile_renderer import render_tile_5x3
 
 if TYPE_CHECKING:
     from dnd.application.dto.ids import CreatureId
@@ -67,10 +68,11 @@ def render_battlefield(
     *,
     cursor: Square | None = None,
     with_color: bool = True,
+    zoom: str = "small",
 ) -> Text:
     """Сформировать ``rich.Text`` с ASCII-картой.
 
-    Алгоритм по клетке (x, y):
+    Алгоритм по клетке (x, y) для ``zoom='small'``:
 
     1. Если на клетке есть существа — рисуем символ фракции с
        максимальным приоритетом. Если в стеке больше одного — вторая
@@ -84,7 +86,16 @@ def render_battlefield(
     plain'ом + reverse/bold там, где это семантически (курсор).
     Этим путём идёт monochrome-тема (UI.md §3.2): семантика передаётся
     яркостью, не цветом.
+
+    ``zoom='small'`` (default): 1 клетка = 1 ячейка терминала.
+    ``zoom='medium'``: 1 клетка = 5×3 ячеек через
+    :func:`render_tile_5x3` (K5-T1). Overlay существ/курсора —
+    в центральной ячейке клетки (row=1, col=2).
     """
+    if zoom == "medium":
+        return _render_medium(
+            battlefield, factions, cursor=cursor, with_color=with_color
+        )
     out = Text()
     for y in range(battlefield.height):
         for x in range(battlefield.width):
@@ -95,6 +106,49 @@ def render_battlefield(
             out.append(glyph, style=style)
         if y < battlefield.height - 1:
             out.append("\n")
+    return out
+
+
+def _render_medium(
+    battlefield: Battlefield,
+    factions: dict[CreatureId, Faction],
+    *,
+    cursor: Square | None = None,
+    with_color: bool = True,
+) -> Text:
+    """5×3 ячеек на клетку, без рамок (UI.md §3.1 «sprites склеиваются»).
+
+    Алгоритм:
+    * Каждая Tile рендерится через :func:`render_tile_5x3` → 3 строки
+      по 5 chars.
+    * Поверх — overlay creature (центр клетки) или cursor.
+    * Строки клеток конкатенируются горизонтально; затем выводятся
+      последовательно по 3 строки на ряд клеток.
+    """
+    del with_color  # цвета через CSS-классы в виджете; в pure-render — пусто
+    out = Text()
+    for y in range(battlefield.height):
+        cell_rows: list[list[str]] = [[], [], []]
+        for x in range(battlefield.width):
+            sq = Square(x, y)
+            tile = battlefield.tile_at(sq)
+            glyphs = render_tile_5x3(tile)
+            cells = [list(r) for r in glyphs]
+            # Overlay: creature → центр 5×3 (row=1, col=2)
+            occupants = battlefield.creatures_at(sq)
+            if occupants:
+                top = _pick_top_creature(occupants, factions)
+                faction = factions.get(top, Faction.NEUTRAL)
+                cells[1][2] = _FACTION_GLYPH[faction]
+            elif cursor == sq:
+                cells[1][2] = "X"
+            for i in range(3):
+                cell_rows[i].append("".join(cells[i]))
+        for i, parts in enumerate(cell_rows):
+            line = "".join(parts)
+            out.append(line, style="")
+            if not (y == battlefield.height - 1 and i == 2):
+                out.append("\n")
     return out
 
 
