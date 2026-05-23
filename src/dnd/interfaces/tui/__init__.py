@@ -7,7 +7,7 @@
 ``application``, ни CLI его не тянут (инвариант ``docs/TUI.md`` §2).
 """
 
-from dnd.interfaces.tui.app import TuiApp
+from dnd.interfaces.tui.app import TuiApp, run_tui
 from dnd.interfaces.tui.themes import ThemeName
 
-__all__ = ["ThemeName", "TuiApp"]
+__all__ = ["ThemeName", "TuiApp", "run_tui"]
