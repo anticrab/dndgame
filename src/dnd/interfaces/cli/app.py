@@ -11,6 +11,7 @@ from enum import StrEnum
 import typer
 
 from dnd import __version__
+from dnd.interfaces.cli.sprite_cmds import sprite_app
 
 app = typer.Typer(
     name="dnd",
@@ -18,6 +19,7 @@ app = typer.Typer(
     no_args_is_help=False,  # обрабатывается в callback ниже
     add_completion=False,
 )
+app.add_typer(sprite_app)
 
 
 class DbAction(StrEnum):
