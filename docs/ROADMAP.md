@@ -184,12 +184,17 @@ Textual-приложения, MVP-граница, многопоточная с�
   крупные спрайты локаций (раз клетка 1×1, освобождаются пиксели для
   тайлов 5×3 / 7×5 с детализацией), интеграция мыши для panning/
   выбора цели. Отдельный спек после feedback'а пользователя по L1+L2.
-- 🔜 **Этап O — Инвентарь и снаряжение.** `Item`/`ItemKind`/`ItemStack`,
-  `Inventory` (frozen) на `Creature`, `InventoryAction`
-  (Pickup/Drop/Equip/Unequip/UseConsumable), лут из сундуков
-  (`Chest.state["contents"]` → `list[ItemStack]`), **лут трупов**
-  (труп держит inventory убитого монстра, Interact на `%` →
-  loot menu), TUI InventoryScreen + CLI пункт меню.
+- ✅ **Этап O — Инвентарь и снаряжение (частично).** `Item` /
+  `ItemKind` / `ItemStack` / `Inventory` (slot+weight лимиты) +
+  `Creature.inventory`; `ItemRepository` (YAML каталог);
+  `parse_loot` для chest.contents (canonical+legacy формат);
+  `PickupAction` + `PickupIntent` (free interaction, encumbrance
+  guard); TUI `InventoryScreen` (hotkey 'l') и CLI пункт «Pickup».
+  См. `docs/INVENTORY.md`.
+  ⏳ Отложено в составе O / Q: **лут трупов** (Interact на `%` →
+  loot menu — требует Corpse-entity, естественнее в Q),
+  `Drop`/`Equip`/`Unequip`-intents (нужна связь `Creature.equipped_weapon`
+  и `Item.id`), encumbrance penalties.
 - 🔜 **Этап Q — Death & dying.** Death saves (PHB-2024), stabilize,
   spare-the-dying, TUI death-save overlay (mockup C.6).
 - 🔜 **Этап P — Заклинания.** `Spell`/`SpellSlot`, 5 базовых
