@@ -96,13 +96,17 @@ class TuiApp(App[None]):
             return
 
         if self._encounter is None:
-            self.push_screen(BattleScreen(ability_registry=self._ability_registry))
+            self.push_screen(BattleScreen(
+                ability_registry=self._ability_registry,
+                item_repository=self._item_repository,
+            ))
             return
 
         self._intent_queue = queue.Queue()
         self._battle_screen = BattleScreen(
             intent_queue=self._intent_queue,
             ability_registry=self._ability_registry,
+            item_repository=self._item_repository,
         )
         self.push_screen(self._battle_screen)
         # Bridge + worker запускаются на BattleScreen.Ready (см.

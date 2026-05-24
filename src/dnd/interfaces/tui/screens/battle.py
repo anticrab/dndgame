@@ -54,17 +54,20 @@ from dnd.application.dto.player_intent import (
     EndTurnIntent,
     InteractIntent,
     MoveIntent,
+    PickupIntent,
     PlayerIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.interact import InteractKind
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
+from dnd.application.ports.item_repository import ItemRepository
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.screens.battle_modes.move_mode import MoveModeHandler
 from dnd.interfaces.tui.screens.battle_modes.normal_mode import NormalModeHandler
 from dnd.interfaces.tui.screens.battle_modes.protocol import BattleMode, ModeHandler
 from dnd.interfaces.tui.screens.battle_modes.target_mode import TargetModeHandler
+from dnd.interfaces.tui.screens.inventory_screen import InventoryScreen
 from dnd.interfaces.tui.screens.keymap import build_keymap
 from dnd.interfaces.tui.widgets import (
     ActionBarWidget,
@@ -80,6 +83,7 @@ if TYPE_CHECKING:
     from dnd.application.engine.turn_context import TurnContext
     from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.item import ItemId
 
 
 class BattleScreen(Screen[None]):
@@ -108,6 +112,7 @@ class BattleScreen(Screen[None]):
         ("g", "intent_disengage", "Disengage"),
         ("i", "intent_interact", "Interact"),
         ("k", "intent_break", "Break"),
+        ("l", "intent_loot", "Loot"),
         ("e", "intent_end_turn", "End turn"),
         # Zoom-toggle (K5-T3, medium ↔ small). Три формы клавиши: `+` и
         # `=` (на большинстве раскладок `+` — это Shift+`=`, но Textual
@@ -123,9 +128,14 @@ class BattleScreen(Screen[None]):
         *,
         intent_queue: queue.Queue[PlayerIntent] | None = None,
         ability_registry: AbilityRegistry | None = None,
+        item_repository: ItemRepository | None = None,
     ) -> None:
         super().__init__()
         self._intent_queue = intent_queue
+        # ItemRepository нужен InventoryScreen'у (loot UI). None
+        # допустимо — hotkey 'l' тогда показывает 'no item catalog'
+        # вместо открытия экрана.
+        self._item_repository: ItemRepository | None = item_repository
         # Заполняется TuiIntentProvider'ом через turn_signal: даёт
         # обработчикам клавиш доступ к свежим actor / ctx / encounter
         # без таскания их через виджеты.
@@ -585,6 +595,54 @@ class BattleScreen(Screen[None]):
         self._reachable_targets = candidates
         self._pending_target_kind = "break"
         self.enter_mode(BattleMode.TARGET)
+
+    def action_intent_loot(self) -> None:
+        """O-9: открыть InventoryScreen для chest'а в reach.
+
+        Ищет первый открытый chest в chebyshev-disk(1). Если их
+        несколько — берёт первый (пока без выбора-сундука экрана;
+        UX-плана: добавим Tab между ними когда станет нужно).
+        Если репозитория предметов нет — лог сообщение и выход.
+        """
+        if self._concluded or self._current is None:
+            return
+        actor, _ctx, encounter = self._current
+        if self._item_repository is None:
+            self.log_widget.write(
+                "[bold]Loot UI requires item catalog (run via 'dnd play').[/]"
+            )
+            return
+        bf = encounter.battlefield
+        actor_pos = bf.position_of(actor.id)
+        for sq in actor_pos.chebyshev_disk(1):
+            if not bf.in_bounds(sq):
+                continue
+            for obj in bf.objects_at(sq):
+                if (
+                    obj.kind.value == "chest"
+                    and not obj.state.get("locked")
+                ):
+                    chest = obj
+                    self.app.push_screen(
+                        InventoryScreen(chest, self._item_repository),
+                        self._on_loot_picked,
+                    )
+                    return
+        self.log_widget.write("[bold]No open chests in reach.[/]")
+
+    def _on_loot_picked(
+        self, picked: tuple[ObjectId, ItemId] | None
+    ) -> None:
+        """Callback от InventoryScreen.dismiss(...). None = закрыли
+        без выбора. Иначе формируем PickupIntent (qty=None = всё)."""
+        if picked is None:
+            return
+        chest_id, item_id = picked
+        self._put_intent(
+            PickupIntent(
+                target_object_id=chest_id, item_id=item_id, qty=None,
+            )
+        )
 
     def action_intent_end_turn(self) -> None:
         if self._concluded or self._current is None:
