@@ -1,10 +1,8 @@
 """PickupAction — забрать предмет из сундука в инвентарь."""
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
-from dnd.application.dto.engine_event import EngineEvent, ItemPickedUp
+from dnd.application.dto.engine_event import ItemPickedUp
 from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.engine.actions.pickup import PickupAction, PickupParams
 from dnd.application.engine.encounter import Encounter
@@ -51,6 +49,7 @@ def _setup(
     *,
     chest_contents: list[dict] | list[str] | None,
     chest_locked: bool = False,
+    chest_open: bool = True,
     actor_inv_weight_limit: float | None = None,
 ) -> tuple[Encounter, Creature, TurnContext, InteractableObject]:
     pc = Creature.create(
@@ -74,7 +73,7 @@ def _setup(
     chest = InteractableObject(
         id=ObjectId("chest-1"), kind=ObjectKind.CHEST,
         pos=Square(3, 2),
-        state={"open": False, "locked": chest_locked, "hp": 8, "ac": 14,
+        state={"open": chest_open, "locked": chest_locked, "hp": 8, "ac": 14,
                "contents": chest_contents or []},
     )
     bf.place_object(chest)
@@ -95,13 +94,6 @@ def _setup(
         enc.end_turn()
     ctx = enc.start_turn()
     return enc, pc, ctx, chest
-
-
-def _collect_events(enc: Encounter) -> Iterator[EngineEvent]:
-    """Helper: подписываемся на bus и накопим все ItemPickedUp."""
-    collected: list[EngineEvent] = []
-    enc.event_bus.subscribe(EngineEvent, collected.append)
-    return iter(collected)  # type: ignore[return-value]
 
 
 # --- happy path -----------------------------------------------------
@@ -222,13 +214,13 @@ def test_pickup_no_object_interaction_left() -> None:
 
 def test_pickup_inventory_full_returns_failure_without_consuming() -> None:
     """Если рюкзак не вмещает — outcome.success=False, free action
-    не должен 'съесть' (по идее: пока execute уже вызвал
-    use_object_interaction... pragmatically — оставим, игрок видит fail
-    и не пробует снова)."""
+    НЕ должен 'съесться' (audit MAJOR-3): иначе игрок терял ход на
+    безрезультатной попытке."""
     _enc, pc, ctx, chest = _setup(
         chest_contents=[{"item_id": "sword", "qty": 1}],
         actor_inv_weight_limit=1.0,  # меч весит 3 lb — не влезет
     )
+    assert ctx.can_use_object_interaction(), "стартово free interaction есть"
     action = PickupAction(_repo())
     out = action.execute(
         pc, PickupParams(target_object_id=chest.id, item_id=ItemId("sword")),
@@ -238,3 +230,41 @@ def test_pickup_inventory_full_returns_failure_without_consuming() -> None:
     assert pc.inventory.slot_count() == 0
     # Сундук не тронут.
     assert chest.state["contents"] == [{"item_id": "sword", "qty": 1}]
+    # MAJOR-3: free interaction всё ещё доступен — можно открыть дверь
+    # или Interact с другим объектом в этом же ходу.
+    assert ctx.can_use_object_interaction()
+
+
+def test_pickup_from_closed_chest_forbidden() -> None:
+    """Audit MAJOR-1: pickup из ЗАКРЫТОГО chest'а недопустим — сначала
+    нужен InteractAction.OPEN. Семантика 'open' теряется без этого."""
+    _enc, pc, ctx, chest = _setup(
+        chest_contents=[{"item_id": "gold", "qty": 5}],
+        chest_open=False,  # ← закрытый, но не запертый
+    )
+    action = PickupAction(_repo())
+    avail = action.can_perform_against(
+        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
+        ctx,
+    )
+    assert isinstance(avail, Forbidden)
+    assert "closed" in (avail.details or "").lower()
+
+
+def test_pickup_emits_item_picked_up_event() -> None:
+    """Audit MAJOR-2 regression: ItemPickedUp реально публикуется."""
+    enc, pc, ctx, chest = _setup(
+        chest_contents=[{"item_id": "gold", "qty": 7}]
+    )
+    captured: list[ItemPickedUp] = []
+    enc.event_bus.subscribe(ItemPickedUp, captured.append)
+    action = PickupAction(_repo())
+    action.execute(
+        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
+        ctx,
+    )
+    assert len(captured) == 1
+    ev = captured[0]
+    assert ev.item_id == ItemId("gold")
+    assert ev.qty == 7
+    assert ev.source == "chest:chest-1"

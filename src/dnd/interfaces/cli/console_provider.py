@@ -300,7 +300,11 @@ class ConsoleIntentProvider:
             if not bf.in_bounds(sq):
                 continue
             for obj in bf.objects_at(sq):
-                if obj.kind is ObjectKind.CHEST and not obj.state.get("locked"):
+                if (
+                    obj.kind is ObjectKind.CHEST
+                    and obj.state.get("open")
+                    and not obj.state.get("locked")
+                ):
                     chests.append(
                         (ObjectId(str(obj.id)), f"{obj.id} at ({sq.x},{sq.y})")
                     )

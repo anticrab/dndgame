@@ -112,6 +112,15 @@ class PickupAction:
                 reason=ForbiddenReason.CUSTOM,
                 details="chest is locked",
             )
+        # Audit MAJOR-1: pickup из ЗАКРЫТОГО сундука был разрешён,
+        # хотя по правилам сначала нужно его открыть (InteractAction.OPEN).
+        # Иначе семантика «open» теряется — игрок забирает лут без
+        # открытия. Открытие — отдельный free interaction (тоже 1/ход).
+        if not obj.state.get("open"):
+            return Forbidden(
+                reason=ForbiddenReason.CUSTOM,
+                details="chest is closed (Interact-open first)",
+            )
         # Парсим contents и проверяем наличие item_id.
         loot = parse_loot(obj.state.get("contents"), self._items)
         if not any(s.item.id == params.item_id for s in loot):
@@ -132,7 +141,10 @@ class PickupAction:
                 f"PickupAction expects PickupParams, got {type(params).__name__}"
             )
         bf = ctx.battlefield
-        ctx.use_object_interaction()
+        # ВАЖНО: не списываем free object interaction до того, как
+        # убедимся, что pickup реально случится. Audit MAJOR-3 фикс:
+        # иначе игрок терял free action из-за полного рюкзака и не
+        # мог даже открыть дверь в этом ходу.
         obj = bf.object_at(params.target_object_id)
 
         loot = list(parse_loot(obj.state.get("contents"), self._items))
@@ -150,8 +162,8 @@ class PickupAction:
         actually_picked = take_qty - overflow
         if actually_picked <= 0:
             # Не влезло ни одного — Forbidden по факту (encumbrance).
-            # Не двигаем chest, не списываем object_interaction:
-            # игрок не получил ничего, ход не должен «съесть» free action.
+            # Free interaction НЕ списан — игрок видит fail и может в
+            # тот же ход открыть дверь / сменить оружие.
             return ActionOutcome(
                 success=False,
                 consumed=ActionEconomyCost.FREE,
@@ -169,6 +181,9 @@ class PickupAction:
             # non-stackable: всегда qty=1, забираем стак целиком.
             loot.pop(idx)
         obj.state["contents"] = dump_loot_entries(tuple(loot))
+        # Только теперь — после реального движения предмета — списываем
+        # free interaction.
+        ctx.use_object_interaction()
 
         ctx.event_bus.publish(
             ItemPickedUp(

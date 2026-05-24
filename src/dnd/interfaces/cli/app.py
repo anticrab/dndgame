@@ -125,7 +125,7 @@ def play(
                 err=True,
             )
             raise typer.Exit(code=2)
-        run_tui(encounter=enc, theme=theme, item_repository=item_repo)  # type: ignore[arg-type]
+        run_tui(encounter=enc, theme=theme, item_repository=item_repo)  # type: ignore[arg-type]  # theme: str vs ThemeName Literal
         return
 
     from dnd.application.engine.game_runner import GameRunner

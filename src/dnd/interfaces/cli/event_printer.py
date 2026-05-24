@@ -20,6 +20,7 @@ from dnd.application.dto.engine_event import (
     EngineEvent,
     HelpGranted,
     InitiativeRolled,
+    ItemPickedUp,
     MoveCompleted,
     MoveStepTaken,
     ObjectDamaged,
@@ -214,6 +215,14 @@ class EventPrinter:
             f"{event.final_amount} (HP {event.hp_after}){tag}"
         )
 
+    def _on_picked_up(self, event: ItemPickedUp) -> None:
+        # O-audit MAJOR-2: без этого лог был пуст при pickup.
+        qty_part = f"{event.qty}× " if event.qty > 1 else ""
+        self._print(
+            f"  [green]✋ {event.actor_id} picked up "
+            f"{qty_part}{event.item_name}[/] [dim]from {event.source}[/]"
+        )
+
     # Карта типов → обработчики. ClassVar т.к. shared, не per-instance.
     _dispatch: ClassVar[dict[type[EngineEvent], Callable[[Any, Any], None]]] = {
         InitiativeRolled: lambda self, e: self._on_initiative(e),
@@ -233,6 +242,7 @@ class EventPrinter:
         StanceTaken: lambda self, e: self._on_stance(e),
         ObjectInteracted: lambda self, e: self._on_interacted(e),
         ObjectDamaged: lambda self, e: self._on_obj_damaged(e),
+        ItemPickedUp: lambda self, e: self._on_picked_up(e),
     }
 
 

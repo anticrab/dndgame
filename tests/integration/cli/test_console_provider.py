@@ -390,7 +390,10 @@ def _build_with_chest_loot() -> tuple[Encounter, Creature]:
     bf.place_object(InteractableObject(
         id=ObjectId("chest-loot"), kind=ObjectKind.CHEST,
         pos=Square(3, 2),
-        state={"open": False, "locked": False, "hp": 8, "ac": 14,
+        # open=True — Pickup-меню (audit MAJOR-1) показывает только
+        # открытые сундуки. Для тестов: предполагаем, что игрок уже
+        # сделал Interact.OPEN в предыдущем ходу.
+        state={"open": True, "locked": False, "hp": 8, "ac": 14,
                "contents": [
                    {"item_id": "gold", "qty": 25},
                    {"item_id": "sword", "qty": 1},

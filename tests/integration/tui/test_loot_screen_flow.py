@@ -8,14 +8,12 @@ O-9 integration smoke под Pilot'ом: PC рядом с сундуком, да
 from __future__ import annotations
 
 import asyncio
-import queue
 
 import pytest
 
 pytest.importorskip("textual")
 
 from dnd.application.dto.ids import CreatureId, ObjectId
-from dnd.application.dto.player_intent import PlayerIntent
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_default_runtime_services
 from dnd.domain.entities.battlefield import Battlefield
@@ -76,7 +74,7 @@ def test_l_opens_inventory_screen_enter_pushes_pickup_intent() -> None:
     bf.place_object(InteractableObject(
         id=ObjectId("chest-loot"), kind=ObjectKind.CHEST,
         pos=Square(3, 2),
-        state={"open": False, "locked": False, "hp": 8, "ac": 14,
+        state={"open": True, "locked": False, "hp": 8, "ac": 14,
                "contents": [{"item_id": "gold", "qty": 25}]},
     ))
     services = build_default_runtime_services(rng=RealRNG(seed=42))
@@ -86,10 +84,7 @@ def test_l_opens_inventory_screen_enter_pushes_pickup_intent() -> None:
         factions={pc.id: Faction.PARTY, g.id: Faction.MONSTERS},
         deps=deps,
     )
-    q: queue.Queue[PlayerIntent] = queue.Queue()
     app = TuiApp(encounter=enc, item_repository=_MiniRepo())
-    # Подменим intent_queue после mount'а, чтобы перехватить PickupIntent.
-    # Но run_test создаёт свой; вместо этого читаем app._intent_queue.
 
     async def _go() -> None:
         async with app.run_test(size=(80, 24)) as pilot:
@@ -125,7 +120,6 @@ def test_l_opens_inventory_screen_enter_pushes_pickup_intent() -> None:
             )
 
     asyncio.run(_go())
-    assert q.empty()
 
 
 def test_l_without_chest_in_reach_logs_warning() -> None:
@@ -147,7 +141,7 @@ def test_l_without_chest_in_reach_logs_warning() -> None:
     bf.place_object(InteractableObject(
         id=ObjectId("far-chest"), kind=ObjectKind.CHEST,
         pos=Square(7, 6),
-        state={"open": False, "locked": False, "hp": 8, "ac": 14,
+        state={"open": True, "locked": False, "hp": 8, "ac": 14,
                "contents": [{"item_id": "gold", "qty": 5}]},
     ))
     services = build_default_runtime_services(rng=RealRNG(seed=42))

@@ -618,8 +618,11 @@ class BattleScreen(Screen[None]):
             if not bf.in_bounds(sq):
                 continue
             for obj in bf.objects_at(sq):
+                # Закрытые сундуки не лутаются: сначала надо Interact
+                # (hotkey 'i'). Заблокированные (locked) — тем более.
                 if (
                     obj.kind.value == "chest"
+                    and obj.state.get("open")
                     and not obj.state.get("locked")
                 ):
                     chest = obj
@@ -628,7 +631,10 @@ class BattleScreen(Screen[None]):
                         self._on_loot_picked,
                     )
                     return
-        self.log_widget.write("[bold]No open chests in reach.[/]")
+        self.log_widget.write(
+            "[bold]No open chests in reach.[/] "
+            "Use [bold]i[/] to open a chest first."
+        )
 
     def _on_loot_picked(
         self, picked: tuple[ObjectId, ItemId] | None
