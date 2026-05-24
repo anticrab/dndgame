@@ -30,6 +30,7 @@ from dnd.application.dto.player_intent import (
     EndTurnIntent,
     InteractIntent,
     MoveIntent,
+    PickupIntent,
     PlayerIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
@@ -38,8 +39,12 @@ from dnd.application.engine.actions.move_path import find_walkable_path
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.engine.encounter import Encounter
 from dnd.application.engine.turn_context import TurnContext
+from dnd.application.inventory.loot_helpers import parse_loot
+from dnd.application.ports.item_repository import ItemRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.item import ItemId
+from dnd.domain.values.object_kind import ObjectKind
 from dnd.domain.values.square import Square
 
 _ACTION_CHOICES = [
@@ -50,6 +55,7 @@ _ACTION_CHOICES = [
     "Disengage",
     "Interact",
     "Break",
+    "Pickup",
     "End turn",
 ]
 
@@ -73,6 +79,10 @@ class ConsoleIntentProvider:
     prompt_choice: Callable[[str, list[str]], str] | None = None
     prompt_text: Callable[[str], str] | None = None
     notify: Callable[[str], None] | None = None
+    item_repository: ItemRepository | None = None
+    """Каталог Item-ов для Pickup-меню (показывает name/qty вместо
+    голых item_id). Если None — пункт 'Pickup' доступен, но названия
+    будут сырые. Передаётся из CLI app.py (build_default_item_repo)."""
 
     def next_intent(
         self,
@@ -121,6 +131,8 @@ class ConsoleIntentProvider:
                 return self._build_object_intent(
                     actor, ctx, encounter, depth, kind="break"
                 )
+            case "Pickup":
+                return self._build_pickup_intent(actor, ctx, encounter, depth)
         return EndTurnIntent()
 
     # --- private -----------------------------------------------------
@@ -267,6 +279,89 @@ class ConsoleIntentProvider:
                 interact_kind=InteractKind.OPEN,
             )
         return BreakIntent(target_object_id=obj_id)
+
+    def _build_pickup_intent(
+        self,
+        actor: Creature,
+        ctx: TurnContext,
+        encounter: Encounter,
+        depth: int,
+    ) -> PlayerIntent:
+        """Pickup из сундука в reach: 3 prompt'а (chest → item → qty).
+
+        Если ``item_repository=None`` — пункт ещё работает, но названия
+        items будут голыми id (Pickup_intent доходит до GameRunner и
+        там резолвится через свой repo)."""
+        bf = ctx.battlefield
+        pos = bf.position_of(actor.id)
+        # Сундуки в reach 5 ft (chebyshev 1).
+        chests: list[tuple[ObjectId, str]] = []
+        for sq in pos.chebyshev_disk(1):
+            if not bf.in_bounds(sq):
+                continue
+            for obj in bf.objects_at(sq):
+                if obj.kind is ObjectKind.CHEST and not obj.state.get("locked"):
+                    chests.append(
+                        (ObjectId(str(obj.id)), f"{obj.id} at ({sq.x},{sq.y})")
+                    )
+        if not chests:
+            self._notify_user("No open chests in reach.")
+            return self._next_intent(actor, ctx, encounter, depth + 1)
+
+        # Шаг 1: выбираем chest.
+        chest_labels = [label for _, label in chests]
+        picked = self._select_choice("Pickup from:", chest_labels)
+        chest_id, _ = chests[chest_labels.index(picked)]
+        chest = bf.object_at(chest_id)
+
+        # Шаг 2: выбираем item. Без repository — голые id; с ним —
+        # name + qty в человеческой форме.
+        raw_contents = chest.state.get("contents")
+        item_labels: list[str] = []
+        item_ids: list[ItemId] = []
+        if self.item_repository is not None:
+            for stack in parse_loot(raw_contents, self.item_repository):
+                item_ids.append(stack.item.id)
+                item_labels.append(
+                    f"{stack.item.name} ×{stack.qty} ({stack.item.id})"
+                )
+        else:
+            # Fallback: только сырой id, без resolved-имени.
+            for entry in raw_contents or []:
+                if isinstance(entry, dict):
+                    item_ids.append(ItemId(str(entry["item_id"])))
+                    item_labels.append(
+                        f"{entry['item_id']} ×{entry.get('qty', 1)}"
+                    )
+                elif isinstance(entry, str):
+                    item_ids.append(ItemId(entry))
+                    item_labels.append(entry)
+        if not item_labels:
+            self._notify_user(f"{chest_id} is empty.")
+            return self._next_intent(actor, ctx, encounter, depth + 1)
+
+        picked_item = self._select_choice("Pickup what:", item_labels)
+        item_id = item_ids[item_labels.index(picked_item)]
+
+        # Шаг 3: qty (None = всё). Промт текст, если пусто/'all' → None.
+        raw_qty = self._ask_text(
+            f"Pickup how many of {item_id}? (empty / 'all' = all):"
+        )
+        qty: int | None
+        if not raw_qty or raw_qty.strip().lower() == "all":
+            qty = None
+        else:
+            try:
+                qty = int(raw_qty.strip())
+            except ValueError:
+                self._notify_user(
+                    f"Cannot parse qty {raw_qty!r}, picking up all."
+                )
+                qty = None
+
+        return PickupIntent(
+            target_object_id=chest_id, item_id=item_id, qty=qty,
+        )
 
 
 def _list_reachable_hostiles(

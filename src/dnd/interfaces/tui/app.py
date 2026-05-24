@@ -18,6 +18,7 @@ from dnd.application.abilities.registry import AbilityRegistry
 from dnd.application.dto.player_intent import PlayerIntent
 from dnd.application.engine.game_runner import GameRunner
 from dnd.application.ports.event_bus import Unsubscribe
+from dnd.application.ports.item_repository import ItemRepository
 from dnd.interfaces.tui.bridge import (
     EventRenderer,
     RunnerWorker,
@@ -60,6 +61,7 @@ class TuiApp(App[None]):
         theme: ThemeName = "color",
         editor: EditorBundle | None = None,
         ability_registry: AbilityRegistry | None = None,
+        item_repository: ItemRepository | None = None,
     ) -> None:
         # CSS_PATH читается из атрибутов экземпляра в __init__ Textual.
         # Подставляем тему до super().__init__.
@@ -75,6 +77,10 @@ class TuiApp(App[None]):
             ability_registry = AbilityRegistry()
             register_default_abilities(ability_registry)
         self._ability_registry: AbilityRegistry = ability_registry
+        # ItemRepository прокидывается в GameRunner — нужен для
+        # PickupAction'а (O-8). None допустимо: PickupIntent тогда
+        # отклоняется с понятной причиной 'no_item_repository'.
+        self._item_repository: ItemRepository | None = item_repository
         self._intent_queue: queue.Queue[PlayerIntent] | None = None
         self._provider: TuiIntentProvider | None = None
         self._renderer: EventRenderer | None = None
@@ -137,7 +143,10 @@ class TuiApp(App[None]):
             encounter.event_bus
         )
 
-        runner = GameRunner(intent_provider=self._provider)
+        runner = GameRunner(
+            intent_provider=self._provider,
+            item_repository=self._item_repository,
+        )
         self._worker = RunnerWorker(
             target=lambda: runner.run(encounter),
             on_finished=self._on_runner_finished,
@@ -173,6 +182,7 @@ def run_tui(
     *,
     encounter: Encounter,
     theme: ThemeName = "color",
+    item_repository: ItemRepository | None = None,
 ) -> None:
     """Создать TuiApp вокруг готового Encounter и запустить блокирующе.
 
@@ -180,7 +190,9 @@ def run_tui(
     encounter в `app.play`, передаём сюда — функция возвращается
     после закрытия приложения.
     """
-    TuiApp(encounter=encounter, theme=theme).run()
+    TuiApp(
+        encounter=encounter, theme=theme, item_repository=item_repository,
+    ).run()
 
 
 __all__ = ["TuiApp", "run_tui"]

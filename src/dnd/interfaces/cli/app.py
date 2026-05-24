@@ -77,6 +77,9 @@ def play(
         build_encounter_from_scenario,
     )
     from dnd.composition import build_default_runtime_services
+    from dnd.infrastructure.content.yaml_item_repository import (
+        YamlItemRepository,
+    )
     from dnd.infrastructure.content.yaml_map_repository import (
         YamlMapRepository,
     )
@@ -100,6 +103,10 @@ def play(
     services = build_default_runtime_services()
     map_repo = YamlMapRepository(Path(content_dir) / "maps")
     sprite_reg = YamlSpriteRegistry(Path(content_dir) / "sprites")
+    # ItemRepository — для Pickup (CLI/TUI). Файл может отсутствовать —
+    # тогда инвентарь-меню работает с голыми item_id. Прокидывается
+    # и в provider (для красивых имён), и в GameRunner (для PickupAction).
+    item_repo = YamlItemRepository(Path(content_dir) / "items.yaml")
     enc = build_encounter_from_scenario(
         scenario,
         content=repo,
@@ -118,7 +125,7 @@ def play(
                 err=True,
             )
             raise typer.Exit(code=2)
-        run_tui(encounter=enc, theme=theme)  # type: ignore[arg-type]
+        run_tui(encounter=enc, theme=theme, item_repository=item_repo)  # type: ignore[arg-type]
         return
 
     from dnd.application.engine.game_runner import GameRunner
@@ -128,7 +135,10 @@ def play(
     console = Console()
     console.print(f"[bold]{scenario.name}[/]\n")
     EventPrinter(console).subscribe(enc.event_bus)
-    runner = GameRunner(intent_provider=ConsoleIntentProvider())
+    runner = GameRunner(
+        intent_provider=ConsoleIntentProvider(item_repository=item_repo),
+        item_repository=item_repo,
+    )
     runner.run(enc)
 
 
