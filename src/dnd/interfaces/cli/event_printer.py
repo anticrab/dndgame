@@ -21,6 +21,7 @@ from dnd.application.dto.engine_event import (
     DeathSaveRolled,
     EncounterEnded,
     EngineEvent,
+    HealingApplied,
     HelpGranted,
     InitiativeRolled,
     ItemPickedUp,
@@ -32,6 +33,7 @@ from dnd.application.dto.engine_event import (
     RoundEnded,
     RoundStarted,
     SearchPerformed,
+    SpellCast,
     StanceTaken,
     TurnEnded,
     TurnStarted,
@@ -236,6 +238,17 @@ class EventPrinter:
     def _on_stabilized(self, event: CreatureStabilized) -> None:
         self._print(f"  ✚ [green]{event.by} stabilizes {event.actor_id}[/]")
 
+    def _on_spell_cast(self, event: SpellCast) -> None:
+        # P1: ✨ caster casts Spell [at target]
+        at = f" at {event.target_id}" if event.target_id is not None else ""
+        self._print(f"  ✨ [magenta]{event.caster_id} casts {event.spell_name}[/]{at}")
+
+    def _on_healing(self, event: HealingApplied) -> None:
+        self._print(
+            f"  ✚ [green]{event.target_id} heals {event.amount}[/] "
+            f"(HP {event.hp_after}/{event.hp_max})"
+        )
+
     def _on_picked_up(self, event: ItemPickedUp) -> None:
         # O-audit MAJOR-2: без этого лог был пуст при pickup.
         qty_part = f"{event.qty}× " if event.qty > 1 else ""
@@ -267,6 +280,8 @@ class EventPrinter:
         DeathSaveRolled: lambda self, e: self._on_death_save(e),
         CreatureDied: lambda self, e: self._on_died(e),
         CreatureStabilized: lambda self, e: self._on_stabilized(e),
+        SpellCast: lambda self, e: self._on_spell_cast(e),
+        HealingApplied: lambda self, e: self._on_healing(e),
     }
 
 
