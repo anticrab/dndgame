@@ -86,6 +86,9 @@ def play(
     from dnd.infrastructure.content.yaml_repository import (
         YamlContentRepository,
     )
+    from dnd.infrastructure.content.yaml_spell_repository import (
+        YamlSpellRepository,
+    )
     from dnd.infrastructure.content.yaml_sprite_registry import (
         YamlSpriteRegistry,
     )
@@ -107,6 +110,8 @@ def play(
     # тогда инвентарь-меню работает с голыми item_id. Прокидывается
     # и в provider (для красивых имён), и в GameRunner (для PickupAction).
     item_repo = YamlItemRepository(Path(content_dir) / "items.yaml")
+    # SpellRepository — для заклинаний (P1): action-bar в TUI + CastSpellAction.
+    spell_repo = YamlSpellRepository(Path(content_dir) / "spells.yaml")
     enc = build_encounter_from_scenario(
         scenario,
         content=repo,
@@ -125,7 +130,7 @@ def play(
                 err=True,
             )
             raise typer.Exit(code=2)
-        run_tui(encounter=enc, theme=theme, item_repository=item_repo)  # type: ignore[arg-type]  # theme: str vs ThemeName Literal
+        run_tui(encounter=enc, theme=theme, item_repository=item_repo, spell_repository=spell_repo)  # type: ignore[arg-type]  # theme: str vs ThemeName Literal
         return
 
     from dnd.application.engine.game_runner import GameRunner
@@ -138,6 +143,7 @@ def play(
     runner = GameRunner(
         intent_provider=ConsoleIntentProvider(item_repository=item_repo),
         item_repository=item_repo,
+        spell_repository=spell_repo,
     )
     runner.run(enc)
 

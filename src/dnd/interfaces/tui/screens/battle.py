@@ -40,9 +40,10 @@ from textual.message import Message
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
-from dnd.application.abilities.ability import Ability
+from dnd.application.abilities.ability import Ability, AbilityId
 from dnd.application.abilities.defaults import register_default_abilities
 from dnd.application.abilities.registry import AbilityRegistry
+from dnd.application.abilities.spell_abilities import spell_ability
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
 from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
@@ -61,7 +62,9 @@ from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.interact import InteractKind
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.ports.item_repository import ItemRepository
+from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.spell import Spell, SpellEffect
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.screens.battle_modes.move_mode import MoveModeHandler
 from dnd.interfaces.tui.screens.battle_modes.normal_mode import NormalModeHandler
@@ -129,6 +132,7 @@ class BattleScreen(Screen[None]):
         intent_queue: queue.Queue[PlayerIntent] | None = None,
         ability_registry: AbilityRegistry | None = None,
         item_repository: ItemRepository | None = None,
+        spell_repository: SpellRepository | None = None,
     ) -> None:
         super().__init__()
         self._intent_queue = intent_queue
@@ -136,6 +140,13 @@ class BattleScreen(Screen[None]):
         # допустимо — hotkey 'l' тогда показывает 'no item catalog'
         # вместо открытия экрана.
         self._item_repository: ItemRepository | None = item_repository
+        # SpellRepository (P1-10): из него собираются заклинания актора в
+        # action-bar (hotkey'и 1..9). None — кастер без каталога не получит
+        # полосу заклинаний.
+        self._spell_repository: SpellRepository | None = spell_repository
+        # Заклинания текущего актора по ability-id (для выбора набора целей:
+        # урон → враги, heal/buff → союзники). Пересобирается в set_active_turn.
+        self._spell_by_ability: dict[AbilityId, Spell] = {}
         # Заполняется TuiIntentProvider'ом через turn_signal: даёт
         # обработчикам клавиш доступ к свежим actor / ctx / encounter
         # без таскания их через виджеты.
@@ -202,10 +213,28 @@ class BattleScreen(Screen[None]):
         # action-bar. Делаем после refresh_from чтобы виджеты были
         # точно смонтированы — query_one на TurnStarted безопасен.
         self._keymap = build_keymap(actor, self._ability_registry)
+        # P1-10: добавить заклинания актора (known_spells) на hotkey'и 1..9.
+        self._spell_by_ability = {}
+        if self._spell_repository is not None and actor.known_spells:
+            for i, sid in enumerate(actor.known_spells, start=1):
+                if i > 9:
+                    break
+                if not self._spell_repository.contains(sid):
+                    continue
+                spell = self._spell_repository.load(sid)
+                ab = spell_ability(spell, str(i))
+                self._keymap[str(i)] = ab
+                self._spell_by_ability[ab.id] = spell
         # Action-bar может ещё не быть смонтирован в первых event'ах
         # (initial ComposeResult); следующий TurnStarted обновит его.
         with contextlib.suppress(Exception):
             self.action_bar_widget.set_keymap(self._keymap)
+            # Полоса заклинаний видна только у кастера (у не-кастера Footer
+            # достаточно — не дублируем, см. этап M).
+            if self._spell_by_ability:
+                self.action_bar_widget.remove_class("-hidden")
+            else:
+                self.action_bar_widget.add_class("-hidden")
 
     def clear_active_turn(self) -> None:
         """Сбросить состояние (вне-PC ход). Дополнительная защита от
@@ -425,6 +454,47 @@ class BattleScreen(Screen[None]):
                 BreakIntent(target_object_id=ObjectId(str(target)))
             )
 
+    def _list_spell_targets(
+        self,
+        actor: Creature,
+        ctx: TurnContext,
+        encounter: Encounter,
+        spell: Spell,
+    ) -> list[CreatureId]:
+        """Цели для заклинания: враги для урона (ATTACK/SAVE/AUTO),
+        союзники + сам для лечения/баффа (HEAL/BUFF). Кастабельность
+        каждой цели проверяется через CastSpellAction (range/слот/экономика)."""
+        if self._spell_repository is None:
+            return []
+        from dnd.application.engine.actions.cast_spell import (
+            CastSpellAction,
+            CastSpellParams,
+        )
+
+        action = CastSpellAction(spell_repository=self._spell_repository)
+        offensive = spell.effect in (
+            SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
+        )
+        actor_faction = encounter.factions.get(actor.id)
+        result: list[CreatureId] = []
+        for cid, cr in encounter.participants.items():
+            if not cr.is_alive:
+                continue
+            other_faction = encounter.factions.get(cid)
+            if offensive:
+                if cid == actor.id or other_faction == actor_faction:
+                    continue
+                if other_faction is Faction.NEUTRAL:
+                    continue
+            else:
+                # heal/buff — на себя и союзников (та же фракция).
+                if other_faction != actor_faction:
+                    continue
+            params = CastSpellParams(spell_id=spell.id, target_id=cid)
+            if isinstance(action.can_perform_against(actor, params, ctx), Allowed):
+                result.append(cid)
+        return result
+
     def _trigger_ability(self, ab: Ability) -> None:
         """Запустить ability через её ``intent_factory``.
 
@@ -439,7 +509,11 @@ class BattleScreen(Screen[None]):
             return
         actor, ctx, encounter = self._current
         if ab.requires_target:
-            targets = _list_reachable_hostiles(actor, ctx, encounter)
+            spell = self._spell_by_ability.get(ab.id)
+            if spell is not None:
+                targets = self._list_spell_targets(actor, ctx, encounter, spell)
+            else:
+                targets = _list_reachable_hostiles(actor, ctx, encounter)
             if not targets:
                 self.log_widget.write(
                     f"[bold]No targets in reach for {ab.name}.[/]"
