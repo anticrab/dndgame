@@ -47,7 +47,7 @@ from typing import Literal
 from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.conditions.builtin import UNCONSCIOUS
 from dnd.domain.entities.inventory import Inventory
-from dnd.domain.values.ability import AbilityScores
+from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.ability_id import AbilityId
 from dnd.domain.values.creature_size import CreatureSize
 from dnd.domain.values.damage import (
@@ -249,6 +249,19 @@ class Creature:
     """Не None ⟺ существо в dying (0 HP, ещё не мёртв и не поднят). Ставится
     через begin_dying(); сбрасывается в None при лечении/нат-20. Инвариант
     синхронизируется с HitPoints и Condition Unconscious."""
+
+    spellcasting_ability: Ability | None = None
+    """Заклинательная характеристика (INT/WIS/CHA). None — не-кастер (P1).
+    От неё считаются spell attack bonus и save DC (PHB-2024 стр. 233)."""
+
+    spell_slots: dict[int, int] = field(default_factory=dict)
+    """Ячейки заклинаний: level → осталось. Заговоры (level 0) безлимитны и
+    в словаре не хранятся. Упрощённая модель P1 — без классовой таблицы
+    (она появится на этапе R). Mutable dict: расходуется при касте."""
+
+    known_spells: tuple[SpellId, ...] = ()
+    """ID известных существу заклинаний (разрешаются в Spell через
+    SpellRepository). Из них BattleScreen строит action-bar (P1-10)."""
 
     ability_ids: tuple[AbilityId, ...] = (
         AbilityId("weapon_attack"),
@@ -539,6 +552,36 @@ class Creature:
             and self.death_saves is not None
             and self.death_saves.is_dead
         )
+
+    # --- spellcasting (P1) ---------------------------------------------
+
+    def spell_attack_bonus(self) -> int:
+        """Бонус атаки заклинанием = proficiency_bonus + mod(заклинательной
+        характеристики). ValueError, если существо не кастер."""
+        if self.spellcasting_ability is None:
+            raise ValueError(f"{self.id} is not a spellcaster")
+        return self.proficiency_bonus + self.abilities.modifier(self.spellcasting_ability)
+
+    def spell_save_dc(self) -> int:
+        """Сл. спасброска от заклинаний = 8 + proficiency_bonus + mod
+        (PHB-2024 стр. 233). ValueError, если не кастер."""
+        if self.spellcasting_ability is None:
+            raise ValueError(f"{self.id} is not a spellcaster")
+        return 8 + self.proficiency_bonus + self.abilities.modifier(self.spellcasting_ability)
+
+    def has_spell_slot(self, level: int) -> bool:
+        """Есть ли ячейка нужного уровня. Заговор (level 0) — всегда True."""
+        if level == 0:
+            return True
+        return self.spell_slots.get(level, 0) > 0
+
+    def consume_spell_slot(self, level: int) -> None:
+        """Потратить ячейку. Заговор — no-op. ValueError, если ячеек нет."""
+        if level == 0:
+            return
+        if self.spell_slots.get(level, 0) <= 0:
+            raise ValueError(f"no spell slot of level {level} for {self.id}")
+        self.spell_slots[level] -= 1
 
     def gain_temporary_hp(self, amount: int) -> int:
         """Получить временные хиты. Возвращает реально применённое
