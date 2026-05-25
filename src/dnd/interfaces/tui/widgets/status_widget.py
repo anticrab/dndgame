@@ -41,7 +41,19 @@ def format_status(actor: Creature, ctx: TurnContext | None = None) -> str:
             f"bonus:{_flag_markup(not ctx.bonus_action_used)} "
             f"move:{_move_markup(ctx.movement_remaining_ft, actor.speed_ft)}"
         )
+    # Q-10: пипсы спасбросков от смерти (PHB-2024 стр. 27) — только когда
+    # существо в dying (death_saves is not None).
+    if actor.death_saves is not None:
+        bits.append(_death_save_markup(
+            actor.death_saves.successes, actor.death_saves.failures
+        ))
     return "  ".join(bits)
+
+
+def _death_save_markup(successes: int, failures: int) -> str:
+    succ = "[green]" + "●" * successes + "[/]" + "○" * (3 - successes)
+    fail = "[red]" + "●" * failures + "[/]" + "○" * (3 - failures)
+    return f"| Death saves: {succ} / {fail}"
 
 
 def _hp_markup(current: int, maximum: int) -> str:
