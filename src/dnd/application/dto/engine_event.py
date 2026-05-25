@@ -290,6 +290,28 @@ class CreatureDied(EngineEvent):
     actor_id: CreatureId
 
 
+class LevelUpReady(EngineEvent):
+    """XP пересёк порог — существо может прокачаться (PROGRESSION.md §4).
+
+    Само повышение применяет LevelUpService (по выбору игрока: сейчас/после боя).
+    """
+
+    event_type: ClassVar[str] = "level_up.ready"
+    actor_id: CreatureId
+    from_level: int
+    to_level: int
+
+
+class LeveledUp(EngineEvent):
+    """Существо повысило уровень (после применения LevelUpService)."""
+
+    event_type: ClassVar[str] = "level_up.done"
+    actor_id: CreatureId
+    new_level: int
+    hp_gained: int
+    features_gained: tuple[str, ...] = ()
+
+
 class HealingApplied(EngineEvent):
     """Восстановление HP (лечащее заклинание/эффект)."""
 
