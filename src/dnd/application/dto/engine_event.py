@@ -284,6 +284,21 @@ class CreatureDied(EngineEvent):
     actor_id: CreatureId
 
 
+class SpellCast(EngineEvent):
+    """Существо сотворило заклинание (этап P1).
+
+    ``spell_name`` несётся в событии, чтобы EventPrinter рендерил лог без
+    доступа к SpellRepository. ``target_id`` — None для SELF-заклинаний.
+    """
+
+    event_type: ClassVar[str] = "spell.cast"
+    caster_id: CreatureId
+    spell_id: str
+    spell_name: str
+    slot_level: int
+    target_id: CreatureId | None = None
+
+
 class HelpGranted(EngineEvent):
     """Help-action: ``helper`` готов содействовать ``ally`` в следующей
     атаке по ``target`` (PHB-2024 стр. 22). Сам бонус — advantage на

@@ -61,15 +61,33 @@
 
 ## 3. Ключевые решения
 
-### 3.1. Архитектура каста — data-driven + один `CastSpellAction` (выбран A)
+### 3.1. Архитектура каста — data-driven заклинания + реестр эффект-хендлеров (A+C)
 
-`Spell` — декларативные данные; единственный `CastSpellAction` исполняет по
-`spell.effect` (switch на 5 веток). `Ability`/keymap ссылаются на `spell_id`.
-Добавление заклинания = строки в YAML + (при новой механике) ветка switch.
+`Spell` — декларативные данные (A); **обработка** эффекта — через **реестр
+хендлеров** (C, open/closed). `CastSpellAction` тонкий: резолвит цель/слот/
+экономику, публикует `SpellCast`, делегирует `SpellEffectRegistry[spell.effect]`.
+
+- Заклинание **существующего** типа эффекта = только строки в YAML, ноль кода.
+- **Новый тип воздействия** = новый класс-хендлер (`SpellEffectHandler`) +
+  регистрация, **без касания** `CastSpellAction` и существующих хендлеров.
+
+**Почему не плоский switch:** домен заклинаний задуман сильно растущим (много
+заклинаний и новых типов обработки). Центральный switch по `SpellEffect` нарушил
+бы open/closed и привёл к тяжёлому рефактору под нагрузкой контента. Реестр даёт
+расширяемость сразу — решение пользователя (см. memory
+`feedback-extensibility-registries`).
 
 **Отвергнуто:** класс на заклинание (B — дубли, расходится с data-driven духом);
-реестр SpellEffect-хендлеров (C — переусложнение ради 5 заклинаний; switch
-легко мигрирует в C, когда заклинаний станет много, без изменения данных).
+плоский `switch` в `CastSpellAction` (lock-in при росте типов).
+
+Интерфейс хендлера (future-proof под P2 multi/AoE — принимает **кортеж целей**):
+```python
+class SpellEffectHandler(Protocol):
+    def apply(self, caster: Creature, targets: tuple[Creature, ...],
+              spell: Spell, ctx: TurnContext) -> None: ...
+```
+В P1 `targets` — всегда из одной цели (SELF→caster, SINGLE→цель); P2 (AoE/
+мультитаргет) добавит резолвинг нескольких целей, хендлеры менять не придётся.
 
 ### 3.2. Модель данных сразу под AoE/мультитаргет/справку
 
@@ -159,23 +177,39 @@ known_spells: tuple[SpellId, ...] = ()
 - `has_spell_slot(level) -> bool` (level 0 → всегда True);
 - `consume_spell_slot(level)` (level 0 → no-op).
 
-### 4.4. `CastSpellAction` (application/engine/actions/cast_spell.py)
+### 4.4. `CastSpellAction` + `SpellEffectRegistry` (application/engine/spells/)
 
-`CastSpellParams(spell_id, target_id: CreatureId | None)`.
-`can_perform_against`: actor — кастер; `spell_id in known_spells`; для level>0
-есть слот; цель валидна по `targeting` (SELF → актор; SINGLE → существо в range);
-экономика ACTION (cantrip тоже action в MVP). `execute`: тратит слот (level>0) +
-ACTION, switch по effect:
-- **ATTACK**: spell-attack roll (d20 + spell_attack_bonus) vs AC → при попадании
-  `take_damage(dice)`; крит удваивает кости (через DiceRoller, как `AttackAction`).
-- **SAVE**: бросок урона; цель кидает спасбросок `save_ability` vs `spell_save_dc`;
-  успех + `save_for_half` → половина, иначе 0/полный.
-- **AUTO**: `take_damage(dice)` без броска атаки.
-- **HEAL**: `target.heal(heal_dice + mod)`.
-- **BUFF**: применить эффект (Shield of Faith → +2 AC через `ModifierApplier`
-  или временный Condition); при `concentration=True` — `_start_concentration`.
-Публикует `SpellCast` + переиспользует `DamageDealt`/`AttackRolled` (для ATTACK)
-и эффекты урона/хила.
+Структура каталога `application/engine/spells/`:
+- `effect_handler.py` — `SpellEffectHandler` Protocol + `SpellEffectRegistry`
+  (`register(effect, handler)`, `get(effect)`, `__contains__`).
+- `handlers.py` — конкретные хендлеры (по одному на тип эффекта).
+- `defaults.py` — `default_spell_effect_registry()` регистрирует встроенные.
+
+`CastSpellAction` (`application/engine/actions/cast_spell.py`),
+`CastSpellParams(spell_id, target_id: CreatureId | None)`. Хранит
+`spell_repository` + `effect_registry` (DI; default — `default_spell_effect_registry()`).
+- `can_perform_against`: actor — кастер; `spell_id in known_spells`; заклинание
+  есть в репозитории; для level>0 есть слот; цель валидна по `targeting`
+  (SELF → актор; SINGLE → существо в range); экономика ACTION; эффект
+  зарегистрирован в реестре.
+- `execute`: тратит слот (level>0) + ACTION; резолвит `targets`; публикует
+  `SpellCast`; `effect_registry.get(spell.effect).apply(caster, targets, spell, ctx)`.
+
+Встроенные хендлеры (P1-4..8, добавляются по одному):
+- **AttackSpellHandler** (ATTACK): spell-attack roll (d20 + spell_attack_bonus) vs
+  effective AC → при попадании `take_damage(dice)`; крит удваивает кости.
+- **SaveSpellHandler** (SAVE): бросок урона; цель кидает спасбросок `save_ability`
+  vs `caster.spell_save_dc()`; успех + `save_for_half` → половина, иначе 0/полный.
+- **AutoSpellHandler** (AUTO): `take_damage(dice)` без броска атаки.
+- **HealSpellHandler** (HEAL): `target.heal(heal_dice + mod)`.
+- **BuffSpellHandler** (BUFF): применить эффект (Shield of Faith → +2 AC); при
+  `spell.concentration` — старт концентрации (снимает прежнюю).
+Хендлеры публикуют свои события (`DamageDealt` и т.п.) через `ctx.event_bus`.
+`CastSpellAction` публикует `SpellCast` до делегирования.
+
+Резолвинг целей (`_resolve_targets`) в P1: SELF → `(caster,)`; SINGLE →
+`(participants[target_id],)`. MULTI/AREA → `NotImplementedError` с пометкой «P2»
+(явная стадийная фича, не switch-lock; P2 добавит резолверы).
 
 **Концентрация:** `_start_concentration(caster, spell_id)` — если у кастера уже
 есть `concentration`, прежнее заклинание-эффект завершается (снимается баф),
