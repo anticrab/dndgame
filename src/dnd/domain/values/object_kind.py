@@ -9,6 +9,7 @@ class ObjectKind(StrEnum):
     CHEST = "chest"
     BARREL = "barrel"
     WINDOW = "window"
+    CORPSE = "corpse"  # труп павшего NPC: контейнер лута (Q-8)
 
 
 __all__ = ["ObjectKind"]

@@ -29,19 +29,22 @@ from dnd.application.dto.engine_event import (
     TurnEnded,
     TurnStarted,
 )
-from dnd.application.dto.ids import ConditionId, CreatureId
+from dnd.application.dto.ids import ConditionId, CreatureId, ObjectId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.application.engine.turn_context import TurnContext
+from dnd.application.inventory.loot_helpers import dump_loot_entries
 from dnd.domain.conditions.builtin import (
     INCAPACITATED,
     PARALYZED,
     STUNNED,
     UNCONSCIOUS,
 )
+from dnd.domain.entities.interactable import InteractableObject
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.object_kind import ObjectKind
 
 _log = logging.getLogger(__name__)
 
@@ -336,7 +339,39 @@ class Encounter:
             return
         if target.uses_death_saves and target.is_at_zero_hp:
             target.begin_dying()
-        # NPC-ветка (CORPSE) добавляется в Q-8.
+        elif not target.uses_death_saves and target.is_at_zero_hp:
+            # NPC-расходник: труп с лутом (Q-8). CreatureDied для лога.
+            self._spawn_corpse(target)
+            self._deps.event_bus.publish(CreatureDied(actor_id=target.id))
+
+    def _spawn_corpse(self, dead: Creature) -> None:
+        """Положить CORPSE-объект с инвентарём павшего NPC для лута (Q-8).
+
+        Само мёртвое существо остаётся на сетке (рендерится как ``%``);
+        CORPSE-объект — контейнер лута, лутается тем же Interact+Pickup,
+        что и сундук. Идемпотентно: повторный вызов ничего не делает.
+        """
+        corpse_id = ObjectId(f"corpse-{dead.id}")
+        try:
+            self._deps.battlefield.object_at(corpse_id)
+            return  # труп уже есть
+        except KeyError:
+            pass
+        if not self._deps.battlefield.has_creature(dead.id):
+            return  # нет позиции — нечего класть
+        pos = self._deps.battlefield.position_of(dead.id)
+        self._deps.battlefield.place_object(InteractableObject(
+            id=corpse_id,
+            kind=ObjectKind.CORPSE,
+            pos=pos,
+            state={
+                "open": False,
+                "locked": False,
+                "hp": 1,
+                "ac": 5,
+                "contents": dump_loot_entries(dead.inventory.stacks),
+            },
+        ))
 
     def _roll_death_save_for(self, actor: Creature) -> None:
         """Бросить за лежачего PC спасбросок от смерти (PHB-2024 стр. 27).

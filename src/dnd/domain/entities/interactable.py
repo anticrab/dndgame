@@ -61,6 +61,11 @@ class InteractableObject:
             loot = list(self.state.get("contents", []))
             self.state["contents"] = []
             return loot
+        if self.kind is ObjectKind.CORPSE:
+            # Q-8: труп открывается, но contents НЕ очищаются — лут идёт
+            # поштучно через PickupAction (инвентарь-экран), не моментально.
+            self.state["open"] = True
+            return []
         raise RuntimeError(f"{self.kind.value} cannot be opened")
 
     def close(self) -> None:
