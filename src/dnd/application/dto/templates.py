@@ -76,6 +76,12 @@ class MonsterTemplate(BaseModel):
     known_spells: tuple[str, ...] = ()
     spell_slots: dict[int, int] = Field(default_factory=dict)  # level → count
 
+    # Прогрессия (этап R1). cr — для награды XP (XP=cr*100); character_class/
+    # level — для PC (level-up через LevelUpService). None/0 — обычный монстр.
+    cr: float = Field(default=0.0, ge=0)
+    character_class: str | None = None  # "fighter" / "rogue"
+    level: int = Field(default=1, ge=1)
+
 
 class SpawnTemplate(BaseModel):
     """Кто и где появляется в сценарии."""

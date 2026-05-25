@@ -112,6 +112,9 @@ def play(
     item_repo = YamlItemRepository(Path(content_dir) / "items.yaml")
     # SpellRepository — для заклинаний (P1): action-bar в TUI + CastSpellAction.
     spell_repo = YamlSpellRepository(Path(content_dir) / "spells.yaml")
+    # ClassRepository — для прогрессии (R1): XP + level-up в TUI.
+    from dnd.infrastructure.content.yaml_class_repository import YamlClassRepository
+    class_repo = YamlClassRepository(Path(content_dir) / "classes.yaml")
     enc = build_encounter_from_scenario(
         scenario,
         content=repo,
@@ -130,7 +133,7 @@ def play(
                 err=True,
             )
             raise typer.Exit(code=2)
-        run_tui(encounter=enc, theme=theme, item_repository=item_repo, spell_repository=spell_repo)  # type: ignore[arg-type]  # theme: str vs ThemeName Literal
+        run_tui(encounter=enc, theme=theme, item_repository=item_repo, spell_repository=spell_repo, class_repository=class_repo)  # type: ignore[arg-type]  # theme: str vs ThemeName Literal
         return
 
     from dnd.application.engine.game_runner import GameRunner

@@ -72,6 +72,10 @@ def build_creature_from_template(
         creature.spellcasting_ability = Ability(template.spellcasting_ability)
         creature.known_spells = tuple(SpellId(s) for s in template.known_spells)
         creature.spell_slots = dict(template.spell_slots)
+    # Прогрессия (R1): cr для XP, класс/уровень для PC.
+    creature.challenge_rating = template.cr
+    creature.character_class = template.character_class
+    creature.level = template.level
     return creature
 
 

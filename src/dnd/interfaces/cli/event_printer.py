@@ -26,6 +26,7 @@ from dnd.application.dto.engine_event import (
     HelpGranted,
     InitiativeRolled,
     ItemPickedUp,
+    LeveledUp,
     MoveCompleted,
     MoveStepTaken,
     ObjectDamaged,
@@ -239,6 +240,15 @@ class EventPrinter:
     def _on_stabilized(self, event: CreatureStabilized) -> None:
         self._print(f"  ✚ [green]{event.by} stabilizes {event.actor_id}[/]")
 
+    def _on_leveled_up(self, event: LeveledUp) -> None:
+        feats = (
+            f" ({', '.join(event.features_gained)})" if event.features_gained else ""
+        )
+        self._print(
+            f"  ⭐ [bold yellow]{event.actor_id} reaches level {event.new_level}![/] "
+            f"+{event.hp_gained} HP{feats}"
+        )
+
     def _on_spell_cast(self, event: SpellCast) -> None:
         # ✨ caster casts Spell [at target(s)]. MULTI → перечисляем цели с
         # числом попаданий (✦×N), SINGLE — одна цель, AoE/SELF — без целей.
@@ -292,6 +302,7 @@ class EventPrinter:
         CreatureDied: lambda self, e: self._on_died(e),
         CreatureStabilized: lambda self, e: self._on_stabilized(e),
         SpellCast: lambda self, e: self._on_spell_cast(e),
+        LeveledUp: lambda self, e: self._on_leveled_up(e),
         HealingApplied: lambda self, e: self._on_healing(e),
     }
 

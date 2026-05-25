@@ -15,6 +15,7 @@
   proficiency_bonus: 2
   weapon_id: scimitar
   default_faction: monsters
+  cr: 0.25
 
 - id: goblin_archer
   name: Goblin Archer
@@ -31,6 +32,7 @@
   proficiency_bonus: 2
   weapon_id: shortbow
   default_faction: monsters
+  cr: 0.25
 
 - id: warrior_lv1
   name: Warrior (level 1)
@@ -47,6 +49,8 @@
   proficiency_bonus: 2
   weapon_id: longsword
   default_faction: party
+  character_class: fighter   # R1: level-up по таблице Воина
+  level: 1
 
 - id: mage_apprentice
   name: Apprentice Mage

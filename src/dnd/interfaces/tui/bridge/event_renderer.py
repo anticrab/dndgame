@@ -23,6 +23,7 @@ from dnd.application.dto.engine_event import (
     EncounterEnded,
     EngineEvent,
     InitiativeRolled,
+    LevelUpReady,
     MoveCompleted,
     StanceTaken,
     TurnStarted,
@@ -32,6 +33,7 @@ from dnd.domain.values.faction import Faction
 
 if TYPE_CHECKING:
     from dnd.application.engine.encounter import Encounter
+    from dnd.application.engine.progression.level_up import LevelUpService
     from dnd.domain.values.ids import CreatureId
     from dnd.interfaces.tui.screens.battle import BattleScreen
 
@@ -51,12 +53,17 @@ class EventRenderer:
         screen: BattleScreen,
         encounter: Encounter,
         call_from_thread: Callable[..., Any],
+        level_up_service: LevelUpService | None = None,
     ) -> None:
         self._screen = screen
         self._encounter = encounter
         self._call_raw = call_from_thread
         self._active_actor: CreatureId | None = None
         self._initiative_order: tuple[Any, ...] = ()
+        # R1: применение level-up (по выбору игрока). None — прогрессия не
+        # подключена (каркас/старые тесты).
+        self._level_up = level_up_service
+        self._pending_level_ups: list[LevelUpReady] = []
 
     def _call(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         """Безопасно отправить callback в main-thread.
@@ -111,7 +118,19 @@ class EventRenderer:
         del event
         self._call(self._refresh_status_main)
 
+    def _on_level_up_ready(self, event: LevelUpReady) -> None:
+        if self._level_up is None:
+            return
+        self._call(self._show_level_up_main, event)
+
     def _on_encounter_ended(self, event: EncounterEnded) -> None:
+        # Применить отложенные («После боя») level-up до экрана итога.
+        if self._level_up is not None:
+            for pending in self._pending_level_ups:
+                actor = self._encounter.participants.get(pending.actor_id)
+                if actor is not None:
+                    self._level_up.apply(actor, to_level=pending.to_level, ctx=None)
+            self._pending_level_ups = []
         self._call(self._refresh_map_main)
         self._call(self._refresh_initiative_main)
         self._call(self._show_end_screen_main, event)
@@ -163,6 +182,29 @@ class EventRenderer:
         except NoMatches:
             return
 
+    def _show_level_up_main(self, event: LevelUpReady) -> None:
+        # Импорт здесь — избежать цикла screens→bridge→screens.
+        from dnd.interfaces.tui.screens.level_up_screen import LevelUpScreen
+
+        svc = self._level_up
+        if svc is None:
+            return
+
+        def _now() -> None:
+            actor = self._encounter.participants.get(event.actor_id)
+            if actor is not None:
+                svc.apply(actor, to_level=event.to_level, ctx=None)
+
+        def _later() -> None:
+            self._pending_level_ups.append(event)
+
+        try:
+            self._screen.app.push_screen(
+                LevelUpScreen(event, on_now=_now, on_later=_later)
+            )
+        except NoMatches:
+            return
+
     def _show_end_screen_main(self, event: EncounterEnded) -> None:
         # EndScreen — точка фокуса после боя; BattleScreen помечает
         # себя 'concluded', action-биндинги перестают реагировать.
@@ -183,6 +225,7 @@ _DISPATCH: dict[type[EngineEvent], Callable[[EventRenderer, Any], None]] = {
     DamageDealt: lambda r, e: r._on_damage_or_attack(e),
     AttackResolved: lambda r, e: r._on_damage_or_attack(e),
     StanceTaken: lambda r, e: r._on_stance(e),
+    LevelUpReady: lambda r, e: r._on_level_up_ready(e),
     EncounterEnded: lambda r, e: r._on_encounter_ended(e),
 }
 

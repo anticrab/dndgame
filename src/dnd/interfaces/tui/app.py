@@ -17,6 +17,7 @@ from dnd.application.abilities.defaults import register_default_abilities
 from dnd.application.abilities.registry import AbilityRegistry
 from dnd.application.dto.player_intent import PlayerIntent
 from dnd.application.engine.game_runner import GameRunner
+from dnd.application.ports.class_repository import ClassRepository
 from dnd.application.ports.event_bus import Unsubscribe
 from dnd.application.ports.item_repository import ItemRepository
 from dnd.application.ports.spell_repository import SpellRepository
@@ -64,6 +65,7 @@ class TuiApp(App[None]):
         ability_registry: AbilityRegistry | None = None,
         item_repository: ItemRepository | None = None,
         spell_repository: SpellRepository | None = None,
+        class_repository: ClassRepository | None = None,
     ) -> None:
         # CSS_PATH читается из атрибутов экземпляра в __init__ Textual.
         # Подставляем тему до super().__init__.
@@ -85,6 +87,8 @@ class TuiApp(App[None]):
         self._item_repository: ItemRepository | None = item_repository
         # SpellRepository — для action-bar заклинаний (P1-10) и CastSpellAction.
         self._spell_repository: SpellRepository | None = spell_repository
+        # ClassRepository — для прогрессии (R1): XP-награда + level-up.
+        self._class_repository: ClassRepository | None = class_repository
         self._intent_queue: queue.Queue[PlayerIntent] | None = None
         self._provider: TuiIntentProvider | None = None
         self._renderer: EventRenderer | None = None
@@ -146,8 +150,29 @@ class TuiApp(App[None]):
         self._provider = TuiIntentProvider(
             self._intent_queue, turn_signal=_turn_signal
         )
+        # R1: прогрессия — XP за убийства + level-up. Подключаем только если
+        # передан class_repository (иначе бой идёт без прогрессии, backward-compat).
+        level_up_service = None
+        if self._class_repository is not None:
+            from dnd.application.engine.features.defaults import (
+                default_feature_registry,
+            )
+            from dnd.application.engine.progression.level_up import LevelUpService
+            from dnd.application.engine.progression.xp_award import XpAwardService
+            from dnd.application.engine.progression.xp_curve import FastXpCurve
+            level_up_service = LevelUpService(
+                class_repository=self._class_repository,
+                feature_registry=default_feature_registry(),
+                event_bus=encounter.event_bus,
+            )
+            XpAwardService(
+                event_bus=encounter.event_bus, curve=FastXpCurve(),
+                participants=encounter.participants, factions=encounter.factions,
+            ).subscribe()
+
         self._renderer = EventRenderer(
-            screen, encounter, call_from_thread=self.call_from_thread
+            screen, encounter, call_from_thread=self.call_from_thread,
+            level_up_service=level_up_service,
         )
         self._renderer_unsubscribe = self._renderer.subscribe(
             encounter.event_bus
@@ -195,6 +220,7 @@ def run_tui(
     theme: ThemeName = "color",
     item_repository: ItemRepository | None = None,
     spell_repository: SpellRepository | None = None,
+    class_repository: ClassRepository | None = None,
 ) -> None:
     """Создать TuiApp вокруг готового Encounter и запустить блокирующе.
 
@@ -204,7 +230,7 @@ def run_tui(
     """
     TuiApp(
         encounter=encounter, theme=theme, item_repository=item_repository,
-        spell_repository=spell_repository,
+        spell_repository=spell_repository, class_repository=class_repository,
     ).run()
 
 
