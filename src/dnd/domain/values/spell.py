@@ -29,7 +29,7 @@ class SpellEffect(StrEnum):
 
 
 class TargetKind(StrEnum):
-    """Как выбирается цель. P1: SELF / SINGLE. MULTI / AREA — этап P2."""
+    """Как выбирается цель. SELF/SINGLE — P1; AREA — P2; MULTI — P2b."""
 
     SELF = "self"
     SINGLE = "single"
@@ -37,14 +37,45 @@ class TargetKind(StrEnum):
     AREA = "area"
 
 
+class OriginMode(StrEnum):
+    """Откуда строится зона (AREA, этап P2)."""
+
+    FROM_CASTER = "from_caster"   # эманация от клетки кастера в направлении
+    AT_POINT = "at_point"         # зона вокруг выбранной точки (в пределах range)
+
+
+class AreaShape(StrEnum):
+    """Форма зоны поражения (AREA, этап P2). Расширяемо через реестр резолверов."""
+
+    CIRCLE = "circle"   # chebyshev-диск радиуса radius_ft/5
+    CONE = "cone"       # конус от origin в направлении, длина length_ft/5
+    LINE = "line"       # луч от origin в направлении, длина length_ft/5
+
+
 @dataclass(frozen=True, slots=True)
 class TargetingSpec:
-    """Спецификация нацеливания. ``max_targets`` / ``area_radius_ft`` —
-    задел под P2 (мультитаргет / AoE), в P1 не используются."""
+    """Спецификация нацеливания.
+
+    Для ``kind=AREA`` (P2): ``origin`` (от кастера / в точку), ``shape`` и размер
+    (``radius_ft`` для CIRCLE, ``length_ft`` для CONE/LINE). ``max_targets`` —
+    задел под мультитаргет (P2b)."""
 
     kind: TargetKind
     max_targets: int = 1
-    area_radius_ft: int = 0
+    origin: OriginMode = OriginMode.AT_POINT
+    shape: AreaShape | None = None
+    radius_ft: int = 0
+    length_ft: int = 0
+
+    def __post_init__(self) -> None:
+        if self.kind is not TargetKind.AREA:
+            return
+        if self.shape is None:
+            raise ValueError("AREA targeting requires a shape")
+        if self.shape is AreaShape.CIRCLE and self.radius_ft <= 0:
+            raise ValueError("CIRCLE area requires radius_ft > 0")
+        if self.shape in (AreaShape.CONE, AreaShape.LINE) and self.length_ft <= 0:
+            raise ValueError(f"{self.shape} area requires length_ft > 0")
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,4 +120,11 @@ class Spell:
             )
 
 
-__all__ = ["Spell", "SpellEffect", "TargetKind", "TargetingSpec"]
+__all__ = [
+    "AreaShape",
+    "OriginMode",
+    "Spell",
+    "SpellEffect",
+    "TargetKind",
+    "TargetingSpec",
+]

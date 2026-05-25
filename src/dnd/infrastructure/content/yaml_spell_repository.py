@@ -1,8 +1,8 @@
 """YamlSpellRepository — каталог заклинаний из одного YAML-файла.
 
 Формат — список заклинаний (см. data/content/spells.yaml). Поля совпадают с
-:class:`Spell`; ``targeting`` — вложенный объект ``{kind, max_targets,
-area_radius_ft}``. Отсутствующий файл → пустой репозиторий.
+:class:`Spell`; ``targeting`` — вложенный объект ``{kind, max_targets, origin,
+shape, radius_ft, length_ft}``. Отсутствующий файл → пустой репозиторий.
 """
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from dnd.application.dto.ids import SpellId
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.spell import (
+    AreaShape,
+    OriginMode,
     Spell,
     SpellEffect,
     TargetingSpec,
@@ -46,10 +48,14 @@ class YamlSpellRepository:
 
     def _parse(self, entry: dict[str, Any]) -> Spell:
         tgt = entry["targeting"]
+        shape_raw = tgt.get("shape")
         targeting = TargetingSpec(
             kind=TargetKind(tgt["kind"]),
             max_targets=int(tgt.get("max_targets", 1)),
-            area_radius_ft=int(tgt.get("area_radius_ft", 0)),
+            origin=OriginMode(tgt.get("origin", OriginMode.AT_POINT.value)),
+            shape=AreaShape(shape_raw) if shape_raw is not None else None,
+            radius_ft=int(tgt.get("radius_ft", 0)),
+            length_ft=int(tgt.get("length_ft", 0)),
         )
         dmg = entry.get("damage_type")
         save = entry.get("save_ability")

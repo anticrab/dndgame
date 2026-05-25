@@ -7,6 +7,8 @@ from dnd.application.dto.ids import SpellId
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.spell import (
+    AreaShape,
+    OriginMode,
     Spell,
     SpellEffect,
     TargetingSpec,
@@ -103,3 +105,45 @@ def test_buff_without_effect_rejected() -> None:
             effect=SpellEffect.BUFF, targeting=TargetingSpec(kind=TargetKind.SINGLE),
             range_ft=60, description="",
         )
+
+
+# --- P2-1: AoE TargetingSpec ---------------------------------------------
+
+def test_area_circle_at_point_valid() -> None:
+    ts = TargetingSpec(
+        kind=TargetKind.AREA, origin=OriginMode.AT_POINT,
+        shape=AreaShape.CIRCLE, radius_ft=10,
+    )
+    assert ts.shape is AreaShape.CIRCLE
+    assert ts.origin is OriginMode.AT_POINT
+
+
+def test_area_cone_from_caster_valid() -> None:
+    ts = TargetingSpec(
+        kind=TargetKind.AREA, origin=OriginMode.FROM_CASTER,
+        shape=AreaShape.CONE, length_ft=15,
+    )
+    assert ts.shape is AreaShape.CONE
+
+
+def test_area_line_valid() -> None:
+    ts = TargetingSpec(
+        kind=TargetKind.AREA, origin=OriginMode.FROM_CASTER,
+        shape=AreaShape.LINE, length_ft=30,
+    )
+    assert ts.shape is AreaShape.LINE
+
+
+def test_area_without_shape_rejected() -> None:
+    with pytest.raises(ValueError):
+        TargetingSpec(kind=TargetKind.AREA)
+
+
+def test_circle_without_radius_rejected() -> None:
+    with pytest.raises(ValueError):
+        TargetingSpec(kind=TargetKind.AREA, shape=AreaShape.CIRCLE)
+
+
+def test_cone_without_length_rejected() -> None:
+    with pytest.raises(ValueError):
+        TargetingSpec(kind=TargetKind.AREA, shape=AreaShape.CONE)
