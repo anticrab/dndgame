@@ -19,6 +19,7 @@ from dnd.application.abilities.ability import Ability, AbilityId
 from dnd.application.abilities.registry import AbilityRegistry
 from dnd.application.dto.action import ActionEconomyCost
 from dnd.application.dto.player_intent import (
+    ActionSurgeIntent,
     AttackIntent,
     BreakIntent,
     DashIntent,
@@ -26,6 +27,7 @@ from dnd.application.dto.player_intent import (
     DodgeIntent,
     InteractIntent,
     PlayerIntent,
+    SecondWindIntent,
     StabilizeIntent,
 )
 from dnd.application.engine.actions.interact import InteractKind
@@ -64,6 +66,14 @@ def _break(target_id: CreatureId) -> PlayerIntent:
 
 def _stabilize(target_id: CreatureId) -> PlayerIntent:
     return StabilizeIntent(target_id=target_id)
+
+
+def _second_wind() -> PlayerIntent:
+    return SecondWindIntent()
+
+
+def _action_surge() -> PlayerIntent:
+    return ActionSurgeIntent()
 
 
 def register_default_abilities(registry: AbilityRegistry) -> None:
@@ -116,6 +126,21 @@ def register_default_abilities(registry: AbilityRegistry) -> None:
         default_hotkey="s", economy_cost=ActionEconomyCost.ACTION,
         requires_target=True, requires_path=False,
         intent_factory=_stabilize,
+    ))
+    # Классовые активные фичи (этап R1). Выдаются персонажу через level-up
+    # (FeatureRegistry добавляет ability_id в creature.ability_ids), но
+    # регистрируются здесь, чтобы action-bar/keymap знали их фабрику/хоткей.
+    registry.register(Ability(
+        id=AbilityId("second_wind"), name="Second Wind", icon="W",
+        default_hotkey="w", economy_cost=ActionEconomyCost.BONUS_ACTION,
+        requires_target=False, requires_path=False,
+        intent_factory=_second_wind,
+    ))
+    registry.register(Ability(
+        id=AbilityId("action_surge"), name="Action Surge", icon="X",
+        default_hotkey="x", economy_cost=ActionEconomyCost.FREE,
+        requires_target=False, requires_path=False,
+        intent_factory=_action_surge,
     ))
 
 

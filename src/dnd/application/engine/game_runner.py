@@ -24,10 +24,10 @@ from dnd.application.dto.action import (
 )
 from dnd.application.dto.action import NoParams as _NoParams
 from dnd.application.dto.player_intent import (
+    ActionSurgeIntent,
     AttackIntent,
     BreakIntent,
     CastSpellIntent,
-    ActionSurgeIntent,
     DashIntent,
     DisengageIntent,
     DodgeIntent,
@@ -39,6 +39,10 @@ from dnd.application.dto.player_intent import (
     SecondWindIntent,
     StabilizeIntent,
 )
+from dnd.application.engine.actions.action_surge import (
+    ActionSurgeAction,
+    ActionSurgeParams,
+)
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.break_object import BreakAction, BreakParams
 from dnd.application.engine.actions.cast_spell import (
@@ -48,10 +52,6 @@ from dnd.application.engine.actions.cast_spell import (
 from dnd.application.engine.actions.interact import InteractAction, InteractParams
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.pickup import PickupAction, PickupParams
-from dnd.application.engine.actions.action_surge import (
-    ActionSurgeAction,
-    ActionSurgeParams,
-)
 from dnd.application.engine.actions.second_wind import (
     SecondWindAction,
     SecondWindParams,

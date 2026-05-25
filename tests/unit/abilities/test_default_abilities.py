@@ -25,6 +25,8 @@ def test_all_default_abilities_registered() -> None:
         AbilityId("interact"),
         AbilityId("break_object"),
         AbilityId("stabilize"),
+        AbilityId("second_wind"),
+        AbilityId("action_surge"),
     }
 
 

@@ -286,6 +286,10 @@ class Encounter:
         self._deps.event_bus.publish(InitiativeRolled(order=order))
         # Сразу же — старт первого раунда (сброс reactions + RoundStarted).
         self._begin_round(1)
+        # R1: «отдых между боями» — PC восстанавливают short-rest-ресурсы
+        # (Second Wind / Action Surge) на старте encounter. Полноценная
+        # RestService; будущие внебоевые short/long rest зовут её же.
+        self._short_rest_party()
         # Если одна из воюющих сторон уже выкошена до начала (offscreen
         # урон, scripted setup) — закрыть бой сразу, без пустых ходов
         # (аудит 13 EN-A002).
@@ -596,6 +600,18 @@ class Encounter:
                 survivors=survivors,
             )
         )
+
+    def _short_rest_party(self) -> None:
+        """R1: короткий отдых для всех PC (PARTY) на старте боя — восстановить
+        short-rest-ресурсы (Second Wind / Action Surge). Та же RestService, что
+        будут звать будущие внебоевые short/long rest."""
+        from dnd.application.engine.features.defaults import default_resource_registry
+        from dnd.application.engine.progression.rest import RestService
+        from dnd.domain.values.rest import RestKind
+        rest = RestService(default_resource_registry())
+        for cid, cr in self._participants.items():
+            if self._factions.get(cid) is Faction.PARTY:
+                rest.apply(cr, RestKind.SHORT)
 
     def _begin_round(self, n: int) -> None:
         """Сброс reactions у всех живых participants + публикация
