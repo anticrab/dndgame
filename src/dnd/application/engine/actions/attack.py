@@ -346,7 +346,10 @@ class AttackAction:
 
         # 4) Hit/Crit. Книга стр. 25: natural 20 — критическое попадание
         # (всегда попадает); natural 1 — критический промах (всегда мимо).
-        is_crit = attack_roll.is_natural_20()
+        # Порог крита берётся из actor.crit_range_min (по умолчанию 20 — обычное
+        # существо; Improved Critical Чемпиона ставит 19). R1.
+        _d20 = attack_roll.d20_raw if attack_roll.d20_raw is not None else 0
+        is_crit = _d20 >= actor.crit_range_min
         is_crit_miss = attack_roll.is_natural_1()
         if is_crit:
             hit = True

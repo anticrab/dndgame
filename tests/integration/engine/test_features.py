@@ -40,3 +40,17 @@ def test_resource_registry() -> None:
     spec = rr.get("second_wind")
     assert spec.max_uses == 1 and spec.recharge_on is RechargeOn.SHORT_REST
     assert rr.all_specs()["second_wind"].max_uses == 1
+
+
+def test_improved_critical_handler_sets_crit_range() -> None:
+    from dnd.application.engine.features.handlers import ImprovedCriticalHandler
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import AbilityScores
+    c = Creature.create(
+        id_="f", name="F",
+        abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
+        max_hp=12, armor_class=16, speed_ft=30,
+    )
+    assert c.crit_range_min == 20
+    ImprovedCriticalHandler().on_gain(c, None)
+    assert c.crit_range_min == 19
