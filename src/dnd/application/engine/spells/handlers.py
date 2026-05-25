@@ -9,15 +9,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import DamageDealt, HealingApplied
-from dnd.application.dto.modifiers import (
+from dnd.application.dto.rolls import RollContext, RollPurpose
+from dnd.domain.values.damage import DamageInstance
+from dnd.domain.values.dice import DiceExpr
+from dnd.domain.values.modifiers import (
     Modifier,
     ModifierSourceKind,
     ModifierTargetKind,
     NumericBonusEffect,
 )
-from dnd.application.dto.rolls import RollContext, RollPurpose
-from dnd.domain.values.damage import DamageInstance
-from dnd.domain.values.dice import DiceExpr
 
 if TYPE_CHECKING:
     from dnd.application.engine.turn_context import TurnContext

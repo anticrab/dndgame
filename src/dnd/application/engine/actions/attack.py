@@ -47,7 +47,6 @@ from dnd.application.dto.engine_event import (
     AttackRolled,
     DamageDealt,
 )
-from dnd.application.dto.modifiers import ModifierTargetKind
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.conditions.builtin import (
@@ -61,6 +60,7 @@ from dnd.domain.values.attack_kind import AttackKind
 from dnd.domain.values.damage import DamageInstance, DamageType
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.ids import ActionId, CreatureId
+from dnd.domain.values.modifiers import ModifierTargetKind
 from dnd.domain.values.terrain import CoverLevel
 
 # Состояния, при которых нельзя выполнять действия с атакой.

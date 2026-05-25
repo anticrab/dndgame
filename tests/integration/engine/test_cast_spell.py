@@ -5,7 +5,6 @@ from pathlib import Path
 
 from dnd.application.dto.action import Allowed, Forbidden
 from dnd.application.dto.engine_event import DamageDealt, SpellCast
-from dnd.application.dto.modifiers import ModifierTargetKind
 from dnd.application.engine.actions.cast_spell import CastSpellAction, CastSpellParams
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_scripted_dependencies
@@ -14,6 +13,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import SpellId
+from dnd.domain.values.modifiers import ModifierTargetKind
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository

@@ -30,8 +30,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from dnd.application.dto.modifiers import Modifier
 from dnd.domain.values.ids import ConditionId, CreatureId
+from dnd.domain.values.modifiers import Modifier
 
 
 class Condition(Protocol):

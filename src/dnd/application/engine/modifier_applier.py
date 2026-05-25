@@ -26,7 +26,8 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
-from dnd.application.dto.modifiers import (
+from dnd.domain.values.ids import CreatureId
+from dnd.domain.values.modifiers import (
     AdvantageEffect,
     DiceBonusEffect,
     DisadvantageEffect,
@@ -36,7 +37,6 @@ from dnd.application.dto.modifiers import (
     RollAdjustments,
     StackingPolicy,
 )
-from dnd.domain.values.ids import CreatureId
 
 
 class ModifierBag:

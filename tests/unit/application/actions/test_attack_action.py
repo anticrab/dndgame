@@ -537,7 +537,7 @@ def test_attack_params_frozen_and_validated() -> None:
 def _modifier_bag_with_damage_bonus(numeric: int = 0, extra_dice: str | None = None):
     """Утилита: построить ModifierBag для actor'а с указанным DAMAGE_ROLL
     модификатором (numeric и/или extra_dice)."""
-    from dnd.application.dto.modifiers import (
+    from dnd.domain.values.modifiers import (
         DiceBonusEffect,
         Modifier,
         ModifierSourceKind,

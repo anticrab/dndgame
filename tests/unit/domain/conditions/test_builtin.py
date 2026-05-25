@@ -15,11 +15,6 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.modifiers import (
-    DisadvantageEffect,
-    ModifierSourceKind,
-    ModifierTargetKind,
-)
 from dnd.domain.conditions.builtin import (
     FRIGHTENED,
     INCAPACITATED,
@@ -41,6 +36,11 @@ from dnd.domain.conditions.builtin import (
 )
 from dnd.domain.conditions.registry import ConditionRegistry
 from dnd.domain.values.ids import CreatureId
+from dnd.domain.values.modifiers import (
+    DisadvantageEffect,
+    ModifierSourceKind,
+    ModifierTargetKind,
+)
 
 _AELAR = CreatureId("aelar")
 

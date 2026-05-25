@@ -15,28 +15,15 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from dnd.domain.values.ids import CreatureId, RollId
 
-
-class RollPurpose(StrEnum):
-    """Категории бросков. Книга 2024 называет их «Тесты к20», но мы
-    выделяем подкатегории для статистики и аудита."""
-
-    ATTACK = "attack"
-    DAMAGE = "damage"
-    SAVE = "save"
-    ABILITY_CHECK = "ability_check"
-    INITIATIVE = "initiative"
-    HIT_DICE = "hit_dice"
-    DEATH_SAVE = "death_save"
-    STATS_GEN = "stats_gen"
-    LOOT = "loot"
-    OTHER = "other"
+# RollPurpose переехал в domain (доменное понятие); реэкспортим здесь для
+# совместимости — многие импортят его из dnd.application.dto.rolls.
+from dnd.domain.values.roll_purpose import RollPurpose
 
 
 class RollContext(BaseModel):
