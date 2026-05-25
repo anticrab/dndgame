@@ -204,9 +204,19 @@ Textual-приложения, MVP-граница, многопоточная с�
   `DeathSaveRolled`/`CreatureStabilized`/`CreatureDied`; TUI death-save
   пипсы в StatusWidget. Закрыт O-хвост «лут трупов». См. `docs/DYING.md`.
   ⏳ Отложено: `Spare the Dying` (→ P), воскрешение, multi-PC стабилизация.
-- 🔜 **Этап P — Заклинания.** `Spell`/`SpellSlot`, 5 базовых
-  (Magic Missile, Fire Bolt, Cure Wounds, Shield, Bless),
-  ActionBarWidget возвращается с динамическими `[1] Fire Bolt …`.
+- ✅ **Этап P1 — Заклинания (фундамент).** Data-driven `Spell` (YAML) +
+  `SpellRepository`; расширяемая обработка через `SpellEffectRegistry`
+  (хендлер на тип воздействия — open/closed, новый тип = новый хендлер без
+  правки `CastSpellAction`); 5 типов эффектов (ATTACK/SAVE/AUTO/HEAL/BUFF) +
+  концентрация; 5 заклинаний (Fire Bolt, Sacred Flame, Magic Missile,
+  Cure Wounds, Shield of Faith); `Creature` spellcasting-поля + spell
+  attack/DC + упрощённые ячейки; `CastSpellIntent` + GameRunner;
+  `ActionBarWidget` вернулся с динамическими `[1] Fire Bolt …` + спелл-
+  таргетинг (враги/союзники); событие `SpellCast`; PC-кастер `mage_apprentice`
+  в сценарии `mage_skirmish`. См. `docs/SPELLS.md`.
+  - ⏳ **P2** — AoE-формы + мультитаргет (резолвинг + выбор в TUI).
+  - ⏳ **P3** — справка/inspect по заклинанию-способности → база знаний.
+  - Отложено: upcasting, реакция-каст, классовые таблицы ячеек (→ R).
 - 🔜 **Этап R — Уровни и опыт.** XP-tracking, level-up
   (HP, proficiency_bonus, ASI), TUI level-up screen (mockup C.5).
 - 🔜 Главное меню, лист персонажа, экран исследования.
