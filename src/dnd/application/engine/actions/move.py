@@ -50,7 +50,6 @@ from dnd.application.dto.engine_event import (
     MoveStepTaken,
     OpportunityAttackProvoked,
 )
-from dnd.application.dto.ids import ActionId, CreatureId
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.conditions.builtin import (
     INCAPACITATED,
@@ -60,6 +59,7 @@ from dnd.domain.conditions.builtin import (
 )
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import ActionId, CreatureId
 from dnd.domain.values.square import Square
 
 # Состояния, отключающие движение в MVP.

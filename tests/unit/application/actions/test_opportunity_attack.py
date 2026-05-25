@@ -31,7 +31,6 @@ from dnd.application.dto.engine_event import (
     EngineEvent,
     OpportunityAttackProvoked,
 )
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.attack import (
     AttackKind,
     AttackParams,
@@ -50,6 +49,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.infrastructure.rng.scripted_rng import ScriptedRNG

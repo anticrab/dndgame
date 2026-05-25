@@ -5,10 +5,10 @@ from dnd.application.abilities.spell_abilities import (
     is_spell_ability,
     spell_ability,
 )
-from dnd.application.dto.ids import SpellId
 from dnd.application.dto.player_intent import CastSpellIntent
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
 
 

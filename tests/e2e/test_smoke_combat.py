@@ -26,7 +26,6 @@ from dnd.application.dto.engine_event import (
     EngineEvent,
     TurnStarted,
 )
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.engine.ai.simple_monster import (
@@ -39,6 +38,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD, SCIMITAR
 

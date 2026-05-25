@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from dnd.application.dto.ids import SpellId
 from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.spell import SpellEffect, TargetKind
 from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository
 

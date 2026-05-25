@@ -34,7 +34,6 @@ from dnd.application.dto.engine_event import (
     MoveStepTaken,
     OpportunityAttackProvoked,
 )
-from dnd.application.dto.ids import ConditionId, CreatureId
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.condition_service import ConditionService
 from dnd.application.engine.dice_roller import ComputerDiceRoller
@@ -46,6 +45,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.damage import DamageInstance, DamageType
+from dnd.domain.values.ids import ConditionId, CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import DIFFICULT, WALL
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus

@@ -1,10 +1,10 @@
 """Creature.ability_ids + Creature.keybindings — поля L2-T4."""
 from __future__ import annotations
 
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.ability_id import AbilityId
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.weapon import LONGSWORD
 
 

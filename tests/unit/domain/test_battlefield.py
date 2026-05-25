@@ -19,8 +19,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.battlefield import Battlefield
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import (
     CLOSED_DOOR,

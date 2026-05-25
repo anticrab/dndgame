@@ -22,10 +22,10 @@ from dnd.application.dto.engine_event import (
     RoundStarted,
     TurnStarted,
 )
-from dnd.application.dto.ids import CreatureId, ObjectId, RollId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, ObjectId, RollId
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.interfaces.cli.event_printer import EventPrinter
 

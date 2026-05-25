@@ -33,13 +33,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from dnd.application.dto.ids import ConditionId, CreatureId
 from dnd.application.dto.modifiers import (
     DisadvantageEffect,
     Modifier,
     ModifierSourceKind,
     ModifierTargetKind,
 )
+from dnd.domain.values.ids import ConditionId, CreatureId
 
 # Канонические ConditionId для базовых состояний.
 INCAPACITATED = ConditionId("incapacitated")

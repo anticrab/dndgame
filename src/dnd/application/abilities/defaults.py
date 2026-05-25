@@ -18,7 +18,6 @@ from __future__ import annotations
 from dnd.application.abilities.ability import Ability, AbilityId
 from dnd.application.abilities.registry import AbilityRegistry
 from dnd.application.dto.action import ActionEconomyCost
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
@@ -30,6 +29,7 @@ from dnd.application.dto.player_intent import (
     StabilizeIntent,
 )
 from dnd.application.engine.actions.interact import InteractKind
+from dnd.domain.values.ids import CreatureId, ObjectId
 
 
 def _attack(target_id: CreatureId) -> PlayerIntent:

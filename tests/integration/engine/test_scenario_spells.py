@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from dnd.application.dto.ids import CreatureId, SpellId
 from dnd.application.engine.scenario_builder import build_encounter_from_scenario
 from dnd.composition import build_scripted_dependencies
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.values.ability import Ability
+from dnd.domain.values.ids import CreatureId, SpellId
 from dnd.infrastructure.content.yaml_repository import YamlContentRepository
 
 _CONTENT = Path(__file__).resolve().parents[3] / "data" / "content"

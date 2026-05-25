@@ -16,8 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from dnd.application.dto.ids import ObjectId
 from dnd.domain.values.damage import DamageInstance
+from dnd.domain.values.ids import ObjectId
 from dnd.domain.values.object_kind import ObjectKind
 from dnd.domain.values.square import Square
 

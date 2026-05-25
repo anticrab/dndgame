@@ -36,8 +36,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.rolls import RollPurpose
+from dnd.domain.values.ids import CreatureId
 
 # -- ModifierTarget -------------------------------------------------------
 

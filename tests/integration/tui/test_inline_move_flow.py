@@ -13,13 +13,13 @@ import pytest
 
 pytest.importorskip("textual")
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_default_runtime_services
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.infrastructure.rng.real_rng import RealRNG

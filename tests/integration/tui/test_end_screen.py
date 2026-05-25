@@ -16,8 +16,8 @@ pytest.importorskip("textual")
 from textual.app import App
 
 from dnd.application.dto.engine_event import EncounterEnded
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.interfaces.tui.screens.end_screen import EndScreen
 
 

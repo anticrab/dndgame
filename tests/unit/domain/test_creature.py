@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.creature_size import CreatureSize
 from dnd.domain.values.damage import DamageInstance, DamageType
+from dnd.domain.values.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.values.vision import NORMAL_VISION, Vision, VisionKind
 
 # -- фабрика тест-существ -------------------------------------------------

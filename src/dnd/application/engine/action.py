@@ -30,9 +30,9 @@ from dnd.application.dto.action import (
     ActionOutcome,
     ActionParams,
 )
-from dnd.application.dto.ids import ActionId
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.ids import ActionId
 
 
 @runtime_checkable

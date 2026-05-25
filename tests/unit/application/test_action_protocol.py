@@ -17,9 +17,9 @@ from dnd.application.dto.action import (
     ActionParams,
     Allowed,
 )
-from dnd.application.dto.ids import ActionId
 from dnd.application.engine.action import Action
 from dnd.application.engine.turn_context import TurnContext
+from dnd.domain.values.ids import ActionId
 
 
 class _StubAction:

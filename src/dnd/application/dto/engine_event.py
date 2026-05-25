@@ -18,11 +18,11 @@ from typing import ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dnd.application.dto.ids import CreatureId, ObjectId, RollId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import EngineRollResult
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, ObjectId, RollId
 from dnd.domain.values.item import ItemId
 from dnd.domain.values.square import Square
 

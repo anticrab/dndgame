@@ -11,9 +11,9 @@ from typing import TYPE_CHECKING
 from textual.widgets import Static
 
 if TYPE_CHECKING:
-    from dnd.application.dto.ids import CreatureId
     from dnd.application.dto.initiative import InitiativeEntry
     from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ids import CreatureId
 
 
 def format_initiative(

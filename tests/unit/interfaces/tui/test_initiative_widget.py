@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from dnd.application.dto.ids import CreatureId, RollId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.damage import DamageInstance, DamageType
+from dnd.domain.values.ids import CreatureId, RollId
 from dnd.interfaces.tui.widgets.initiative_widget import format_initiative
 
 

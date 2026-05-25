@@ -13,9 +13,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from dnd.application.dto.ids import SpellId
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.ids import SpellId
 
 
 class SpellEffect(StrEnum):

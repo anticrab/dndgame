@@ -14,13 +14,13 @@ import queue
 import threading
 from collections.abc import Callable
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     DodgeIntent,
     EndTurnIntent,
     PlayerIntent,
 )
+from dnd.domain.values.ids import CreatureId
 from dnd.interfaces.tui.bridge.intent_provider import TuiIntentProvider
 
 

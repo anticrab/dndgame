@@ -4,13 +4,13 @@ from __future__ import annotations
 from dnd.application.abilities.ability import AbilityId
 from dnd.application.abilities.defaults import register_default_abilities
 from dnd.application.abilities.registry import AbilityRegistry
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
     DodgeIntent,
     InteractIntent,
 )
+from dnd.domain.values.ids import CreatureId, ObjectId
 
 
 def test_all_default_abilities_registered() -> None:

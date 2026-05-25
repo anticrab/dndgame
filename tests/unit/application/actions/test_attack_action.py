@@ -28,7 +28,6 @@ from dnd.application.dto.engine_event import (
     DamageDealt,
     EngineEvent,
 )
-from dnd.application.dto.ids import ConditionId, CreatureId
 from dnd.application.engine.actions.attack import (
     AttackAction,
     AttackKind,
@@ -44,6 +43,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.ids import ConditionId, CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import HIGH_COVER, WALL
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
@@ -669,7 +669,7 @@ def test_concentration_save_dc_propagated_when_hit() -> None:
     DC = max(10, damage // 2). AttackAction передаёт это поле в
     AttackResolved для движка."""
     target = _make_goblin(hp=30)
-    from dnd.application.dto.ids import SpellId
+    from dnd.domain.values.ids import SpellId
 
     target.concentration = SpellId("bless")
     attacker = _make_fighter()

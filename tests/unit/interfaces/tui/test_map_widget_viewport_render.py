@@ -1,7 +1,7 @@
 """render_battlefield: клипует к visible_rect + рисует path_preview + highlights."""
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.widgets.map_widget import render_battlefield
 

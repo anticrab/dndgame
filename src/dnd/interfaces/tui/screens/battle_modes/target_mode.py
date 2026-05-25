@@ -8,8 +8,8 @@ Hint показывает HP/AC и расстояние выбранной це�
 """
 from __future__ import annotations
 
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.screens.battle_modes.protocol import (
     ModeScreenContext,

@@ -8,10 +8,10 @@
 from __future__ import annotations
 
 from dnd.application.dto.action import ActionEconomyCost
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.interfaces.tui.widgets.status_widget import format_status

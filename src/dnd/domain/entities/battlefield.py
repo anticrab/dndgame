@@ -35,9 +35,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.domain.entities.interactable import InteractableObject
 from dnd.domain.values.direction import Direction
+from dnd.domain.values.ids import CreatureId, ObjectId
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import FLOOR, CoverLevel, Terrain
 from dnd.domain.values.tile import Tile

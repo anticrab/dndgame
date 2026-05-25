@@ -20,9 +20,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from dnd.application.dto.action import ActionEconomyCost
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.battlefield import Battlefield
+from dnd.domain.values.ids import CreatureId
 
 
 def _make_ctx(movement_ft: int = 30) -> TurnContext:

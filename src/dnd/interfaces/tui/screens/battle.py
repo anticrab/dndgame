@@ -45,7 +45,6 @@ from dnd.application.abilities.defaults import register_default_abilities
 from dnd.application.abilities.registry import AbilityRegistry
 from dnd.application.abilities.spell_abilities import is_spell_ability, spell_ability
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
@@ -70,6 +69,7 @@ from dnd.application.ports.item_repository import ItemRepository
 from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.values.direction import Direction
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, ObjectId
 from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.screens.battle_modes.area_mode import AreaModeHandler

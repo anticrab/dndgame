@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from dnd.application.dto.ids import SpellId
 from dnd.application.dto.player_intent import CastSpellIntent, EndTurnIntent
 from dnd.application.engine.encounter import Encounter
 from dnd.application.engine.game_runner import GameRunner
@@ -12,6 +11,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository

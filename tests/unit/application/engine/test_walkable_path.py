@@ -1,12 +1,12 @@
 """find_walkable_path — Dijkstra с учётом стен и difficult terrain."""
 from __future__ import annotations
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.move_path import (
     find_walkable_path,
     path_cost_ft,
 )
 from dnd.domain.entities.battlefield import Battlefield
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import FLOOR, WALL, Terrain
 

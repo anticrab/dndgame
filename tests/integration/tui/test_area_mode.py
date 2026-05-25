@@ -1,10 +1,10 @@
 """P2-6/P2-7: AreaModeHandler — выбор зоны (точка / направление) + превью."""
 from __future__ import annotations
 
-from dnd.application.dto.ids import SpellId
 from dnd.application.engine.spells.area import default_area_shape_registry
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.values.direction import Direction
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.spell import (
     AreaShape,
     OriginMode,

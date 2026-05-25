@@ -21,8 +21,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from dnd.application.dto.ids import ConditionId
 from dnd.domain.conditions.base import Condition
+from dnd.domain.values.ids import ConditionId
 
 
 class ConditionRegistry:

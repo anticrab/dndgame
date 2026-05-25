@@ -14,10 +14,10 @@ from enum import Enum
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from dnd.application.dto.ids import CreatureId
     from dnd.application.engine.spells.area import AreaShapeRegistry
     from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ids import CreatureId
     from dnd.domain.values.spell import TargetingSpec
     from dnd.domain.values.square import Square
 

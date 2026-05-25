@@ -1,9 +1,9 @@
 """TargetModeHandler: Tab-cycle по достижимым врагам, highlights, Enter."""
 from unittest.mock import MagicMock
 
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.interfaces.tui.screens.battle_modes.target_mode import TargetModeHandler

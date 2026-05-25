@@ -44,7 +44,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.conditions.builtin import UNCONSCIOUS
 from dnd.domain.entities.inventory import Inventory
 from dnd.domain.values.ability import Ability, AbilityScores
@@ -58,6 +57,7 @@ from dnd.domain.values.damage import (
 )
 from dnd.domain.values.death_save_state import DeathSaveState
 from dnd.domain.values.hit_points import HitPoints
+from dnd.domain.values.ids import ConditionId, CreatureId, SpellId
 from dnd.domain.values.vision import NORMAL_VISION, Vision
 from dnd.domain.values.weapon import WeaponProfile
 

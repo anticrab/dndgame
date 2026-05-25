@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.action import ActionEconomyCost
-from dnd.application.dto.ids import CreatureId
+from dnd.domain.values.ids import CreatureId
 
 if TYPE_CHECKING:
     from dnd.application.engine.condition_service import ConditionService

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
 from dnd.application.dto.engine_event import ItemPickedUp
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.engine.actions.pickup import PickupAction, PickupParams
 from dnd.application.engine.encounter import Encounter
 from dnd.application.engine.turn_context import TurnContext
@@ -14,6 +13,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.entities.interactable import InteractableObject
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, ObjectId
 from dnd.domain.values.item import Item, ItemId, ItemKind
 from dnd.domain.values.object_kind import ObjectKind
 from dnd.domain.values.square import Square

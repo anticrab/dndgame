@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.attack import AttackKind
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.weapon import LONGSWORD, SCIMITAR, SHORTBOW
 
 

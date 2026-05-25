@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import SpellId
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
+from dnd.domain.values.ids import SpellId
 
 
 def _caster(*, int_: int = 16, prof: int = 2) -> Creature:

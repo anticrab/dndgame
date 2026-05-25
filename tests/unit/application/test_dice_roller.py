@@ -21,11 +21,11 @@ import logging
 import pytest
 
 from dnd.application.dto.engine_event import RollApplied, RollIssued
-from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.rolls import EngineRollResult, RollContext, RollPurpose
 from dnd.application.engine.dice_roller import ComputerDiceRoller
 from dnd.application.ports.event_bus import EventBus
 from dnd.domain.values.dice import DiceExpr, DiceParseError
+from dnd.domain.values.ids import CreatureId
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.infrastructure.rng.scripted_rng import ScriptedRNG
 

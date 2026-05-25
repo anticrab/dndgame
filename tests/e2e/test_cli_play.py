@@ -15,8 +15,8 @@ from __future__ import annotations
 import pytest
 from typer.testing import CliRunner
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.player_intent import AttackIntent, EndTurnIntent
+from dnd.domain.values.ids import CreatureId
 from dnd.interfaces.cli.app import app
 from dnd.interfaces.cli.scripted_provider import ScriptedIntentProvider
 

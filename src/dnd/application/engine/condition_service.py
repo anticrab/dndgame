@@ -21,9 +21,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from dnd.application.dto.ids import ConditionId
 from dnd.domain.conditions.registry import ConditionRegistry
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.ids import ConditionId
 
 
 @dataclass(frozen=True, slots=True)

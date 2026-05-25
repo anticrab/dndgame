@@ -8,7 +8,6 @@ gob#2). Идентификатор инстанса передаётся сна�
 
 from __future__ import annotations
 
-from dnd.application.dto.ids import CreatureId, SpellId
 from dnd.application.dto.templates import (
     AbilityScoresTemplate,
     MonsterTemplate,
@@ -17,6 +16,7 @@ from dnd.application.dto.templates import (
 from dnd.application.ports.content_repository import ContentRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
+from dnd.domain.values.ids import CreatureId, SpellId
 from dnd.domain.values.weapon import WeaponProfile
 
 

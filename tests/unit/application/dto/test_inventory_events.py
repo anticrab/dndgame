@@ -10,7 +10,7 @@ from dnd.application.dto.engine_event import (
     ItemPickedUp,
     ItemUnequipped,
 )
-from dnd.application.dto.ids import CreatureId
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.item import ItemId
 
 

@@ -13,13 +13,13 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from dnd.application.dto.ids import RollId
 from dnd.application.dto.rolls import (
     EngineRollResult,
     RollContext,
     RollPurpose,
     make_roll_id,
 )
+from dnd.domain.values.ids import RollId
 
 # -- RollPurpose ----------------------------------------------------------
 

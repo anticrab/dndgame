@@ -20,7 +20,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dnd.application.dto.ids import CreatureId, RollId
+from dnd.domain.values.ids import CreatureId, RollId
 
 
 class RollPurpose(StrEnum):

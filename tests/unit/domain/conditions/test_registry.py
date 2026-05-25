@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 
 import pytest
 
-from dnd.application.dto.ids import ConditionId, CreatureId
 from dnd.application.dto.modifiers import Modifier
 from dnd.domain.conditions.registry import ConditionRegistry
+from dnd.domain.values.ids import ConditionId, CreatureId
 
 _FAKE_ID = ConditionId("fake")
 

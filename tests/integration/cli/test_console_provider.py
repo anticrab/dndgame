@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
@@ -26,6 +25,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.entities.interactable import InteractableObject
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, ObjectId
 from dnd.domain.values.item import Item as _Item
 from dnd.domain.values.item import ItemId as _ItemId
 from dnd.domain.values.item import ItemKind as _ItemKind

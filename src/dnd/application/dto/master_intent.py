@@ -21,7 +21,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
-from dnd.application.dto.ids import CreatureId, PlayerId, RollId
+from dnd.domain.values.ids import CreatureId, PlayerId, RollId
 
 
 class _MasterIntentBase(BaseModel):

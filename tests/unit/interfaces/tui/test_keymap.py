@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from dnd.application.abilities.defaults import register_default_abilities
 from dnd.application.abilities.registry import AbilityRegistry
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.ability_id import AbilityId
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.interfaces.tui.screens.keymap import build_keymap
 

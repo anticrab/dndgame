@@ -37,7 +37,6 @@ from dnd.application.dto.action import (
     Forbidden,
     ForbiddenReason,
 )
-from dnd.application.dto.ids import ActionId
 from dnd.application.engine.actions.attack import (
     AttackAction,
     AttackKind,
@@ -45,6 +44,7 @@ from dnd.application.engine.actions.attack import (
 )
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.ids import ActionId
 
 
 class OpportunityAttack(AttackAction):

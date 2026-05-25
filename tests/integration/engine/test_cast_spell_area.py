@@ -5,7 +5,6 @@ from typing import ClassVar
 
 from dnd.application.dto.action import Allowed, Forbidden
 from dnd.application.dto.engine_event import DamageDealt
-from dnd.application.dto.ids import SpellId
 from dnd.application.engine.actions.cast_spell import CastSpellAction, CastSpellParams
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_scripted_dependencies
@@ -15,6 +14,7 @@ from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.direction import Direction
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.spell import (
     AreaShape,
     OriginMode,

@@ -252,7 +252,7 @@ def test_warehouse_has_interactable_objects(
     )
     # warehouse.yaml: 1 door + 1 window + 4 barrels + 1 chest = 7.
     # Используем publicапи: object_at для двери.
-    from dnd.application.dto.ids import ObjectId
+    from dnd.domain.values.ids import ObjectId
 
     door = enc.battlefield.object_at(ObjectId("door-main"))
     assert door.kind.value == "door"

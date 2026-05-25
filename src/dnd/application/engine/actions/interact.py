@@ -23,9 +23,9 @@ from dnd.application.dto.action import (
     ForbiddenReason,
 )
 from dnd.application.dto.engine_event import ObjectInteracted
-from dnd.application.dto.ids import ActionId, ObjectId
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
+from dnd.domain.values.ids import ActionId, ObjectId
 from dnd.domain.values.object_kind import ObjectKind
 
 

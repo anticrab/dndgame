@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import SpellId
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.spell import (
     AreaShape,
     OriginMode,

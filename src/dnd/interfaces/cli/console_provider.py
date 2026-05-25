@@ -20,7 +20,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from dnd.application.dto.action import Allowed
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
@@ -43,6 +42,7 @@ from dnd.application.inventory.loot_helpers import parse_loot
 from dnd.application.ports.item_repository import ItemRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, ObjectId
 from dnd.domain.values.item import ItemId
 from dnd.domain.values.object_kind import ObjectKind
 from dnd.domain.values.square import Square

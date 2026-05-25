@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import (
     CLOSED_DOOR,
@@ -178,9 +178,9 @@ def test_dead_creature_renders_as_corpse_glyph() -> None:
     """Если is_alive(cid) == False — клетка рисуется как `%`,
     а не как глиф фракции. Через cell всё ещё видно занятость
     (на случай если игрок хочет понять, кто там лежал)."""
-    from dnd.application.dto.ids import CreatureId
     from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.values.faction import Faction
+    from dnd.domain.values.ids import CreatureId
     from dnd.domain.values.square import Square
     bf = Battlefield(3, 1)
     bf.place_creature(CreatureId("corpse"), Square(1, 0))
@@ -196,9 +196,9 @@ def test_dead_creature_renders_as_corpse_glyph() -> None:
 
 def test_living_overrides_dead_on_same_square() -> None:
     """Если на клетке и живой, и труп — рисуется живой."""
-    from dnd.application.dto.ids import CreatureId
     from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.values.faction import Faction
+    from dnd.domain.values.ids import CreatureId
     from dnd.domain.values.square import Square
     bf = Battlefield(3, 1)
     bf.place_creature(CreatureId("corpse"), Square(1, 0))

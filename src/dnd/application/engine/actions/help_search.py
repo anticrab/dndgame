@@ -37,7 +37,6 @@ from dnd.application.dto.action import (
     ForbiddenReason,
 )
 from dnd.application.dto.engine_event import HelpGranted, SearchPerformed
-from dnd.application.dto.ids import ActionId, CreatureId
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.conditions.builtin import (
@@ -48,6 +47,7 @@ from dnd.domain.conditions.builtin import (
 )
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.dice import DiceExpr
+from dnd.domain.values.ids import ActionId, CreatureId
 
 _ACTION_BLOCKERS: Final = frozenset(
     {INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS}

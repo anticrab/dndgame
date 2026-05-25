@@ -18,7 +18,6 @@ from __future__ import annotations
 import pytest
 
 from dnd.application.dto.engine_event import EngineEvent, InitiativeRolled
-from dnd.application.dto.ids import ConditionId, CreatureId
 from dnd.application.engine.condition_service import ConditionService
 from dnd.application.engine.dice_roller import ComputerDiceRoller
 from dnd.application.engine.encounter import (
@@ -35,6 +34,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.damage import DamageInstance, DamageType
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import ConditionId, CreatureId
 from dnd.domain.values.square import Square
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.infrastructure.rng.scripted_rng import ScriptedRNG

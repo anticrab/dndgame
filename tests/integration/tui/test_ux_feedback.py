@@ -14,7 +14,6 @@ import pytest
 
 pytest.importorskip("textual")
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.encounter import Encounter
 from dnd.application.engine.scenario_builder import (
     build_encounter_from_scenario,
@@ -24,6 +23,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.infrastructure.content.yaml_map_repository import YamlMapRepository

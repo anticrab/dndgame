@@ -28,7 +28,6 @@ from dnd.application.dto.engine_event import (
     StanceTaken,
     TurnStarted,
 )
-from dnd.application.dto.ids import CreatureId, RollId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_scripted_dependencies
@@ -37,6 +36,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, RollId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from dnd.application.dto.ids import SpellId
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.spell import Spell
 
 

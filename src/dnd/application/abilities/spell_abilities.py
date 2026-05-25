@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from dnd.application.abilities.ability import Ability, AbilityId
 from dnd.application.dto.action import ActionEconomyCost
-from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.player_intent import CastSpellIntent, PlayerIntent
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.spell import Spell, TargetKind
 
 SPELL_ABILITY_PREFIX = "spell:"

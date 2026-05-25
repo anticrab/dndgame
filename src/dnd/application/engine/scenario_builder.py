@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.map_dto import MapDocument
 from dnd.application.dto.templates import MapTemplate, ScenarioTemplate
 from dnd.application.engine.builder import build_creature_from_template
@@ -24,6 +23,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.entities.interactable import InteractableObject
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId, ObjectId
 from dnd.domain.values.object_kind import ObjectKind
 from dnd.domain.values.square import Square
 from dnd.domain.values.terrain import (

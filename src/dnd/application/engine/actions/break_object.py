@@ -22,12 +22,12 @@ from dnd.application.dto.action import (
     ForbiddenReason,
 )
 from dnd.application.dto.engine_event import ObjectDamaged
-from dnd.application.dto.ids import ActionId, ObjectId
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.damage import DamageInstance, DamageType
 from dnd.domain.values.dice import DiceExpr
+from dnd.domain.values.ids import ActionId, ObjectId
 
 _REACH_FT = 5
 

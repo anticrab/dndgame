@@ -31,8 +31,8 @@ from dnd.application.ports.event_bus import EventBus, Unsubscribe
 from dnd.domain.values.faction import Faction
 
 if TYPE_CHECKING:
-    from dnd.application.dto.ids import CreatureId
     from dnd.application.engine.encounter import Encounter
+    from dnd.domain.values.ids import CreatureId
     from dnd.interfaces.tui.screens.battle import BattleScreen
 
 _log = logging.getLogger(__name__)

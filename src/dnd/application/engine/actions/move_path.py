@@ -11,8 +11,8 @@ from __future__ import annotations
 import heapq
 from collections.abc import Callable
 
-from dnd.application.dto.ids import CreatureId
 from dnd.domain.entities.battlefield import Battlefield
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 
 _NEIGHBOURS: tuple[tuple[int, int], ...] = (

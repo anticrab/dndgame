@@ -22,8 +22,8 @@ from dnd.domain.values.terrain import CoverLevel, Terrain
 from dnd.interfaces.tui.widgets.tile_renderer import render_tile_5x3
 
 if TYPE_CHECKING:
-    from dnd.application.dto.ids import CreatureId
     from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.values.ids import CreatureId
 
 
 # Выбираем символ по **свойствам** Terrain, а не по identity: каноничные

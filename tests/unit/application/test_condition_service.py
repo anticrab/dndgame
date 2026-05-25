@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.condition_service import ConditionService
 from dnd.domain.conditions.builtin import (
     INCAPACITATED,
@@ -17,6 +16,7 @@ from dnd.domain.conditions.builtin import (
 from dnd.domain.conditions.registry import ConditionRegistry
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
+from dnd.domain.values.ids import CreatureId
 
 # -- фикстуры ------------------------------------------------------------
 
@@ -173,7 +173,7 @@ def test_partial_already_present_in_cascade(service: ConditionService) -> None:
 
 def test_unknown_condition_raises(service: ConditionService) -> None:
     """Незарегистрированный ConditionId — KeyError (контент-баг)."""
-    from dnd.application.dto.ids import ConditionId
+    from dnd.domain.values.ids import ConditionId
 
     c = make_creature()
     with pytest.raises(KeyError, match="not in registry"):

@@ -17,7 +17,6 @@ import pytest
 
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
 from dnd.application.dto.engine_event import EngineEvent, MoveCompleted
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.condition_service import ConditionService
 from dnd.application.engine.dice_roller import ComputerDiceRoller
@@ -29,6 +28,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.infrastructure.rng.scripted_rng import ScriptedRNG

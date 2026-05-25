@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from dnd.application.dto.ids import CreatureId, RollId
+from dnd.domain.values.ids import CreatureId, RollId
 
 
 class InitiativeEntry(BaseModel):

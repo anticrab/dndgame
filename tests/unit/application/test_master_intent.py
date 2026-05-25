@@ -12,13 +12,13 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from dnd.application.dto.ids import CreatureId, PlayerId, RollId
 from dnd.application.dto.master_intent import (
     MasterIntentAdapter,
     NarrateIntent,
     RerollIntent,
     SetHpIntent,
 )
+from dnd.domain.values.ids import CreatureId, PlayerId, RollId
 
 # -- helpers ---------------------------------------------------------------
 

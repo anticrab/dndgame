@@ -11,7 +11,6 @@ from __future__ import annotations
 import pytest
 
 from dnd.application.dto.engine_event import EncounterEnded, EngineEvent
-from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     EndTurnIntent,
@@ -25,6 +24,7 @@ from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 

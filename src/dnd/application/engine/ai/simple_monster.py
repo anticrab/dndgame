@@ -27,7 +27,6 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from dnd.application.dto.action import Allowed, NoParams
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.stances import DodgeAction
@@ -35,6 +34,7 @@ from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 
 IsHostile = Callable[[CreatureId], bool]

@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.dto.modifiers import (
     AdvantageEffect,
     DiceBonusEffect,
@@ -31,6 +30,7 @@ from dnd.application.dto.modifiers import (
     StackingPolicy,
 )
 from dnd.application.engine.modifier_applier import ModifierApplier, ModifierBag
+from dnd.domain.values.ids import CreatureId
 
 # -- помощники --------------------------------------------------------------
 

@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import pytest
 
-from dnd.application.dto.ids import ObjectId
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.entities.interactable import InteractableObject
+from dnd.domain.values.ids import ObjectId
 from dnd.domain.values.object_kind import ObjectKind
 from dnd.domain.values.square import Square
 from dnd.domain.values.tile_aliases import FLOOR_TILE, WALL_TILE

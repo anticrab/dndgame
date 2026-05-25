@@ -9,10 +9,10 @@
 
 from __future__ import annotations
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.actions.attack import AttackParams
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability
+from dnd.domain.values.ids import CreatureId
 
 
 def _ability_for_attack(creature: Creature) -> Ability:

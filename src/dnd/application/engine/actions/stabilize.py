@@ -20,12 +20,12 @@ from dnd.application.dto.action import (
     ForbiddenReason,
 )
 from dnd.application.dto.engine_event import CreatureStabilized
-from dnd.application.dto.ids import ActionId, CreatureId
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.dice import DiceExpr
+from dnd.domain.values.ids import ActionId, CreatureId
 
 _MEDICINE_DC = 10
 _REACH_FT = 5

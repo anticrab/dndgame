@@ -22,9 +22,9 @@ from textual.binding import BindingType
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
-from dnd.application.dto.ids import ObjectId
 from dnd.application.inventory.loot_helpers import parse_loot
 from dnd.application.ports.item_repository import ItemRepository
+from dnd.domain.values.ids import ObjectId
 from dnd.domain.values.item import ItemId
 
 if TYPE_CHECKING:

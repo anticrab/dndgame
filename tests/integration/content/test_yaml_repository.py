@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-from dnd.application.dto.ids import CreatureId
 from dnd.application.engine.builder import (
     build_creature_from_template,
     build_weapon_profile,
@@ -19,6 +18,7 @@ from dnd.application.ports.content_repository import ContentRepository
 from dnd.domain.values.attack_kind import AttackKind
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
+from dnd.domain.values.ids import CreatureId
 from dnd.infrastructure.content.yaml_repository import YamlContentRepository
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
