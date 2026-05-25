@@ -74,6 +74,9 @@ from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKin
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.screens.battle_modes.area_mode import AreaModeHandler
 from dnd.interfaces.tui.screens.battle_modes.move_mode import MoveModeHandler
+from dnd.interfaces.tui.screens.battle_modes.multi_target_mode import (
+    MultiTargetModeHandler,
+)
 from dnd.interfaces.tui.screens.battle_modes.normal_mode import NormalModeHandler
 from dnd.interfaces.tui.screens.battle_modes.protocol import BattleMode, ModeHandler
 from dnd.interfaces.tui.screens.battle_modes.target_mode import TargetModeHandler
@@ -195,6 +198,10 @@ class BattleScreen(Screen[None]):
         self._pending_area_spec: TargetingSpec | None = None
         self._pending_area_range_ft: int = 0
         self._area_registry: AreaShapeRegistry = default_area_shape_registry()
+        # --- MULTI_TARGET mode (P2b) --------------------------------
+        # Контекст для MultiTargetModeHandler: лимит выборов и повторы.
+        self._multi_max_targets: int = 1
+        self._multi_allow_repeat: bool = False
 
     # --- public API для bridge --------------------------------------
 
@@ -349,6 +356,8 @@ class BattleScreen(Screen[None]):
             self._mode_handler = TargetModeHandler()
         elif mode is BattleMode.AREA:
             self._mode_handler = AreaModeHandler()
+        elif mode is BattleMode.MULTI_TARGET:
+            self._mode_handler = MultiTargetModeHandler()
         self._mode_handler.on_enter(self)
         self._refresh_map_overlay()
 
@@ -368,7 +377,9 @@ class BattleScreen(Screen[None]):
             return
         data = self._mode_handler.overlay()
         actor, _ctx, encounter = self._current
-        if self._mode in (BattleMode.TARGET, BattleMode.AREA) and data.cursor is not None:
+        if self._mode in (
+            BattleMode.TARGET, BattleMode.AREA, BattleMode.MULTI_TARGET
+        ) and data.cursor is not None:
             follow = data.cursor  # AREA at-point: камера едет за курсором-точкой
         else:
             follow = self._current_battlefield.position_of(actor.id)
@@ -451,6 +462,15 @@ class BattleScreen(Screen[None]):
                 self._submit_area_intent(h.confirmed_point, h.confirmed_direction)
                 self.enter_mode(BattleMode.NORMAL)
                 return
+        elif isinstance(h, MultiTargetModeHandler):
+            if h.cancelled:
+                self._pending_ability = None
+                self.enter_mode(BattleMode.NORMAL)
+                return
+            if h.confirmed_picks is not None:
+                self._submit_multi_intent(h.confirmed_picks)
+                self.enter_mode(BattleMode.NORMAL)
+                return
         # просто refresh для arrow/tab — overlay изменился
         self._refresh_map_overlay()
 
@@ -469,6 +489,15 @@ class BattleScreen(Screen[None]):
                 spell_id=spell.id, target_point=point, direction=direction
             )
         )
+
+    def _submit_multi_intent(self, picks: tuple[CreatureId, ...]) -> None:
+        """Построить CastSpellIntent для подтверждённого набора целей (P2b)."""
+        ab = self._pending_ability
+        spell = self._spell_by_ability.get(ab.id) if ab is not None else None
+        self._pending_ability = None
+        if spell is None:
+            return
+        self._put_intent(CastSpellIntent(spell_id=spell.id, target_ids=picks))
 
     def _submit_target_intent(self, target: CreatureId) -> None:
         """Сформировать Intent для подтверждённой цели TARGET mode.
@@ -540,6 +569,39 @@ class BattleScreen(Screen[None]):
                 result.append(cid)
         return result
 
+    def _list_multi_candidates(
+        self,
+        actor: Creature,
+        encounter: Encounter,
+        spell: Spell,
+    ) -> list[CreatureId]:
+        """Кандидаты для MULTI-заклинания: враги для урона (ATTACK/SAVE/AUTO),
+        союзники+сам для heal/buff. Фильтр по дальности и жизни напрямую
+        (per-target can_perform_against для MULTI не применим — он работает с
+        целым target_ids сразу)."""
+        offensive = spell.effect in (
+            SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
+        )
+        actor_faction = encounter.factions.get(actor.id)
+        bf = encounter.battlefield
+        actor_pos = bf.position_of(actor.id)
+        result: list[CreatureId] = []
+        for cid, cr in encounter.participants.items():
+            if not cr.is_alive:
+                continue
+            other_faction = encounter.factions.get(cid)
+            if offensive:
+                if cid == actor.id or other_faction == actor_faction:
+                    continue
+                if other_faction is Faction.NEUTRAL:
+                    continue
+            elif other_faction != actor_faction:
+                continue
+            if actor_pos.distance_to_feet(bf.position_of(cid)) > spell.range_ft:
+                continue
+            result.append(cid)
+        return result
+
     def _trigger_ability(self, ab: Ability) -> None:
         """Запустить ability через её ``intent_factory``.
 
@@ -555,6 +617,22 @@ class BattleScreen(Screen[None]):
         actor, ctx, encounter = self._current
         # P2: AoE-заклинание → AREA mode (выбор точки/направления + превью).
         area_spell = self._spell_by_ability.get(ab.id)
+        # P2b: мультитаргет-заклинание → MULTI_TARGET mode (выбор набора целей).
+        if area_spell is not None and area_spell.targeting.kind is TargetKind.MULTI:
+            candidates = self._list_multi_candidates(actor, encounter, area_spell)
+            if not candidates:
+                self.log_widget.write(
+                    f"[bold]No targets in reach for {area_spell.name}.[/]"
+                )
+                return
+            bf = encounter.battlefield
+            self._current_battlefield = bf
+            self._reachable_targets = [(cid, bf.position_of(cid)) for cid in candidates]
+            self._multi_max_targets = area_spell.targeting.max_targets
+            self._multi_allow_repeat = area_spell.targeting.allow_repeat_target
+            self._pending_ability = ab
+            self.enter_mode(BattleMode.MULTI_TARGET)
+            return
         if area_spell is not None and area_spell.targeting.kind is TargetKind.AREA:
             self._current_battlefield = encounter.battlefield
             # audit MINOR-2: свежая позиция кастера — иначе from-caster превью
