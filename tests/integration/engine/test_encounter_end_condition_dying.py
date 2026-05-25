@@ -57,7 +57,8 @@ def test_dead_pc_ends_encounter_as_defeat() -> None:
     assert enc.outcome_decided()
     ended: list[EncounterEnded] = []
     enc.event_bus.subscribe(EncounterEnded, ended.append)
-    enc.start_turn(); enc.end_turn()
+    enc.start_turn()
+    enc.end_turn()
     assert ended and ended[0].winners is Faction.MONSTERS
 
 
@@ -70,5 +71,6 @@ def test_all_enemies_dead_while_pc_dying_is_party_win() -> None:
     assert enc.outcome_decided()
     ended: list[EncounterEnded] = []
     enc.event_bus.subscribe(EncounterEnded, ended.append)
-    enc.start_turn(); enc.end_turn()
+    enc.start_turn()
+    enc.end_turn()
     assert ended and ended[0].winners is Faction.PARTY
