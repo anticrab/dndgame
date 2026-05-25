@@ -48,9 +48,12 @@ def test_sacred_flame_save_fields() -> None:
 
 
 def test_shield_of_faith_buff() -> None:
+    from dnd.domain.values.modifiers import ModifierTargetKind
     s = YamlSpellRepository(_SPELLS).load(SpellId("shield_of_faith"))
-    assert s.effect is SpellEffect.BUFF
-    assert s.ac_bonus == 2 and s.concentration is True
+    assert s.effect is SpellEffect.BUFF and s.concentration is True
+    assert len(s.buffs) == 1
+    assert s.buffs[0].target is ModifierTargetKind.ARMOR_CLASS
+    assert s.buffs[0].numeric_bonus == 2
 
 
 def test_contains_and_unknown() -> None:

@@ -53,8 +53,9 @@
   effect: buff
   targeting: { kind: single }
   range_ft: 60
-  ac_bonus: 2
   concentration: true
+  buffs:
+    - { target: armor_class, numeric_bonus: 2 }
   description: "Мерцающее поле даёт цели +2 к КД. Требует концентрации."
 
 # --- AoE (этап P2) ---

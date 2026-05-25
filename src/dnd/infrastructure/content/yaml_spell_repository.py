@@ -14,8 +14,10 @@ import yaml  # type: ignore[import-untyped]
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.ids import SpellId
+from dnd.domain.values.modifiers import ModifierTargetKind
 from dnd.domain.values.spell import (
     AreaShape,
+    BuffSpec,
     OriginMode,
     Spell,
     SpellEffect,
@@ -56,9 +58,18 @@ class YamlSpellRepository:
             shape=AreaShape(shape_raw) if shape_raw is not None else None,
             radius_ft=int(tgt.get("radius_ft", 0)),
             length_ft=int(tgt.get("length_ft", 0)),
+            allow_repeat_target=bool(tgt.get("allow_repeat_target", False)),
         )
         dmg = entry.get("damage_type")
         save = entry.get("save_ability")
+        buffs = tuple(
+            BuffSpec(
+                target=ModifierTargetKind(b["target"]),
+                numeric_bonus=int(b.get("numeric_bonus", 0)),
+                dice_bonus=b.get("dice_bonus"),
+            )
+            for b in entry.get("buffs", [])
+        )
         return Spell(
             id=SpellId(entry["id"]),
             name=entry["name"],
@@ -74,7 +85,7 @@ class YamlSpellRepository:
             save_for_half=bool(entry.get("save_for_half", True)),
             concentration=bool(entry.get("concentration", False)),
             heal_dice=entry.get("heal_dice"),
-            ac_bonus=int(entry.get("ac_bonus", 0)),
+            buffs=buffs,
         )
 
     def list_ids(self) -> tuple[SpellId, ...]:
