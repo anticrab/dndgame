@@ -98,9 +98,8 @@ class MultiTargetModeHandler:
         ) or "—"
         remaining = self._max - len(self._picks)
         hint = (
-            f"MULTI: [{picked_str}] — выбери ещё {remaining} (макс {self._max}) · "
-            f"Tab цель · Space добавить · Bksp снять · Enter каст · Esc отмена · "
-            f"осталось {remaining}"
+            f"MULTI: [{picked_str}] — осталось {remaining} из {self._max} · "
+            f"Tab цель · Space добавить · Bksp снять · Enter каст · Esc отмена"
         )
         return OverlayData(cursor=cur_sq, highlights=highlights, hint=hint)
 

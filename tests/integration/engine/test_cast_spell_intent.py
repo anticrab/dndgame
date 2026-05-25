@@ -68,6 +68,44 @@ def test_cast_spell_intent_applies_damage() -> None:
     assert gob.hit_points.current == 6  # 12 - 6 (Fire Bolt попал)
 
 
+def test_multi_cast_intent_propagates_target_ids() -> None:
+    """P2b-аудит C1: GameRunner прокидывает target_ids в params — иначе
+    MULTI-заклинания (Magic Missile) реджектятся в реальном игровом цикле."""
+    mage = _mage()
+    mage.known_spells = (SpellId("magic_missile"),)
+    mage.spell_slots = {1: 1}
+    gob = Creature.create(
+        id_="gob", name="Goblin",
+        abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
+        max_hp=12, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+    )
+    bf = Battlefield(8, 8)
+    bf.place_creature(mage.id, Square(2, 2))
+    bf.place_creature(gob.id, Square(4, 4))
+    # init: mage 20+1, gob 1+2 → mage первый; 3 дротика 1d4: [4,4,4] → raw 15.
+    deps, _, _ = build_scripted_dependencies(battlefield=bf, rolls=[20, 1, 4, 4, 4])
+    enc = Encounter(
+        participants={mage.id: mage, gob.id: gob},
+        factions={mage.id: Faction.PARTY, gob.id: Faction.MONSTERS},
+        deps=deps,
+    )
+    provider = _ScriptedProvider([
+        CastSpellIntent(
+            spell_id=SpellId("magic_missile"),
+            target_ids=(gob.id, gob.id, gob.id),
+        ),
+        EndTurnIntent(),
+    ])
+    runner = GameRunner(
+        intent_provider=provider,
+        spell_repository=YamlSpellRepository(_SPELLS),
+        monster_turn=lambda a, c, e: None,
+    )
+    runner.run(enc)
+    assert gob.hit_points.current == 0   # 12 - 15 → 0 (3 дротика попали)
+    assert mage.spell_slots == {1: 0}    # слот потрачен → каст реально прошёл
+
+
 def test_cast_without_spell_repository_rejected() -> None:
     """Без spell_repository CastSpellIntent тихо реджектится (урона нет)."""
     mage = _mage()

@@ -279,6 +279,7 @@ class GameRunner:
         params = CastSpellParams(
             spell_id=intent.spell_id,
             target_id=intent.target_id,
+            target_ids=intent.target_ids,
             target_point=intent.target_point,
             direction=intent.direction,
         )
