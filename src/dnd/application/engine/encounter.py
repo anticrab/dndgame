@@ -564,14 +564,29 @@ class Encounter:
         """
         return self._is_outcome_decided()
 
+    @staticmethod
+    def _is_combatant(cr: Creature) -> bool:
+        """Существо ещё «в бою»: живо ИЛИ спасаемо (dying, но не мёртв).
+
+        Q-5: лежачий PC (0 HP, uses_death_saves, не is_dead) держит свою
+        фракцию в бою — спасброски от смерти отыгрываются (PHB-2024 стр. 27).
+        """
+        if cr.is_alive:
+            return True
+        return (
+            cr.uses_death_saves
+            and cr.death_saves is not None
+            and not cr.death_saves.is_dead
+        )
+
     def _is_outcome_decided(self) -> bool:
-        alive_by_faction: dict[Faction, list[CreatureId]] = {}
+        combatant_by_faction: dict[Faction, list[CreatureId]] = {}
         for cid, cr in self._participants.items():
-            if not cr.is_alive:
+            if not self._is_combatant(cr):
                 continue
-            alive_by_faction.setdefault(self._factions[cid], []).append(cid)
+            combatant_by_faction.setdefault(self._factions[cid], []).append(cid)
         combat_factions = [
-            f for f in alive_by_faction if f is not Faction.NEUTRAL
+            f for f in combatant_by_faction if f is not Faction.NEUTRAL
         ]
         return len(combat_factions) <= 1
 
@@ -585,15 +600,15 @@ class Encounter:
         Returns:
             True если бой завершён (вызывающему не нужно продолжать).
         """
-        alive_by_faction: dict[Faction, list[CreatureId]] = {}
+        combatant_by_faction: dict[Faction, list[CreatureId]] = {}
         for cid, cr in self._participants.items():
-            if not cr.is_alive:
+            if not self._is_combatant(cr):
                 continue
-            alive_by_faction.setdefault(self._factions[cid], []).append(cid)
+            combatant_by_faction.setdefault(self._factions[cid], []).append(cid)
 
         combat_factions = {
             f: ids
-            for f, ids in alive_by_faction.items()
+            for f, ids in combatant_by_faction.items()
             if f is not Faction.NEUTRAL
         }
 
@@ -604,8 +619,10 @@ class Encounter:
         # None (обе стороны выкошены — или остались только NEUTRAL).
         winners = next(iter(combat_factions)) if combat_factions else None
 
+        # Survivors — только реально живые (HP>0). Лежачий-но-спасаемый PC
+        # держал бой, но survivor'ом не считается (он dying).
         survivors: tuple[CreatureId, ...] = tuple(
-            cid for ids in alive_by_faction.values() for cid in ids
+            cid for cid, cr in self._participants.items() if cr.is_alive
         )
 
         self._state.concluded = True
