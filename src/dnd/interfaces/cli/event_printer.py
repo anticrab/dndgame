@@ -15,7 +15,10 @@ from rich.console import Console
 from dnd.application.dto.engine_event import (
     AttackResolved,
     AttackRolled,
+    CreatureDied,
+    CreatureStabilized,
     DamageDealt,
+    DeathSaveRolled,
     EncounterEnded,
     EngineEvent,
     HelpGranted,
@@ -215,6 +218,24 @@ class EventPrinter:
             f"{event.final_amount} (HP {event.hp_after}){tag}"
         )
 
+    def _on_death_save(self, event: DeathSaveRolled) -> None:
+        # Q-6: спасброски от смерти (PHB-2024 стр. 27).
+        tag = {
+            "success": "[green]success[/]",
+            "failure": "[red]failure[/]",
+            "recovered": "[bold green]RECOVERED (1 HP)[/]",
+        }[event.result]
+        self._print(
+            f"  🎲 {event.actor_id} death save: {event.d20_raw} → {tag} "
+            f"([green]{event.successes}[/]/[red]{event.failures}[/])"
+        )
+
+    def _on_died(self, event: CreatureDied) -> None:
+        self._print(f"  💀 [bold red]{event.actor_id} died[/]")
+
+    def _on_stabilized(self, event: CreatureStabilized) -> None:
+        self._print(f"  ✚ [green]{event.by} stabilizes {event.actor_id}[/]")
+
     def _on_picked_up(self, event: ItemPickedUp) -> None:
         # O-audit MAJOR-2: без этого лог был пуст при pickup.
         qty_part = f"{event.qty}× " if event.qty > 1 else ""
@@ -243,6 +264,9 @@ class EventPrinter:
         ObjectInteracted: lambda self, e: self._on_interacted(e),
         ObjectDamaged: lambda self, e: self._on_obj_damaged(e),
         ItemPickedUp: lambda self, e: self._on_picked_up(e),
+        DeathSaveRolled: lambda self, e: self._on_death_save(e),
+        CreatureDied: lambda self, e: self._on_died(e),
+        CreatureStabilized: lambda self, e: self._on_stabilized(e),
     }
 
 
