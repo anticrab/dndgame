@@ -13,6 +13,7 @@ from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.domain.values.damage import DamageInstance
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.modifiers import (
+    DiceBonusEffect,
     Modifier,
     ModifierSourceKind,
     ModifierTargetKind,
@@ -260,16 +261,22 @@ class BuffSpellHandler:
             caster.concentration = spell.id
         source_id = concentration_source(caster.id)
         for target in targets:
-            ctx.modifier_applier.add(
-                Modifier(
-                    source_id=source_id,
-                    source_kind=ModifierSourceKind.SPELL,
-                    target_kind=ModifierTargetKind.ARMOR_CLASS,
-                    effect=NumericBonusEffect(value=spell.ac_bonus),
-                    owner_id=target.id,
-                    stack_key=str(spell.id),
+            for buff in spell.buffs:
+                effect = (
+                    DiceBonusEffect(dice=buff.dice_bonus)
+                    if buff.dice_bonus is not None
+                    else NumericBonusEffect(value=buff.numeric_bonus)
                 )
-            )
+                ctx.modifier_applier.add(
+                    Modifier(
+                        source_id=source_id,
+                        source_kind=ModifierSourceKind.SPELL,
+                        target_kind=buff.target,
+                        effect=effect,
+                        owner_id=target.id,
+                        stack_key=str(spell.id),
+                    )
+                )
 
 
 __all__ = [

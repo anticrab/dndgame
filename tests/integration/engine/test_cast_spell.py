@@ -256,6 +256,39 @@ def test_recasting_concentration_does_not_stack() -> None:
     assert _ac_bonus(ctx, mage) == 2  # не +4 — прежний бафф снят
 
 
+def test_buff_handler_applies_dice_bonus_to_attack_and_save() -> None:
+    """Обобщённый BuffSpellHandler: dice-бафф к ATTACK_ROLL и SAVING_THROW."""
+    from dnd.application.engine.spells.handlers import BuffSpellHandler
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.spell import (
+        BuffSpec,
+        Spell,
+        SpellEffect,
+        TargetingSpec,
+        TargetKind,
+    )
+    _enc, mage, _gob, ctx = _setup([20, 19])
+    spell = Spell(
+        id=SpellId("bless_like"), name="Bless", level=1, school="enchantment",
+        effect=SpellEffect.BUFF,
+        targeting=TargetingSpec(kind=TargetKind.MULTI, max_targets=3),
+        range_ft=30, description="", concentration=True,
+        buffs=(
+            BuffSpec(target=ModifierTargetKind.ATTACK_ROLL, dice_bonus="1d4"),
+            BuffSpec(target=ModifierTargetKind.SAVING_THROW, dice_bonus="1d4"),
+        ),
+    )
+    BuffSpellHandler().apply(mage, (mage,), spell, ctx)
+    atk = ctx.modifier_applier.collect(
+        owner_id=mage.id, target_kind=ModifierTargetKind.ATTACK_ROLL
+    )
+    save = ctx.modifier_applier.collect(
+        owner_id=mage.id, target_kind=ModifierTargetKind.SAVING_THROW
+    )
+    assert ctx.modifier_applier.to_roll_adjustments(atk).extra_dice == ("1d4",)
+    assert ctx.modifier_applier.to_roll_adjustments(save).extra_dice == ("1d4",)
+
+
 def test_concentration_moves_buff_to_new_target() -> None:
     from dnd.application.engine.spells.handlers import BuffSpellHandler
     _enc, mage, gob, ctx = _setup([20, 19])
