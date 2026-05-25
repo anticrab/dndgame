@@ -26,6 +26,7 @@ from dnd.application.dto.action import NoParams as _NoParams
 from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
+    CastSpellIntent,
     DashIntent,
     DisengageIntent,
     DodgeIntent,
@@ -38,6 +39,10 @@ from dnd.application.dto.player_intent import (
 )
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.break_object import BreakAction, BreakParams
+from dnd.application.engine.actions.cast_spell import (
+    CastSpellAction,
+    CastSpellParams,
+)
 from dnd.application.engine.actions.interact import InteractAction, InteractParams
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.pickup import PickupAction, PickupParams
@@ -56,6 +61,7 @@ from dnd.application.engine.encounter import Encounter
 from dnd.application.engine.turn_context import TurnContext
 from dnd.application.ports.item_repository import ItemRepository
 from dnd.application.ports.player_intent_provider import PlayerIntentProvider
+from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
 
@@ -80,6 +86,7 @@ class GameRunner:
         monster_turn: Callable[[Creature, TurnContext, Encounter], None]
         | None = None,
         item_repository: ItemRepository | None = None,
+        spell_repository: SpellRepository | None = None,
     ) -> None:
         self._intent_provider = intent_provider
         self._monster_turn = monster_turn or self._default_monster_turn
@@ -87,6 +94,9 @@ class GameRunner:
         # него (старые тесты / CLI без item content), PickupIntent
         # тихо реджектится в _log_rejected. См. _do_pickup.
         self._item_repository = item_repository
+        # SpellRepository нужен CastSpellAction'у; без него CastSpellIntent
+        # реджектится (как PickupIntent без item_repository). См. _do_cast.
+        self._spell_repository = spell_repository
 
     def run(self, encounter: Encounter) -> None:
         """Прогнать бой от ``start()`` до ``EncounterEnded``.
@@ -181,6 +191,9 @@ class GameRunner:
         if isinstance(intent, StabilizeIntent):
             self._do_stabilize(actor, intent, ctx)
             return
+        if isinstance(intent, CastSpellIntent):
+            self._do_cast(actor, intent, ctx)
+            return
         # EndTurnIntent обрабатывается в _run_pc_turn до вызова.
         # Защита от расширения PlayerIntent без обновления GameRunner.
         raise TypeError(f"unknown PlayerIntent: {type(intent).__name__}")
@@ -254,6 +267,24 @@ class GameRunner:
             action.execute(actor, params, ctx)
         else:
             self._log_rejected(actor, "stabilize", _avail_reason(avail))
+
+    def _do_cast(
+        self, actor: Creature, intent: CastSpellIntent, ctx: TurnContext
+    ) -> None:
+        if self._spell_repository is None:
+            self._log_rejected(
+                actor, "cast_spell", "no_spell_repository (runner not wired)"
+            )
+            return
+        params = CastSpellParams(
+            spell_id=intent.spell_id, target_id=intent.target_id
+        )
+        action = CastSpellAction(spell_repository=self._spell_repository)
+        avail = action.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "cast_spell", _avail_reason(avail))
 
     def _do_break(
         self, actor: Creature, intent: BreakIntent, ctx: TurnContext

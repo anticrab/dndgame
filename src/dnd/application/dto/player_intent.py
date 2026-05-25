@@ -16,7 +16,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dnd.application.dto.ids import CreatureId, ObjectId
+from dnd.application.dto.ids import CreatureId, ObjectId, SpellId
 from dnd.application.engine.actions.interact import InteractKind
 from dnd.domain.values.item import ItemId
 from dnd.domain.values.square import Square
@@ -115,6 +115,18 @@ class StabilizeIntent(_IntentBase):
     target_id: CreatureId
 
 
+class CastSpellIntent(_IntentBase):
+    """Игрок сотворяет заклинание (этап P1).
+
+    ``target_id`` — None для SELF-заклинаний. Проверки (кастер, слот, цель,
+    дальность) — в :class:`CastSpellAction`; GameRunner лишь собирает params.
+    """
+
+    kind: Literal["cast_spell"] = "cast_spell"
+    spell_id: SpellId
+    target_id: CreatureId | None = None
+
+
 PlayerIntent = Annotated[
     AttackIntent
     | MoveIntent
@@ -125,7 +137,8 @@ PlayerIntent = Annotated[
     | InteractIntent
     | BreakIntent
     | PickupIntent
-    | StabilizeIntent,
+    | StabilizeIntent
+    | CastSpellIntent,
     Field(discriminator="kind"),
 ]
 
@@ -133,6 +146,7 @@ PlayerIntent = Annotated[
 __all__ = [
     "AttackIntent",
     "BreakIntent",
+    "CastSpellIntent",
     "DashIntent",
     "DisengageIntent",
     "DodgeIntent",

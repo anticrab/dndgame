@@ -7,8 +7,6 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from dnd.application.dto.action import (
     ActionAvailability,
     ActionEconomyCost,
@@ -28,8 +26,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.spell import Spell, TargetKind
 
 
-@dataclass(frozen=True, slots=True)
-class CastSpellParams:
+class CastSpellParams(ActionParams):
     spell_id: SpellId
     target_id: CreatureId | None = None
 
