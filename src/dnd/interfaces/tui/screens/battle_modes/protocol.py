@@ -27,6 +27,7 @@ class BattleMode(Enum):
     MOVE = "move"
     TARGET = "target"
     AREA = "area"   # выбор зоны AoE-заклинания (P2)
+    MULTI_TARGET = "multi_target"   # выбор нескольких целей (P2b)
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,10 @@ class ModeScreenContext(Protocol):
     _pending_area_spec: TargetingSpec | None
     _pending_area_range_ft: int
     _area_registry: AreaShapeRegistry
+
+    # MULTI_TARGET mode (P2b): лимит выборов и разрешены ли повторы.
+    _multi_max_targets: int
+    _multi_allow_repeat: bool
 
     def _is_alive_lookup(self, cid: CreatureId) -> bool:
         """Жив ли participant. MoveModeHandler передаёт это в
