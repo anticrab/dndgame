@@ -151,4 +151,43 @@ class SaveSpellHandler:
             )
 
 
-__all__ = ["AttackSpellHandler", "SaveSpellHandler"]
+class AutoSpellHandler:
+    """AUTO: авто-попадание без броска атаки (Magic Missile)."""
+
+    def apply(
+        self,
+        caster: Creature,
+        targets: tuple[Creature, ...],
+        spell: Spell,
+        ctx: TurnContext,
+    ) -> None:
+        assert spell.dice is not None and spell.damage_type is not None
+        for target in targets:
+            dmg_roll = ctx.dice_roller.roll(
+                DiceExpr.parse(spell.dice),
+                RollContext(
+                    purpose=RollPurpose.DAMAGE,
+                    actor_id=caster.id,
+                    target_id=target.id,
+                ),
+            )
+            raw = max(0, dmg_roll.total)
+            result = target.take_damage(
+                DamageInstance(amount=raw, type_=spell.damage_type)
+            )
+            ctx.event_bus.publish(
+                DamageDealt(
+                    attacker_id=caster.id,
+                    target_id=target.id,
+                    damage_roll_id=dmg_roll.roll_id,
+                    damage_type=spell.damage_type,
+                    raw_amount=raw,
+                    final_amount=result.final_amount,
+                    is_critical=False,
+                    hp_after=target.hit_points.current,
+                    hp_max=target.hit_points.maximum,
+                )
+            )
+
+
+__all__ = ["AttackSpellHandler", "AutoSpellHandler", "SaveSpellHandler"]

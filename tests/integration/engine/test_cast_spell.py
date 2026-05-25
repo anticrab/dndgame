@@ -153,6 +153,29 @@ def test_sacred_flame_save_success_no_damage() -> None:
     assert gob.hit_points.current == 12
 
 
+def test_magic_missile_auto_damage_consumes_slot() -> None:
+    # init x2, урон 3d4+3 = [4,4,4]+3 = 15 (auto, без броска атаки).
+    enc, mage, gob, ctx = _setup([20, 19, 4, 4, 4])
+    mage.spell_slots = {1: 1}
+    dmg: list[DamageDealt] = []
+    enc.event_bus.subscribe(DamageDealt, dmg.append)
+    out = CastSpellAction(_repo()).execute(
+        mage, CastSpellParams(spell_id=SpellId("magic_missile"), target_id=gob.id), ctx
+    )
+    assert out.success
+    assert dmg and dmg[0].final_amount == 15
+    assert mage.spell_slots == {1: 0}      # слот потрачен
+
+
+def test_magic_missile_no_slot_forbidden() -> None:
+    _enc, mage, gob, ctx = _setup([20, 19, 4, 4, 4])
+    mage.spell_slots = {1: 0}
+    avail = CastSpellAction(_repo()).can_perform_against(
+        mage, CastSpellParams(spell_id=SpellId("magic_missile"), target_id=gob.id), ctx
+    )
+    assert isinstance(avail, Forbidden)
+
+
 def test_save_for_half_yields_half_damage() -> None:
     """Прямой юнит SaveSpellHandler: save_for_half=True → половина урона."""
     from dnd.application.engine.spells.handlers import SaveSpellHandler
