@@ -10,6 +10,7 @@ from dnd.application.engine.spells.effect_handler import SpellEffectRegistry
 from dnd.application.engine.spells.handlers import (
     AttackSpellHandler,
     AutoSpellHandler,
+    HealSpellHandler,
     SaveSpellHandler,
 )
 from dnd.domain.values.spell import SpellEffect
@@ -20,7 +21,8 @@ def default_spell_effect_registry() -> SpellEffectRegistry:
     registry.register(SpellEffect.ATTACK, AttackSpellHandler())
     registry.register(SpellEffect.SAVE, SaveSpellHandler())
     registry.register(SpellEffect.AUTO, AutoSpellHandler())
-    # HEAL / BUFF — добавляются в P1-7..8.
+    registry.register(SpellEffect.HEAL, HealSpellHandler())
+    # BUFF — добавляется в P1-8.
     return registry
 
 

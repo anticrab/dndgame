@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dnd.application.dto.engine_event import DamageDealt
+from dnd.application.dto.engine_event import DamageDealt, HealingApplied
 from dnd.application.dto.modifiers import ModifierTargetKind
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.domain.values.damage import DamageInstance
@@ -190,4 +190,44 @@ class AutoSpellHandler:
             )
 
 
-__all__ = ["AttackSpellHandler", "AutoSpellHandler", "SaveSpellHandler"]
+class HealSpellHandler:
+    """HEAL: восстановление HP = бросок heal_dice + mod заклинательной хар-ки."""
+
+    def apply(
+        self,
+        caster: Creature,
+        targets: tuple[Creature, ...],
+        spell: Spell,
+        ctx: TurnContext,
+    ) -> None:
+        assert spell.heal_dice is not None and caster.spellcasting_ability is not None
+        mod = caster.abilities.modifier(caster.spellcasting_ability)
+        for target in targets:
+            heal_roll = ctx.dice_roller.roll(
+                DiceExpr.parse(spell.heal_dice),
+                RollContext(
+                    purpose=RollPurpose.OTHER,
+                    actor_id=caster.id,
+                    target_id=target.id,
+                    tags=("heal",),
+                ),
+            )
+            amount = max(0, heal_roll.total + mod)
+            result = target.heal(amount)
+            ctx.event_bus.publish(
+                HealingApplied(
+                    healer_id=caster.id,
+                    target_id=target.id,
+                    amount=result.final_amount,
+                    hp_after=target.hit_points.current,
+                    hp_max=target.hit_points.maximum,
+                )
+            )
+
+
+__all__ = [
+    "AttackSpellHandler",
+    "AutoSpellHandler",
+    "HealSpellHandler",
+    "SaveSpellHandler",
+]

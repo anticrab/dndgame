@@ -284,6 +284,17 @@ class CreatureDied(EngineEvent):
     actor_id: CreatureId
 
 
+class HealingApplied(EngineEvent):
+    """Восстановление HP (лечащее заклинание/эффект)."""
+
+    event_type: ClassVar[str] = "healing.applied"
+    healer_id: CreatureId
+    target_id: CreatureId
+    amount: int
+    hp_after: int
+    hp_max: int
+
+
 class SpellCast(EngineEvent):
     """Существо сотворило заклинание (этап P1).
 

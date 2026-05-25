@@ -33,6 +33,7 @@ def _mage() -> Creature:
     c.spellcasting_ability = Ability.INT       # +3, prof +2 → attack +5, DC 13
     c.known_spells = (
         SpellId("fire_bolt"), SpellId("magic_missile"), SpellId("sacred_flame"),
+        SpellId("cure_wounds"), SpellId("shield_of_faith"),
     )
     return c
 
@@ -174,6 +175,52 @@ def test_magic_missile_no_slot_forbidden() -> None:
         mage, CastSpellParams(spell_id=SpellId("magic_missile"), target_id=gob.id), ctx
     )
     assert isinstance(avail, Forbidden)
+
+
+# --- P1-7: HEAL (Cure Wounds) --------------------------------------------
+
+def test_cure_wounds_heals_self() -> None:
+    # init x2, лечение d8=4 (+3 INT) = 7. Маг ранен до 2 → 9.
+    enc, mage, _gob, ctx = _setup([20, 19, 4])
+    mage.spell_slots = {1: 1}
+    mage.hit_points = mage.hit_points.take_damage(8)  # 10 → 2
+    from dnd.application.dto.engine_event import HealingApplied
+    heals: list[HealingApplied] = []
+    enc.event_bus.subscribe(HealingApplied, heals.append)
+    out = CastSpellAction(_repo()).execute(
+        mage, CastSpellParams(spell_id=SpellId("cure_wounds"), target_id=mage.id), ctx
+    )
+    assert out.success
+    assert heals and heals[0].amount == 7
+    assert mage.hit_points.current == 9
+
+
+def test_cure_wounds_not_above_max() -> None:
+    _enc, mage, _gob, ctx = _setup([20, 19, 8])
+    mage.spell_slots = {1: 1}
+    mage.hit_points = mage.hit_points.take_damage(2)  # 10 → 8
+    CastSpellAction(_repo()).execute(
+        mage, CastSpellParams(spell_id=SpellId("cure_wounds"), target_id=mage.id), ctx
+    )
+    assert mage.hit_points.current == 10  # не выше max
+
+
+def test_heal_raises_ally_from_dying() -> None:
+    """Прямой юнит HealSpellHandler: лечение поднимает PC из dying (Q-логика)."""
+    from dnd.application.engine.spells.handlers import HealSpellHandler
+    from dnd.domain.conditions.builtin import UNCONSCIOUS
+    _enc, mage, _gob, ctx = _setup([20, 19, 4])
+    ally = _mage()
+    ally.id = type(ally.id)("ally")  # отдельный id
+    ally.uses_death_saves = True
+    ally.hit_points = ally.hit_points.take_damage(10)  # 0 HP
+    ally.begin_dying()
+    assert ally.death_saves is not None
+    spell = _repo().load(SpellId("cure_wounds"))
+    HealSpellHandler().apply(mage, (ally,), spell, ctx)
+    assert ally.death_saves is None
+    assert not ally.has_condition(UNCONSCIOUS)
+    assert ally.hit_points.current > 0
 
 
 def test_save_for_half_yields_half_damage() -> None:
