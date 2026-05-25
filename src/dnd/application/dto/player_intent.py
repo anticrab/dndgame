@@ -126,6 +126,8 @@ class CastSpellIntent(_IntentBase):
     kind: Literal["cast_spell"] = "cast_spell"
     spell_id: SpellId
     target_id: CreatureId | None = None
+    # MULTI (P2b): мультимножество выбранных целей (дубли допустимы, порядок=выборы).
+    target_ids: tuple[CreatureId, ...] = ()
     # AoE (P2): точка прицеливания (AT_POINT) или направление (FROM_CASTER).
     target_point: Square | None = None
     direction: Direction | None = None

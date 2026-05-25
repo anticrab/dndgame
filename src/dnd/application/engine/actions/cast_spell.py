@@ -35,6 +35,8 @@ from dnd.domain.values.square import Square
 class CastSpellParams(ActionParams):
     spell_id: SpellId
     target_id: CreatureId | None = None
+    # MULTI (P2b): мультимножество выбранных целей (дубли допустимы, порядок=выборы).
+    target_ids: tuple[CreatureId, ...] = ()
     # AoE (P2): точка прицеливания (AT_POINT) или направление (FROM_CASTER).
     target_point: Square | None = None
     direction: Direction | None = None
@@ -86,8 +88,10 @@ class CastSpellAction:
                 for cid, cr in ctx.participants.items()
                 if cr.is_alive and ctx.battlefield.position_of(cid) in squares
             )
-        # MULTI (pick-N) — этап P2b.
-        raise NotImplementedError(f"targeting {kind} — этап P2b")
+        # MULTI (P2b): мультимножество выборов — дубли = повторные «попадания».
+        # Валидность гарантирует can_perform_against; здесь чистая выборка.
+        assert kind is TargetKind.MULTI
+        return tuple(ctx.participants[cid] for cid in params.target_ids)
 
     # --- availability --------------------------------------------------
 
@@ -156,6 +160,40 @@ class CastSpellAction:
                     return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
             elif params.direction is None:  # FROM_CASTER требует направления
                 return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
+        elif spell.targeting.kind is TargetKind.MULTI:
+            spec = spell.targeting
+            if not params.target_ids:
+                return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
+            if len(params.target_ids) > spec.max_targets:
+                return Forbidden(
+                    reason=ForbiddenReason.CUSTOM,
+                    details=f"too many targets (max {spec.max_targets})",
+                )
+            unique = set(params.target_ids)
+            if not spec.allow_repeat_target and len(unique) != len(params.target_ids):
+                return Forbidden(
+                    reason=ForbiddenReason.CUSTOM,
+                    details="repeat targets not allowed",
+                )
+            actor_pos = ctx.battlefield.position_of(actor.id)
+            offensive = spell.effect in (
+                SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
+            )
+            for cid in unique:
+                if cid not in ctx.participants:
+                    return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
+                target = ctx.participants[cid]
+                if offensive:
+                    if not target.is_alive:
+                        return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
+                elif not target.is_alive and not (
+                    target.death_saves is not None and not target.death_saves.is_dead
+                ):
+                    return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
+                if actor_pos.distance_to_feet(
+                    ctx.battlefield.position_of(cid)
+                ) > spell.range_ft:
+                    return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
         return Allowed()
 
     # --- execution -----------------------------------------------------
