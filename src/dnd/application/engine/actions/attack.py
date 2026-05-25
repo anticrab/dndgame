@@ -59,7 +59,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.attack_kind import AttackKind
 from dnd.domain.values.damage import DamageInstance, DamageType
 from dnd.domain.values.dice import DiceExpr
-from dnd.domain.values.ids import ActionId, CreatureId
+from dnd.domain.values.ids import ActionId, CreatureId, FeatureId
 from dnd.domain.values.modifiers import ModifierTargetKind
 from dnd.domain.values.terrain import CoverLevel
 
@@ -446,6 +446,9 @@ class AttackAction:
             downed = damage_result.was_lethal
             concentration_dc = damage_result.concentration_save_dc
 
+            # R1: Sneak Attack плута — доп. урон при выполнении условий.
+            _maybe_sneak_attack(actor, target, params, attack_ctx, ctx, is_crit)
+
         ctx.event_bus.publish(
             AttackResolved(
                 attacker_id=actor.id,
@@ -468,6 +471,65 @@ class AttackAction:
                 f"effective_ac={effective_ac}"
             ),
         )
+
+
+_SNEAK_ATTACK = FeatureId("sneak_attack")
+
+
+def _maybe_sneak_attack(
+    actor: Creature,
+    target: Creature,
+    params: AttackParams,
+    attack_ctx: RollContext,
+    ctx: TurnContext,
+    is_crit: bool,
+) -> None:
+    """Плут: +⌈level/2⌉d6 раз за ход при finesse/дальнобойном оружии и
+    (преимущество ИЛИ союзник цели рядом с целью). PHB-2024. Доп. урон того же
+    типа, что оружие; на крите кости удваиваются (crit прокинут в RollContext)."""
+    if _SNEAK_ATTACK not in actor.features or actor.sneak_used_this_turn:
+        return
+    weapon = actor.equipped_weapon
+    if weapon is None or not (weapon.finesse or params.kind is AttackKind.RANGED):
+        return
+    has_advantage = attack_ctx.advantage and not attack_ctx.disadvantage
+    if not (has_advantage or _ally_adjacent_to(target, actor, ctx)):
+        return
+    n = (actor.level + 1) // 2
+    sneak_roll = ctx.dice_roller.roll(
+        DiceExpr.parse(f"{n}d6"),
+        RollContext(
+            purpose=RollPurpose.DAMAGE, actor_id=actor.id,
+            target_id=target.id, crit=is_crit, tags=("sneak_attack",),
+        ),
+    )
+    actor.sneak_used_this_turn = True
+    raw = max(0, sneak_roll.total)
+    result = target.take_damage(DamageInstance(amount=raw, type_=params.damage_type))
+    ctx.event_bus.publish(
+        DamageDealt(
+            attacker_id=actor.id, target_id=target.id,
+            damage_roll_id=sneak_roll.roll_id, damage_type=params.damage_type,
+            raw_amount=raw, final_amount=result.final_amount, is_critical=is_crit,
+            hp_after=target.hit_points.current, hp_max=target.hit_points.maximum,
+            was_lethal=result.was_lethal,
+        )
+    )
+
+
+def _ally_adjacent_to(target: Creature, attacker: Creature, ctx: TurnContext) -> bool:
+    """Есть ли у цели союзник атакующего в 5 фт (кроме самого атакующего) —
+    условие Sneak Attack (PHB-2024)."""
+    attacker_faction = ctx.factions.get(attacker.id)
+    tpos = ctx.battlefield.position_of(target.id)
+    for cid, cr in ctx.participants.items():
+        if cid in (attacker.id, target.id) or not cr.is_alive:
+            continue
+        if ctx.factions.get(cid) != attacker_faction:
+            continue
+        if tpos.distance_to_feet(ctx.battlefield.position_of(cid)) <= 5:
+            return True
+    return False
 
 
 __all__ = ["AttackAction", "AttackKind", "AttackParams"]

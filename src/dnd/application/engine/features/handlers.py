@@ -20,4 +20,12 @@ class ImprovedCriticalHandler:
         creature.crit_range_min = 19
 
 
-__all__ = ["ImprovedCriticalHandler"]
+class SneakAttackHandler:
+    """Плут L1: Sneak Attack. Поведение — в AttackAction по наличию фичи в
+    creature.features; on_gain — пасс (фича уже добавлена LevelUpService'ом)."""
+
+    def on_gain(self, creature: Creature, ctx: TurnContext | None) -> None:
+        return
+
+
+__all__ = ["ImprovedCriticalHandler", "SneakAttackHandler"]

@@ -443,6 +443,8 @@ class Encounter:
 
         # Сброс stances своего хода (PHB-2024 стр. 22).
         actor.combat_stances -= _STANCES_CLEARED_ON_TURN_START
+        # Sneak Attack — раз за ход: сбрасываем флаг на старте хода владельца (R1).
+        actor.sneak_used_this_turn = False
 
         # Сброс Help-якорей (PHB-2024 стр. 22: «until the start of your
         # next turn or until you have advantaged an attack»). Аудит 13 EN-A004.
