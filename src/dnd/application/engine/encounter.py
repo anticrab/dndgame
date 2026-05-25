@@ -339,6 +339,11 @@ class Encounter:
             return
         if target.uses_death_saves and target.is_at_zero_hp:
             target.begin_dying()
+            # Огромный урон (massive damage) убивает PC мгновенно: take_damage
+            # уже выставил failures=3, begin_dying() стал no-op. Публикуем
+            # CreatureDied здесь, иначе смерть пройдёт «молча» (audit M-1).
+            if target.is_dead:
+                self._deps.event_bus.publish(CreatureDied(actor_id=target.id))
         elif not target.uses_death_saves and target.is_at_zero_hp:
             # NPC-расходник: труп с лутом (Q-8). CreatureDied для лога.
             self._spawn_corpse(target)

@@ -97,6 +97,24 @@ def test_dying_pc_auto_rolls_death_save_on_turn_start() -> None:
     assert pc.death_saves is not None and pc.death_saves.successes == 1
 
 
+def test_massive_damage_on_pc_emits_creature_died() -> None:
+    """audit M-1: PC, убитый огромным уроном (overflow >= max HP), умирает
+    мгновенно И публикует CreatureDied (а не «молча»)."""
+    from dnd.application.dto.engine_event import CreatureDied
+    pc, gob = _pc(), _goblin()
+    enc = _enc(pc, gob)
+    died: list[CreatureDied] = []
+    enc.event_bus.subscribe(CreatureDied, died.append)
+    pc.take_damage(DamageInstance(amount=30, type_=DamageType.SLASHING))  # 30 >> max 10
+    assert pc.is_dead
+    enc.event_bus.publish(AttackResolved(
+        attacker_id=gob.id, target_id=pc.id,
+        attack_roll_id="00000000-0000-0000-0000-000000000000",
+        hit=True, is_critical=False, downed=True,
+    ))
+    assert died and died[0].actor_id == pc.id
+
+
 def test_melee_hit_on_dying_pc_is_auto_crit() -> None:
     pc, gob = _pc(), _goblin()
     bf = Battlefield(8, 8)

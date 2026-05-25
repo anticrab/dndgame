@@ -102,7 +102,9 @@ class PickupAction:
         actor_pos = bf.position_of(actor.id)
         if actor_pos.distance_to_feet(obj.pos) > _REACH_FT:
             return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
-        if obj.kind is not ObjectKind.CHEST:
+        # Лутать можно из сундука (O) и из трупа (Q-8): у обоих
+        # open/locked/contents-семантика и они открываются Interact'ом.
+        if obj.kind not in (ObjectKind.CHEST, ObjectKind.CORPSE):
             return Forbidden(
                 reason=ForbiddenReason.CUSTOM,
                 details=f"cannot pickup from {obj.kind.value}",
@@ -110,7 +112,7 @@ class PickupAction:
         if obj.state.get("locked"):
             return Forbidden(
                 reason=ForbiddenReason.CUSTOM,
-                details="chest is locked",
+                details=f"{obj.kind.value} is locked",
             )
         # Audit MAJOR-1: pickup из ЗАКРЫТОГО сундука был разрешён,
         # хотя по правилам сначала нужно его открыть (InteractAction.OPEN).

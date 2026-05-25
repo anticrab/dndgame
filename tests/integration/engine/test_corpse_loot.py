@@ -125,6 +125,7 @@ def test_corpse_opens_via_interact() -> None:
 
 def test_loot_open_corpse_via_pickup() -> None:
     """PickupAction забирает лут из открытого трупа тем же путём, что из сундука."""
+    from dnd.application.dto.action import Allowed
     pc, gob = _pc(), _goblin_with_gold(15)
     enc = _enc(pc, gob, adjacent=True)
     _kill_gob(enc, pc, gob)
@@ -133,8 +134,12 @@ def test_loot_open_corpse_via_pickup() -> None:
     corpse_id = ObjectId("corpse-gob")
     corpse = enc.battlefield.object_at(corpse_id)
     corpse.open()  # доменное открытие (без траты экономики хода)
-    out = PickupAction(item_repository=_Repo()).execute(
-        pc, PickupParams(target_object_id=corpse_id, item_id=ItemId("gold")), ctx)
+    action = PickupAction(item_repository=_Repo())
+    params = PickupParams(target_object_id=corpse_id, item_id=ItemId("gold"))
+    # audit C-1: реальный флоу идёт через can_perform_against (GameRunner),
+    # а не только execute — проверяем именно его.
+    assert isinstance(action.can_perform_against(pc, params, ctx), Allowed)
+    out = action.execute(pc, params, ctx)
     assert out.success
     stack = pc.inventory.find_by_id(ItemId("gold"))
     assert stack is not None and stack.qty == 15
