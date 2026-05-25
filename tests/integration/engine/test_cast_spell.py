@@ -268,6 +268,56 @@ def test_concentration_moves_buff_to_new_target() -> None:
     assert _ac_bonus(ctx, gob) == 2
 
 
+# --- P1-audit регрессии -------------------------------------------------
+
+def test_offensive_spell_on_dead_target_forbidden() -> None:
+    """MAJOR-2: Fire Bolt по мёртвой цели → Forbidden (не только UI-фильтр)."""
+    from dnd.domain.values.damage import DamageInstance, DamageType
+    _enc, mage, gob, ctx = _setup([20, 19, 10, 7])
+    gob.take_damage(DamageInstance(amount=99, type_=DamageType.SLASHING))  # труп
+    avail = CastSpellAction(_repo()).can_perform_against(
+        mage, CastSpellParams(spell_id=SpellId("fire_bolt"), target_id=gob.id), ctx
+    )
+    assert isinstance(avail, Forbidden)
+
+
+def test_heal_on_dying_ally_allowed() -> None:
+    """MAJOR-2: Cure Wounds по умирающему (0 HP, dying) союзнику — разрешено."""
+    from dnd.domain.values.damage import DamageInstance, DamageType
+    _enc, mage, _gob, ctx = _setup([20, 19, 4])
+    mage.spell_slots = {1: 1}
+    mage.uses_death_saves = True
+    # ровно до 0 HP без massive damage (иначе мгновенная смерть, не dying)
+    mage.take_damage(DamageInstance(amount=10, type_=DamageType.SLASHING))
+    mage.begin_dying()
+    # маг таргетит сам себя (dying) — cure_wounds должно быть Allowed
+    avail = CastSpellAction(_repo()).can_perform_against(
+        mage, CastSpellParams(spell_id=SpellId("cure_wounds"), target_id=mage.id), ctx
+    )
+    assert isinstance(avail, Allowed)
+
+
+def test_concentration_buff_removed_when_caster_downed() -> None:
+    """MAJOR-1: при падении кастера в 0 HP его concentration-бафф (+AC) снимается."""
+    from dnd.application.dto.engine_event import AttackResolved
+    from dnd.domain.values.damage import DamageInstance, DamageType
+    enc, mage, _gob, ctx = _setup([20, 19])
+    mage.spell_slots = {1: 1}
+    CastSpellAction(_repo()).execute(
+        mage, CastSpellParams(spell_id=SpellId("shield_of_faith"), target_id=mage.id), ctx
+    )
+    assert _ac_bonus(ctx, mage) == 2
+    # Маг получает летальный урон → концентрация рвётся, бафф снимается.
+    mage.take_damage(DamageInstance(amount=99, type_=DamageType.SLASHING))
+    enc.event_bus.publish(AttackResolved(
+        attacker_id=_gob.id, target_id=mage.id,
+        attack_roll_id="00000000-0000-0000-0000-000000000000",
+        hit=True, is_critical=False, downed=True,
+    ))
+    assert _ac_bonus(ctx, mage) == 0
+    assert mage.concentration is None
+
+
 def test_save_for_half_yields_half_damage() -> None:
     """Прямой юнит SaveSpellHandler: save_for_half=True → половина урона."""
     from dnd.application.engine.spells.handlers import SaveSpellHandler

@@ -23,7 +23,7 @@ from dnd.application.engine.spells.effect_handler import SpellEffectRegistry
 from dnd.application.engine.turn_context import TurnContext
 from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.entities.creature import Creature
-from dnd.domain.values.spell import Spell, TargetKind
+from dnd.domain.values.spell import Spell, SpellEffect, TargetKind
 
 
 class CastSpellParams(ActionParams):
@@ -93,6 +93,21 @@ class CastSpellAction:
         if spell.targeting.kind is TargetKind.SINGLE:
             if params.target_id is None or params.target_id not in ctx.participants:
                 return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
+            target = ctx.participants[params.target_id]
+            # audit MAJOR-2: liveness-guard в Action, а не только в UI.
+            # Урон-заклинания (ATTACK/SAVE/AUTO) — только по живой цели
+            # (нельзя бить труп). Heal/buff — по живой ИЛИ умирающей (dying),
+            # но не по окончательно мёртвой.
+            offensive = spell.effect in (
+                SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
+            )
+            if offensive:
+                if not target.is_alive:
+                    return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
+            elif not target.is_alive and not (
+                target.death_saves is not None and not target.death_saves.is_dead
+            ):
+                return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
             actor_pos = ctx.battlefield.position_of(actor.id)
             target_pos = ctx.battlefield.position_of(params.target_id)
             if actor_pos.distance_to_feet(target_pos) > spell.range_ft:

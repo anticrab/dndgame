@@ -32,6 +32,7 @@ from dnd.application.dto.engine_event import (
 from dnd.application.dto.ids import ConditionId, CreatureId, ObjectId
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import RollContext, RollPurpose
+from dnd.application.engine.spells.handlers import concentration_source
 from dnd.application.engine.turn_context import TurnContext
 from dnd.application.inventory.loot_helpers import dump_loot_entries
 from dnd.domain.conditions.builtin import (
@@ -337,6 +338,12 @@ class Encounter:
         target = self._participants.get(event.target_id)
         if target is None:
             return
+        # MAJOR-1 (P1-audit): летальный урон авто-рвёт концентрацию
+        # (Creature.take_damage обнулил target.concentration); снимаем и
+        # модификатор-бафф этого кастера (иначе +AC «висел» бы вечно).
+        self._deps.modifier_applier.remove_by_source(
+            concentration_source(target.id)
+        )
         if target.uses_death_saves and target.is_at_zero_hp:
             target.begin_dying()
             # Огромный урон (massive damage) убивает PC мгновенно: take_damage

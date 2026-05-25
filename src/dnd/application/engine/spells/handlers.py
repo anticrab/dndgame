@@ -230,16 +230,20 @@ class HealSpellHandler:
             )
 
 
-def _concentration_source(caster_id: object, spell_id: object) -> str:
-    return f"spell:{spell_id}:{caster_id}"
+def concentration_source(caster_id: object) -> str:
+    """source_id для concentration-баффов кастера. Per-caster (не per-spell):
+    одна концентрация на кастера, поэтому снять прежний эффект и почистить
+    при срыве (Encounter._on_downed, MAJOR-1) можно зная только caster_id."""
+    return f"concentration:{caster_id}"
 
 
 class BuffSpellHandler:
     """BUFF: бафф цели (P1 — бонус КД, напр. Shield of Faith +2).
 
     Concentration-баффы регистрируются модификатором в ModifierApplier с
-    source_id ``spell:{spell}:{caster}``; старт нового concentration-заклинания
+    source_id ``concentration:{caster}``; старт нового concentration-заклинания
     снимает прежний бафф (одна концентрация на кастера, PHB-2024 стр. 235).
+    Срыв концентрации при падении кастера чистит этот же source в Encounter.
     """
 
     def apply(
@@ -251,12 +255,10 @@ class BuffSpellHandler:
     ) -> None:
         if spell.concentration and caster.concentration is not None:
             # Снять прежний concentration-эффект (заменяется новым).
-            ctx.modifier_applier.remove_by_source(
-                _concentration_source(caster.id, caster.concentration)
-            )
+            ctx.modifier_applier.remove_by_source(concentration_source(caster.id))
         if spell.concentration:
             caster.concentration = spell.id
-        source_id = _concentration_source(caster.id, spell.id)
+        source_id = concentration_source(caster.id)
         for target in targets:
             ctx.modifier_applier.add(
                 Modifier(
