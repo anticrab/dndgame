@@ -19,6 +19,16 @@ def test_spell_cast_with_target() -> None:
     assert "mage" in out and "Fire Bolt" in out and "gob" in out
 
 
+def test_spell_cast_multi_targets() -> None:
+    """M2: MULTI-каст логирует все цели с числом попаданий (✦×N)."""
+    out = _capture(SpellCast(
+        caster_id="mage", spell_id="magic_missile", spell_name="Magic Missile",
+        slot_level=1, target_ids=("gobA", "gobA", "gobB"),
+    ))
+    assert "Magic Missile" in out
+    assert "gobA×2" in out and "gobB" in out
+
+
 def test_spell_cast_self() -> None:
     out = _capture(SpellCast(
         caster_id="mage", spell_id="shield_of_faith", spell_name="Shield of Faith",

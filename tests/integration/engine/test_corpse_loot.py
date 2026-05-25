@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from dnd.application.dto.engine_event import AttackResolved
+from dnd.application.dto.engine_event import DamageDealt
 from dnd.application.engine.actions.interact import (
     InteractAction,
     InteractKind,
@@ -78,10 +78,12 @@ def _enc(pc: Creature, gob: Creature, *, adjacent: bool) -> Encounter:
 
 def _kill_gob(enc: Encounter, pc: Creature, gob: Creature) -> None:
     gob.take_damage(DamageInstance(amount=10, type_=DamageType.SLASHING))
-    enc.event_bus.publish(AttackResolved(
+    enc.event_bus.publish(DamageDealt(
         attacker_id=pc.id, target_id=gob.id,
-        attack_roll_id="00000000-0000-0000-0000-000000000000",
-        hit=True, is_critical=False, downed=True,
+        damage_roll_id="00000000-0000-0000-0000-000000000000",
+        damage_type=DamageType.SLASHING, raw_amount=10, final_amount=10,
+        is_critical=False, hp_after=gob.hit_points.current,
+        hp_max=gob.hit_points.maximum, was_lethal=True,
     ))
 
 

@@ -436,6 +436,7 @@ class AttackAction:
                     is_critical=is_crit,
                     hp_after=target.hit_points.current,
                     hp_max=target.hit_points.maximum,
+                    was_lethal=damage_result.was_lethal,
                 )
             )
             published.append("damage.dealt")

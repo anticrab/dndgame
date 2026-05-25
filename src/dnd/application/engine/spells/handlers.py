@@ -98,6 +98,7 @@ class AttackSpellHandler:
                     is_critical=is_crit,
                     hp_after=target.hit_points.current,
                     hp_max=target.hit_points.maximum,
+                    was_lethal=result.was_lethal,
                 )
             )
 
@@ -167,6 +168,7 @@ class SaveSpellHandler:
                     is_critical=False,
                     hp_after=target.hit_points.current,
                     hp_max=target.hit_points.maximum,
+                    was_lethal=result.was_lethal,
                 )
             )
 
@@ -206,6 +208,7 @@ class AutoSpellHandler:
                     is_critical=False,
                     hp_after=target.hit_points.current,
                     hp_max=target.hit_points.maximum,
+                    was_lethal=result.was_lethal,
                 )
             )
 

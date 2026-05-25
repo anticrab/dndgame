@@ -222,6 +222,7 @@ class CastSpellAction:
                 spell_name=spell.name,
                 slot_level=spell.level,
                 target_id=params.target_id,
+                target_ids=params.target_ids,
             )
         )
         self._effects.get(spell.effect).apply(actor, targets, spell, ctx)

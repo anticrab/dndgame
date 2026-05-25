@@ -340,7 +340,7 @@ def test_heal_on_dying_ally_allowed() -> None:
 
 def test_concentration_buff_removed_when_caster_downed() -> None:
     """MAJOR-1: при падении кастера в 0 HP его concentration-бафф (+AC) снимается."""
-    from dnd.application.dto.engine_event import AttackResolved
+    from dnd.application.dto.engine_event import DamageDealt
     from dnd.domain.values.damage import DamageInstance, DamageType
     enc, mage, _gob, ctx = _setup([20, 19])
     mage.spell_slots = {1: 1}
@@ -349,11 +349,14 @@ def test_concentration_buff_removed_when_caster_downed() -> None:
     )
     assert _ac_bonus(ctx, mage) == 2
     # Маг получает летальный урон → концентрация рвётся, бафф снимается.
+    # Сигнал падения — DamageDealt(was_lethal), как для оружия и заклинаний.
     mage.take_damage(DamageInstance(amount=99, type_=DamageType.SLASHING))
-    enc.event_bus.publish(AttackResolved(
+    enc.event_bus.publish(DamageDealt(
         attacker_id=_gob.id, target_id=mage.id,
-        attack_roll_id="00000000-0000-0000-0000-000000000000",
-        hit=True, is_critical=False, downed=True,
+        damage_roll_id="00000000-0000-0000-0000-000000000000",
+        damage_type=DamageType.SLASHING, raw_amount=99, final_amount=99,
+        is_critical=False, hp_after=mage.hit_points.current,
+        hp_max=mage.hit_points.maximum, was_lethal=True,
     ))
     assert _ac_bonus(ctx, mage) == 0
     assert mage.concentration is None

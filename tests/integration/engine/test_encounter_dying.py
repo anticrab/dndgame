@@ -1,7 +1,7 @@
 """Q-2/Q-3/Q-4: lifecycle умирания в Encounter."""
 from __future__ import annotations
 
-from dnd.application.dto.engine_event import AttackResolved, DeathSaveRolled
+from dnd.application.dto.engine_event import DamageDealt, DeathSaveRolled
 from dnd.application.engine.actions.attack import AttackAction, AttackKind, AttackParams
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_scripted_dependencies
@@ -49,14 +49,24 @@ def _enc(pc: Creature, gob: Creature, *, rolls: list[int] | None = None) -> Enco
     return enc
 
 
+def _lethal(attacker: Creature, target: Creature) -> DamageDealt:
+    """Синтетическое DamageDealt(was_lethal=True) — сигнал падения цели.
+    Урон сам наносится через ``take_damage`` в тесте; это событие триггерит
+    реакцию Encounter (dying/CORPSE), как реальный урон оружием/заклинанием."""
+    return DamageDealt(
+        attacker_id=attacker.id, target_id=target.id,
+        damage_roll_id="00000000-0000-0000-0000-000000000000",
+        damage_type=DamageType.SLASHING, raw_amount=0, final_amount=0,
+        is_critical=False, hp_after=target.hit_points.current,
+        hp_max=target.hit_points.maximum, was_lethal=True,
+    )
+
+
 def test_pc_dropped_to_zero_enters_dying_not_dead() -> None:
     pc, gob = _pc(), _goblin()
     enc = _enc(pc, gob)
     pc.take_damage(DamageInstance(amount=10, type_=DamageType.SLASHING))
-    enc.event_bus.publish(AttackResolved(
-        attacker_id=gob.id, target_id=pc.id, attack_roll_id="00000000-0000-0000-0000-000000000000",
-        hit=True, is_critical=False, downed=True,
-    ))
+    enc.event_bus.publish(_lethal(gob, pc))
     assert pc.death_saves is not None
     assert pc.has_condition(UNCONSCIOUS)
     assert not pc.is_dead
@@ -67,10 +77,7 @@ def test_npc_downed_does_not_get_death_saves() -> None:
     pc, gob = _pc(), _goblin()
     enc = _enc(pc, gob)
     gob.take_damage(DamageInstance(amount=10, type_=DamageType.SLASHING))
-    enc.event_bus.publish(AttackResolved(
-        attacker_id=pc.id, target_id=gob.id, attack_roll_id="00000000-0000-0000-0000-000000000000",
-        hit=True, is_critical=False, downed=True,
-    ))
+    enc.event_bus.publish(_lethal(pc, gob))
     assert gob.death_saves is None
 
 
@@ -107,11 +114,7 @@ def test_massive_damage_on_pc_emits_creature_died() -> None:
     enc.event_bus.subscribe(CreatureDied, died.append)
     pc.take_damage(DamageInstance(amount=30, type_=DamageType.SLASHING))  # 30 >> max 10
     assert pc.is_dead
-    enc.event_bus.publish(AttackResolved(
-        attacker_id=gob.id, target_id=pc.id,
-        attack_roll_id="00000000-0000-0000-0000-000000000000",
-        hit=True, is_critical=False, downed=True,
-    ))
+    enc.event_bus.publish(_lethal(gob, pc))
     assert died and died[0].actor_id == pc.id
 
 

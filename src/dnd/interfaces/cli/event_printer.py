@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable
 from typing import Any, ClassVar
 
@@ -239,8 +240,18 @@ class EventPrinter:
         self._print(f"  ✚ [green]{event.by} stabilizes {event.actor_id}[/]")
 
     def _on_spell_cast(self, event: SpellCast) -> None:
-        # P1: ✨ caster casts Spell [at target]
-        at = f" at {event.target_id}" if event.target_id is not None else ""
+        # ✨ caster casts Spell [at target(s)]. MULTI → перечисляем цели с
+        # числом попаданий (✦×N), SINGLE — одна цель, AoE/SELF — без целей.
+        if event.target_ids:
+            counts = Counter(event.target_ids)
+            targets = ", ".join(
+                f"{cid}×{n}" if n > 1 else f"{cid}" for cid, n in counts.items()
+            )
+            at = f" at {targets}"
+        elif event.target_id is not None:
+            at = f" at {event.target_id}"
+        else:
+            at = ""
         self._print(f"  ✨ [magenta]{event.caster_id} casts {event.spell_name}[/]{at}")
 
     def _on_healing(self, event: HealingApplied) -> None:

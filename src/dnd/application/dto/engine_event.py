@@ -121,6 +121,11 @@ class DamageDealt(EngineEvent):
     ``hp_after`` / ``hp_max`` — снапшот HP цели после применения, чтобы
     UI мог показывать `(HP 8/20)` сразу в строке урона без отдельного
     лукапа Creature.
+
+    ``was_lethal=True``, если цель упала в 0 HP именно этим уроном
+    (``DamageResult.was_lethal``). Это **единый** сигнал падения для движка:
+    на него реагирует ``Encounter`` (dying/CORPSE/срыв концентрации) —
+    одинаково для урона оружием и заклинанием.
     """
 
     event_type: ClassVar[str] = "damage.dealt"
@@ -133,6 +138,7 @@ class DamageDealt(EngineEvent):
     is_critical: bool
     hp_after: int
     hp_max: int
+    was_lethal: bool = False
 
 
 class AttackResolved(EngineEvent):
@@ -300,6 +306,8 @@ class SpellCast(EngineEvent):
 
     ``spell_name`` несётся в событии, чтобы EventPrinter рендерил лог без
     доступа к SpellRepository. ``target_id`` — None для SELF-заклинаний.
+    ``target_ids`` — цели MULTI-заклинания (мультимножество; для SINGLE/SELF
+    пусто, для AoE тоже пусто — там цели определяются зоной).
     """
 
     event_type: ClassVar[str] = "spell.cast"
@@ -308,6 +316,7 @@ class SpellCast(EngineEvent):
     spell_name: str
     slot_level: int
     target_id: CreatureId | None = None
+    target_ids: tuple[CreatureId, ...] = ()
 
 
 class HelpGranted(EngineEvent):

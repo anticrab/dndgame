@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import (
-    AttackResolved,
     CreatureDied,
+    DamageDealt,
     DeathSaveRolled,
     EncounterEnded,
     InitiativeRolled,
@@ -296,8 +296,11 @@ class Encounter:
             OpportunityAttackProvoked, self._on_provoked
         )
         # Q-2: реакция на падение цели в 0 HP (PC → dying, NPC → CORPSE).
+        # Слушаем DamageDealt (а не AttackResolved): это единый сигнал урона
+        # для оружия И заклинаний, поэтому downing/срыв концентрации работают
+        # одинаково независимо от источника (P2b-audit M1).
         self._unsubscribe_downed = self._deps.event_bus.subscribe(
-            AttackResolved, self._on_downed
+            DamageDealt, self._on_downed
         )
 
     def _on_provoked(self, event: OpportunityAttackProvoked) -> None:
@@ -327,13 +330,16 @@ class Encounter:
                 event.actor_id,
             )
 
-    def _on_downed(self, event: AttackResolved) -> None:
+    def _on_downed(self, event: DamageDealt) -> None:
         """Реакция на падение цели в 0 HP (PHB-2024 стр. 27).
 
         PC (uses_death_saves) → переход в dying: Unconscious + DeathSaveState.
         NPC (расходник) → превращение в труп (CORPSE) — реализуется в Q-8.
+
+        Триггерится на ``DamageDealt`` с ``was_lethal`` — единый сигнал для
+        урона оружием и заклинанием (P2b-audit M1).
         """
-        if not event.downed or self._state.concluded:
+        if not event.was_lethal or self._state.concluded:
             return
         target = self._participants.get(event.target_id)
         if target is None:

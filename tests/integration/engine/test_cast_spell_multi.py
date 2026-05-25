@@ -218,6 +218,62 @@ def test_bless_adds_d4_to_spell_save() -> None:
     assert save_ctxs and save_ctxs[0].extra_dice == ("1d4",)  # type: ignore[attr-defined]
 
 
+def test_spell_kill_triggers_downing() -> None:
+    """M1: смерть от урона заклинанием триггерит падение (CreatureDied),
+    как и от оружия — обработчик висит на DamageDealt(was_lethal), не на
+    AttackResolved."""
+    from dnd.application.dto.engine_event import CreatureDied
+    # init x3; 3 дротика d4=[4,4,4] → 15 урона по gobA (12 HP) → смерть.
+    enc, mage, a, _b, ctx = _setup([20, 19, 19, 4, 4, 4])
+    spell = _mm()
+    mage.known_spells = (spell.id,)
+    deaths: list[CreatureDied] = []
+    enc.event_bus.subscribe(CreatureDied, deaths.append)
+    action = CastSpellAction(_OneSpellRepo(spell))
+    action.execute(
+        mage, CastSpellParams(spell_id=spell.id, target_ids=(a.id, a.id, a.id)), ctx
+    )
+    assert not a.is_alive
+    assert any(d.actor_id == a.id for d in deaths)  # падение отработало
+
+
+def test_spell_kill_breaks_concentration() -> None:
+    """M1: летальный урон заклинанием рвёт концентрацию жертвы — её
+    concentration-бафф снимается из ModifierApplier."""
+    from dnd.application.engine.spells.handlers import (
+        BuffSpellHandler,
+        concentration_source,
+    )
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.spell import BuffSpec
+    _enc, mage, a, _b, ctx = _setup([20, 19, 19, 4, 4, 4])
+    spell = _mm()
+    mage.known_spells = (spell.id,)
+    # gobA «концентрируется»: вешаем concentration-бафф на него (source=gobA).
+    conc_spell = Spell(
+        id=SpellId("conc"), name="Conc", level=1, school="abjuration",
+        effect=SpellEffect.BUFF,
+        targeting=TargetingSpec(kind=TargetKind.SINGLE), range_ft=5,
+        description="", concentration=True,
+        buffs=(BuffSpec(target=ModifierTargetKind.ARMOR_CLASS, numeric_bonus=2),),
+    )
+    BuffSpellHandler().apply(a, (a,), conc_spell, ctx)
+    ac_mods = ctx.modifier_applier.collect(
+        owner_id=a.id, target_kind=ModifierTargetKind.ARMOR_CLASS
+    )
+    assert ctx.modifier_applier.to_roll_adjustments(ac_mods).numeric_bonus == 2
+    # Маг убивает gobA Magic Missile'ом → концентрация должна сорваться.
+    CastSpellAction(_OneSpellRepo(spell)).execute(
+        mage, CastSpellParams(spell_id=spell.id, target_ids=(a.id, a.id, a.id)), ctx
+    )
+    assert not a.is_alive
+    after = ctx.modifier_applier.collect(
+        owner_id=a.id, target_kind=ModifierTargetKind.ARMOR_CLASS
+    )
+    assert ctx.modifier_applier.to_roll_adjustments(after).numeric_bonus == 0
+    assert concentration_source(a.id)  # sanity: source-helper доступен
+
+
 def test_multi_out_of_range_forbidden() -> None:
     _enc, mage, _a, b, ctx = _setup([20, 19, 19])
     spell = Spell(
