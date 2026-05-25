@@ -221,7 +221,15 @@ Textual-приложения, MVP-граница, многопоточная с�
     (Fireball/Burning Hands/Lightning Bolt), TUI `BattleMode.AREA` (выбор точки
     для at-point / направления 8-сторон для from-caster + превью зоны). См.
     `docs/SPELLS.md`.
-  - ⏳ **P2b** — мультитаргет (выбор N целей: Bless, распределение Magic Missile).
+  - ✅ **P2b — мультитаргет.** Модель целей `MULTI` = мультимножество
+    `target_ids` (дубли = повторные «попадания»); `TargetingSpec.max_targets` +
+    `allow_repeat_target`. Обобщённый бафф `Spell.buffs: tuple[BuffSpec,…]`
+    (numeric/dice модификаторы) вместо `ac_bonus`; `BuffSpellHandler` применяет
+    их через `ModifierApplier`. Bless (+1d4 к атаке/спасброскам, концентрация —
+    реально подхватывается в `AttackAction` и спелл-хендлерах), Magic Missile
+    переопределён в распределяемый MULTI (`1d4+1` за дротик). TUI
+    `BattleMode.MULTI_TARGET` (Space добавляет попадание, повтор = повторный
+    выбор, без ввода чисел; счётчик ✦×N + остаток). См. `docs/SPELLS.md`.
   - ⏳ **P3** — справка/inspect по заклинанию-способности → база знаний.
   - Отложено: upcasting, реакция-каст, классовые таблицы ячеек (→ R).
 - 🔜 **Этап R — Уровни и опыт.** XP-tracking, level-up

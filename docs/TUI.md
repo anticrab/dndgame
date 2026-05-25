@@ -277,6 +277,17 @@ PC- vs monster-turn: для не-PARTY actor'а `BattleScreen.set_turn`
 * `BattleMode.TARGET` — `Tab` / `Shift+Tab` циклят достижимые цели
   (выбранная подсвечена `reverse bold`), `Enter` подтверждает,
   `Esc` отменяет.
+* `BattleMode.AREA` (P2) — выбор зоны AoE-заклинания: at-point (стрелки
+  двигают курсор-точку в пределах дальности) или from-caster (`Tab`/стрелки
+  выбирают направление); превью задетых клеток, `Enter` каст, `Esc` отмена.
+* `BattleMode.MULTI_TARGET` (P2b) — выбор нескольких целей заклинания
+  (Bless, распределение дротиков Magic Missile). `Tab`/`Shift+Tab` циклят
+  кандидатов, **`Space` добавляет одно «попадание»** текущей цели (повтор —
+  повторным `Space`, если заклинание разрешает повторы; **без ввода чисел**),
+  `Backspace` снимает последнее, `Enter` подтверждает набор, `Esc` отменяет.
+  Hint показывает счётчик попаданий (✦×N на каждой цели) и остаток выборов;
+  выбранные цели подсвечены. Результат — `CastSpellIntent.target_ids`
+  (мультимножество с порядком/дублями).
 
 Модальных picker'ов больше нет — курсор и highlights рисуются прямо
 на текущей карте через `MapWidget.refresh_from(..., cursor=,
@@ -284,10 +295,11 @@ highlights=, path_preview=)`. На TurnStarted mode сбрасывается в
 NORMAL (инвариант §11-2 spec).
 
 Handler'ы лежат в `interfaces/tui/screens/battle_modes/*`:
-`NormalModeHandler`, `MoveModeHandler`, `TargetModeHandler` — все
-имплементируют `ModeHandler` Protocol поверх `ModeScreenContext`
-Protocol (см. `protocol.py`), чтобы handler'ы не зависели от
-BattleScreen напрямую и тестировались через моки.
+`NormalModeHandler`, `MoveModeHandler`, `TargetModeHandler`,
+`AreaModeHandler`, `MultiTargetModeHandler` — все имплементируют
+`ModeHandler` Protocol поверх `ModeScreenContext` Protocol (см.
+`protocol.py`), чтобы handler'ы не зависели от BattleScreen напрямую
+и тестировались через моки.
 
 ### 6.8 EndScreen (модальный)
 

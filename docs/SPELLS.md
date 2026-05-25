@@ -20,17 +20,17 @@
 |------|-----------|
 | `id`, `name`, `level`, `school` | идентификация; `level=0` — заговор |
 | `effect: SpellEffect` | ATTACK / SAVE / AUTO / HEAL / BUFF — выбирает хендлер |
-| `targeting: TargetingSpec` | `kind` SELF/SINGLE (P1) + задел MULTI/AREA (P2) |
+| `targeting: TargetingSpec` | `kind` SELF/SINGLE (P1), AREA (P2), MULTI (P2b) |
 | `range_ft` | дальность |
 | `description` | текст для справки (зерно базы знаний — этап P3) |
 | `dice`, `damage_type` | урон (ATTACK/AUTO/SAVE) |
 | `save_ability`, `save_for_half` | спасбросок (SAVE): какая хар-ка, половина/ноль при успехе |
 | `concentration` | требует концентрации (BUFF) |
 | `heal_dice` | лечение (HEAL) |
-| `ac_bonus` | бафф КД (BUFF, напр. Shield of Faith +2) |
+| `buffs: tuple[BuffSpec, ...]` | модификаторы баффа (BUFF); каждый `BuffSpec` — `target` + ровно одно из `numeric_bonus`/`dice_bonus` |
 
 Валидация по `effect` — в `Spell.__post_init__` (ATTACK/AUTO требуют dice+тип;
-SAVE — ещё save_ability; HEAL — heal_dice; BUFF — ac_bonus>0).
+SAVE — ещё save_ability; HEAL — heal_dice; BUFF — ≥1 `BuffSpec`).
 
 ## Типы воздействия и хендлеры (`application/engine/spells/handlers.py`)
 
@@ -136,10 +136,50 @@ Fire Bolt (attack), Sacred Flame (save), Magic Missile (auto), Cure Wounds
   save_for_half: true
 ```
 
+## Мультитаргет (этап P2b)
+
+`TargetingSpec` с `kind=multi` — выбор нескольких целей как **мультимножество**:
+
+| Поле | Назначение |
+|------|-----------|
+| `max_targets` | сколько всего «попаданий» (выборов) можно сделать |
+| `allow_repeat_target` | можно ли класть несколько попаданий в одну цель |
+
+Цели передаются в `CastSpellParams.target_ids` / `CastSpellIntent.target_ids` —
+кортеж **с возможными дублями** (порядок = выборы). Эффект-хендлеры уже итерируют
+кортеж целей, поэтому дубль = ещё одно применение эффекта. Так одной механикой
+покрываются оба классических случая:
+
+- **Bless** — `allow_repeat_target: false`, до 3 *разных* союзников; каждый
+  получает +1d4 к броскам атаки и спасброскам (концентрация).
+- **Magic Missile** — `allow_repeat_target: true`, 3 дротика по `1d4+1`;
+  распределяются между целями (можно несколько в одну) — дубли в `target_ids`
+  дают несколько бросков урона по одной цели.
+
+Валидация `target_ids` — в `CastSpellAction.can_perform_against` (непусто,
+`len ≤ max_targets`, дубли только при `allow_repeat_target`, дальность, liveness).
+
+**Обобщённый бафф.** Вместо узкого `ac_bonus` — `Spell.buffs: tuple[BuffSpec,…]`.
+`BuffSpec(target, numeric_bonus | dice_bonus)` накладывается `BuffSpellHandler`'ом
+как `Modifier` через `ModifierApplier`. Bless'нутый союзник реально получает +1d4:
+weapon-атаки подхватывают `ATTACK_ROLL`-модификаторы в `AttackAction`, а
+спелл-атаки/спасброски — в `AttackSpellHandler`/`SaveSpellHandler` (собирают
+`ATTACK_ROLL`/`SAVING_THROW` и прокидывают `extra_dice`).
+
+Пример (YAML):
+```yaml
+- id: bless
+  effect: buff
+  targeting: { kind: multi, max_targets: 3, allow_repeat_target: false }
+  range_ft: 30
+  concentration: true
+  buffs:
+    - { target: attack_roll, dice_bonus: "1d4" }
+    - { target: saving_throw, dice_bonus: "1d4" }
+```
+
 ## Отложено
 
-- **P2b:** мультитаргет — выбор N отдельных целей (Bless, распределение
-  дротиков Magic Missile). Поле `TargetingSpec.max_targets` заложено.
 - **P3:** справка/inspect по заклинанию-способности → база знаний
   (`description` уже заполняется).
 - Upcasting (каст на слот выше), реакция-каст (Shield как реакция), ритуалы,
