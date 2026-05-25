@@ -22,7 +22,7 @@ def test_mage_skirmish_pc_is_spellcaster() -> None:
     assert mage.spellcasting_ability is Ability.INT
     assert SpellId("fire_bolt") in mage.known_spells
     assert SpellId("magic_missile") in mage.known_spells
-    assert mage.spell_slots == {1: 2}
+    assert mage.spell_slots == {1: 4}  # P2: больше ячеек под AoE
     # Деривации работают (INT 16 → +3, prof +2).
     assert mage.spell_attack_bonus() == 5
     assert mage.spell_save_dc() == 13

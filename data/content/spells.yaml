@@ -56,3 +56,43 @@
   ac_bonus: 2
   concentration: true
   description: "Мерцающее поле даёт цели +2 к КД. Требует концентрации."
+
+# --- AoE (этап P2) ---
+- id: fireball
+  name: "Fireball"
+  level: 1
+  school: evocation
+  effect: save
+  targeting: { kind: area, origin: at_point, shape: circle, radius_ft: 10 }
+  range_ft: 150
+  dice: "2d6"
+  damage_type: fire
+  save_ability: DEX
+  save_for_half: true
+  description: "Снаряд летит в выбранную точку (до 150 фт) и взрывается сферой радиусом 10 фт. Спасбросок Ловкости; провал — 2d6 огнём, успех — половина. Бьёт всех в зоне, включая союзников."
+
+- id: burning_hands
+  name: "Burning Hands"
+  level: 1
+  school: evocation
+  effect: save
+  targeting: { kind: area, origin: from_caster, shape: cone, length_ft: 15 }
+  range_ft: 0
+  dice: "2d6"
+  damage_type: fire
+  save_ability: DEX
+  save_for_half: true
+  description: "Конус пламени из ладоней (15 фт) в выбранном направлении. Спасбросок Ловкости; провал — 2d6 огнём, успех — половина."
+
+- id: lightning_bolt
+  name: "Lightning Bolt"
+  level: 1
+  school: evocation
+  effect: save
+  targeting: { kind: area, origin: from_caster, shape: line, length_ft: 30 }
+  range_ft: 0
+  dice: "2d6"
+  damage_type: lightning
+  save_ability: DEX
+  save_for_half: true
+  description: "Луч молнии (30 фт, ширина 1) в выбранном направлении. Спасбросок Ловкости; провал — 2d6 электричеством, успех — половина."

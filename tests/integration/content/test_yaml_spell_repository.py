@@ -21,12 +21,14 @@ def test_repo_implements_port() -> None:
     assert isinstance(repo, SpellRepository)
 
 
-def test_loads_five_spells() -> None:
+def test_loads_all_spells() -> None:
     repo = YamlSpellRepository(_SPELLS)
     ids = set(repo.list_ids())
+    # P1 single/self + P2 AoE.
     assert ids == {
         SpellId("fire_bolt"), SpellId("sacred_flame"), SpellId("magic_missile"),
         SpellId("cure_wounds"), SpellId("shield_of_faith"),
+        SpellId("fireball"), SpellId("burning_hands"), SpellId("lightning_bolt"),
     }
 
 
@@ -75,3 +77,22 @@ def test_duplicate_id_rejected(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="duplicate spell id"):
         YamlSpellRepository(f)
+
+
+# --- P2-5: AoE-заклинания из YAML ----------------------------------------
+
+def test_loads_aoe_spells() -> None:
+    from dnd.domain.values.spell import AreaShape, OriginMode, TargetKind
+    repo = YamlSpellRepository(_SPELLS)
+    fb = repo.load(SpellId("fireball"))
+    assert fb.targeting.kind is TargetKind.AREA
+    assert fb.targeting.origin is OriginMode.AT_POINT
+    assert fb.targeting.shape is AreaShape.CIRCLE
+    assert fb.targeting.radius_ft == 10
+    bh = repo.load(SpellId("burning_hands"))
+    assert bh.targeting.origin is OriginMode.FROM_CASTER
+    assert bh.targeting.shape is AreaShape.CONE
+    assert bh.targeting.length_ft == 15
+    lb = repo.load(SpellId("lightning_bolt"))
+    assert lb.targeting.shape is AreaShape.LINE
+    assert lb.targeting.length_ft == 30

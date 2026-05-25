@@ -63,7 +63,7 @@
   proficiency_bonus: 2
   weapon_id: longsword
   default_faction: party
-  # Заклинания (этап P1): INT-кастер, 2 ячейки 1-го уровня, заговоры безлимит.
+  # Заклинания: INT-кастер, заговоры безлимит. P2 — добавлены AoE.
   spellcasting_ability: INT
-  known_spells: [fire_bolt, sacred_flame, magic_missile, cure_wounds, shield_of_faith]
-  spell_slots: { 1: 2 }
+  known_spells: [fire_bolt, sacred_flame, magic_missile, cure_wounds, shield_of_faith, fireball, burning_hands, lightning_bolt]
+  spell_slots: { 1: 4 }

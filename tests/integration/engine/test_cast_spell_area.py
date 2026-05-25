@@ -205,3 +205,33 @@ def test_burning_hands_cone_hits_creatures_in_direction() -> None:
     hit_ids = {d.target_id for d in dmg}
     assert cr["gobA"].id in hit_ids and cr["gobB"].id in hit_ids
     assert cr["behind"].id not in hit_ids  # позади — не задет
+
+
+def test_yaml_fireball_smoke_hits_multiple() -> None:
+    """P2-5: Fireball из реального spells.yaml бьёт нескольких в зоне."""
+    from pathlib import Path
+
+    from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository
+    spells = YamlSpellRepository(
+        Path(__file__).resolve().parents[3] / "data" / "content" / "spells.yaml"
+    )
+    enc, cr, ctx = _setup(
+        positions={
+            "mage": Square(0, 0), "gobA": Square(5, 5), "gobB": Square(6, 5),
+        },
+        factions={
+            "mage": Faction.PARTY, "gobA": Faction.MONSTERS,
+            "gobB": Faction.MONSTERS,
+        },
+        rolls=[20, 19, 18] + [3] * 40,
+    )
+    cr["mage"].known_spells = (SpellId("fireball"),)
+    dmg: list[DamageDealt] = []
+    enc.event_bus.subscribe(DamageDealt, dmg.append)
+    out = CastSpellAction(spells).execute(
+        cr["mage"],
+        CastSpellParams(spell_id=SpellId("fireball"), target_point=Square(5, 5)),
+        ctx,
+    )
+    assert out.success
+    assert {d.target_id for d in dmg} == {cr["gobA"].id, cr["gobB"].id}
