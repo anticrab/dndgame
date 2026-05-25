@@ -15,8 +15,10 @@ from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from dnd.application.dto.ids import CreatureId
+    from dnd.application.engine.spells.area import AreaShapeRegistry
     from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.spell import TargetingSpec
     from dnd.domain.values.square import Square
 
 
@@ -24,6 +26,7 @@ class BattleMode(Enum):
     NORMAL = "normal"
     MOVE = "move"
     TARGET = "target"
+    AREA = "area"   # выбор зоны AoE-заклинания (P2)
 
 
 @dataclass(frozen=True)
@@ -71,6 +74,11 @@ class ModeScreenContext(Protocol):
     # выбранной цели. Пусто для не-PC ходов; устанавливается в
     # set_active_turn вместе с остальным контекстом.
     _participants: dict[CreatureId, Creature]
+
+    # AREA mode (P2): заклинание-зона, его дальность и реестр форм.
+    _pending_area_spec: TargetingSpec | None
+    _pending_area_range_ft: int
+    _area_registry: AreaShapeRegistry
 
     def _is_alive_lookup(self, cid: CreatureId) -> bool:
         """Жив ли participant. MoveModeHandler передаёт это в

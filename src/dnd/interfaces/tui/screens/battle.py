@@ -43,12 +43,13 @@ from textual.widgets import Footer, Header
 from dnd.application.abilities.ability import Ability, AbilityId
 from dnd.application.abilities.defaults import register_default_abilities
 from dnd.application.abilities.registry import AbilityRegistry
-from dnd.application.abilities.spell_abilities import spell_ability
+from dnd.application.abilities.spell_abilities import is_spell_ability, spell_ability
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
 from dnd.application.dto.ids import CreatureId, ObjectId
 from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
+    CastSpellIntent,
     DashIntent,
     DisengageIntent,
     DodgeIntent,
@@ -61,11 +62,17 @@ from dnd.application.dto.player_intent import (
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.interact import InteractKind
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
+from dnd.application.engine.spells.area import (
+    AreaShapeRegistry,
+    default_area_shape_registry,
+)
 from dnd.application.ports.item_repository import ItemRepository
 from dnd.application.ports.spell_repository import SpellRepository
+from dnd.domain.values.direction import Direction
 from dnd.domain.values.faction import Faction
-from dnd.domain.values.spell import Spell, SpellEffect
+from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
 from dnd.domain.values.square import Square
+from dnd.interfaces.tui.screens.battle_modes.area_mode import AreaModeHandler
 from dnd.interfaces.tui.screens.battle_modes.move_mode import MoveModeHandler
 from dnd.interfaces.tui.screens.battle_modes.normal_mode import NormalModeHandler
 from dnd.interfaces.tui.screens.battle_modes.protocol import BattleMode, ModeHandler
@@ -183,6 +190,11 @@ class BattleScreen(Screen[None]):
         # был открыт классическим action_intent_attack/interact/break,
         # confirm-логика берёт kind из _pending_target_kind как раньше.
         self._pending_ability: Ability | None = None
+        # --- AREA mode (P2) -----------------------------------------
+        # Контекст для AreaModeHandler: спец зоны + дальность + реестр форм.
+        self._pending_area_spec: TargetingSpec | None = None
+        self._pending_area_range_ft: int = 0
+        self._area_registry: AreaShapeRegistry = default_area_shape_registry()
 
     # --- public API для bridge --------------------------------------
 
@@ -335,6 +347,8 @@ class BattleScreen(Screen[None]):
             self._mode_handler = MoveModeHandler()
         elif mode is BattleMode.TARGET:
             self._mode_handler = TargetModeHandler()
+        elif mode is BattleMode.AREA:
+            self._mode_handler = AreaModeHandler()
         self._mode_handler.on_enter(self)
         self._refresh_map_overlay()
 
@@ -354,8 +368,8 @@ class BattleScreen(Screen[None]):
             return
         data = self._mode_handler.overlay()
         actor, _ctx, encounter = self._current
-        if self._mode is BattleMode.TARGET and data.cursor is not None:
-            follow = data.cursor
+        if self._mode in (BattleMode.TARGET, BattleMode.AREA) and data.cursor is not None:
+            follow = data.cursor  # AREA at-point: камера едет за курсором-точкой
         else:
             follow = self._current_battlefield.position_of(actor.id)
         try:
@@ -391,10 +405,14 @@ class BattleScreen(Screen[None]):
             return
         if self._mode is BattleMode.NORMAL:
             ab = self._keymap.get(event.key) if self._keymap else None
-            # default hotkey уже обрабатывается соответствующим BINDING'ом
-            # (action_intent_attack и т.д.). Запускаем через keymap
-            # только override — например, actor.keybindings={"z": ...}.
-            if ab is not None and event.key != ab.default_hotkey:
+            # Базовые умения на их default-хоткее обрабатываются Textual
+            # BINDING'ом (action_intent_attack и т.д.) — не дублируем. Через
+            # keymap запускаем: (1) override базового умения (rebind на другую
+            # клавишу) и (2) ВСЕ заклинания (hotkey'и 1..9 не в BINDINGS, иначе
+            # нажатие цифры заклинания не срабатывало бы — P2-аудит-fix).
+            if ab is not None and (
+                is_spell_ability(ab) or event.key != ab.default_hotkey
+            ):
                 self._trigger_ability(ab)
                 event.stop()
                 event.prevent_default()
@@ -422,8 +440,32 @@ class BattleScreen(Screen[None]):
                 self._submit_target_intent(h.confirmed_target)
                 self.enter_mode(BattleMode.NORMAL)
                 return
+        elif isinstance(h, AreaModeHandler):
+            if h.cancelled:
+                self.enter_mode(BattleMode.NORMAL)
+                return
+            if h.confirmed_point is not None or h.confirmed_direction is not None:
+                self._submit_area_intent(h.confirmed_point, h.confirmed_direction)
+                self.enter_mode(BattleMode.NORMAL)
+                return
         # просто refresh для arrow/tab — overlay изменился
         self._refresh_map_overlay()
+
+    def _submit_area_intent(
+        self, point: Square | None, direction: Direction | None
+    ) -> None:
+        """Построить CastSpellIntent для подтверждённой зоны (P2)."""
+        ab = self._pending_ability
+        spell = self._spell_by_ability.get(ab.id) if ab is not None else None
+        self._pending_ability = None
+        self._pending_area_spec = None
+        if spell is None:
+            return
+        self._put_intent(
+            CastSpellIntent(
+                spell_id=spell.id, target_point=point, direction=direction
+            )
+        )
 
     def _submit_target_intent(self, target: CreatureId) -> None:
         """Сформировать Intent для подтверждённой цели TARGET mode.
@@ -508,6 +550,15 @@ class BattleScreen(Screen[None]):
         if self._current is None:
             return
         actor, ctx, encounter = self._current
+        # P2: AoE-заклинание → AREA mode (выбор точки/направления + превью).
+        area_spell = self._spell_by_ability.get(ab.id)
+        if area_spell is not None and area_spell.targeting.kind is TargetKind.AREA:
+            self._current_battlefield = encounter.battlefield
+            self._pending_area_spec = area_spell.targeting
+            self._pending_area_range_ft = area_spell.range_ft
+            self._pending_ability = ab
+            self.enter_mode(BattleMode.AREA)
+            return
         if ab.requires_target:
             spell = self._spell_by_ability.get(ab.id)
             if spell is not None:
