@@ -156,24 +156,32 @@ def test_sacred_flame_save_success_no_damage() -> None:
 
 
 def test_magic_missile_auto_damage_consumes_slot() -> None:
-    # init x2, урон 3d4+3 = [4,4,4]+3 = 15 (auto, без броска атаки).
+    # init x2, 3 дротика по 1d4+1 в одну цель: d4=[4,4,4] → raw (4+1)*3 = 15.
     enc, mage, gob, ctx = _setup([20, 19, 4, 4, 4])
     mage.spell_slots = {1: 1}
     dmg: list[DamageDealt] = []
     enc.event_bus.subscribe(DamageDealt, dmg.append)
     out = CastSpellAction(_repo()).execute(
-        mage, CastSpellParams(spell_id=SpellId("magic_missile"), target_id=gob.id), ctx
+        mage,
+        CastSpellParams(
+            spell_id=SpellId("magic_missile"),
+            target_ids=(gob.id, gob.id, gob.id),
+        ),
+        ctx,
     )
     assert out.success
-    assert dmg and dmg[0].final_amount == 15
-    assert mage.spell_slots == {1: 0}      # слот потрачен
+    assert len(dmg) == 3                          # три отдельных дротика
+    assert sum(d.raw_amount for d in dmg) == 15   # 3 × (d4=4 +1)
+    assert mage.spell_slots == {1: 0}             # слот потрачен
 
 
 def test_magic_missile_no_slot_forbidden() -> None:
     _enc, mage, gob, ctx = _setup([20, 19, 4, 4, 4])
     mage.spell_slots = {1: 0}
     avail = CastSpellAction(_repo()).can_perform_against(
-        mage, CastSpellParams(spell_id=SpellId("magic_missile"), target_id=gob.id), ctx
+        mage,
+        CastSpellParams(spell_id=SpellId("magic_missile"), target_ids=(gob.id,)),
+        ctx,
     )
     assert isinstance(avail, Forbidden)
 

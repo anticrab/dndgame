@@ -30,11 +30,11 @@
   level: 1
   school: evocation
   effect: auto
-  targeting: { kind: single }
+  targeting: { kind: multi, max_targets: 3, allow_repeat_target: true }
   range_ft: 120
-  dice: "3d4+3"
+  dice: "1d4+1"
   damage_type: force
-  description: "Три светящихся дротика бьют автоматически (без броска атаки), всего 3d4+3 силового урона. (Распределение по нескольким целям — этап P2.)"
+  description: "Три светящихся дротика бьют автоматически (без броска атаки). Каждый — 1d4+1 силового урона; дротики распределяются между целями (можно несколько в одну)."
 
 - id: cure_wounds
   name: "Cure Wounds"

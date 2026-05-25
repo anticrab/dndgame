@@ -152,6 +152,28 @@ def test_multi_repeat_forbidden_when_disallowed() -> None:
     assert isinstance(avail, Forbidden)  # дубль при allow_repeat=False
 
 
+def test_magic_missile_distributes_across_targets() -> None:
+    # 3 дротика 1d4+1: 2 в gobA, 1 в gobB. d4-броски [3,3,2].
+    enc, mage, a, b, ctx = _setup([20, 19, 19, 3, 3, 2])
+    from dnd.application.dto.engine_event import DamageDealt
+    dmg: list[DamageDealt] = []
+    enc.event_bus.subscribe(DamageDealt, dmg.append)
+    spell = _mm()
+    mage.known_spells = (spell.id,)
+    action = CastSpellAction(_OneSpellRepo(spell))
+    out = action.execute(
+        mage,
+        CastSpellParams(spell_id=spell.id, target_ids=(a.id, a.id, b.id)),
+        ctx,
+    )
+    assert out.success
+    by_target: dict[object, int] = {}
+    for d in dmg:
+        by_target[d.target_id] = by_target.get(d.target_id, 0) + d.raw_amount
+    assert by_target[a.id] == (3 + 1) + (3 + 1)   # 2 дротика
+    assert by_target[b.id] == (2 + 1)             # 1 дротик
+
+
 def test_multi_out_of_range_forbidden() -> None:
     _enc, mage, _a, b, ctx = _setup([20, 19, 19])
     spell = Spell(
