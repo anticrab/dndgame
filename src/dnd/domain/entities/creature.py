@@ -57,7 +57,7 @@ from dnd.domain.values.damage import (
 )
 from dnd.domain.values.death_save_state import DeathSaveState
 from dnd.domain.values.hit_points import HitPoints
-from dnd.domain.values.ids import ConditionId, CreatureId, SpellId
+from dnd.domain.values.ids import ConditionId, CreatureId, FeatureId, SpellId
 from dnd.domain.values.vision import NORMAL_VISION, Vision
 from dnd.domain.values.weapon import WeaponProfile
 
@@ -262,6 +262,37 @@ class Creature:
     known_spells: tuple[SpellId, ...] = ()
     """ID известных существу заклинаний (разрешаются в Spell через
     SpellRepository). Из них BattleScreen строит action-bar (P1-10)."""
+
+    # --- прогрессия (этап R1) ------------------------------------------
+    level: int = 1
+    """Уровень существа (PHB-2024). PC растут через LevelUpService; монстры — 1."""
+
+    xp: int = 0
+    """Накопленный опыт. Растёт через XpAwardService (за убийства/бонусы)."""
+
+    character_class: str | None = None
+    """ID класса ("fighter"/"rogue"), резолвится в ClassProgression через
+    ClassRepository. None у монстров."""
+
+    challenge_rating: float = 0.0
+    """CR для награды XP (XP = CR*100, PROGRESSION.md §2). 0 у PC."""
+
+    features: tuple[FeatureId, ...] = ()
+    """Обретённые классовые фичи (feature_id). Применяются FeatureRegistry'ем
+    при level-up; хранятся для inspect и повторного применения."""
+
+    crit_range_min: int = 20
+    """Минимальный d20 для крита. По умолчанию 20 (нат-20). Improved Critical
+    (Чемпион) ставит 19 — AttackAction читает это поле."""
+
+    resource_uses: dict[str, int] = field(default_factory=dict)
+    """Счётчики ограниченных ресурсов фич (resource_key → осталось), напр.
+    {"second_wind": 1, "action_surge": 1}. Восстанавливаются RestService'ом
+    по политике recharge_on ресурса."""
+
+    sneak_used_this_turn: bool = False
+    """Sneak Attack плута — раз за ход (PHB-2024). Сбрасывается Encounter'ом
+    на старте хода владельца, как combat_stances."""
 
     ability_ids: tuple[AbilityId, ...] = (
         AbilityId("weapon_attack"),
