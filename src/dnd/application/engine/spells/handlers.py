@@ -9,7 +9,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import DamageDealt, HealingApplied
-from dnd.application.dto.modifiers import ModifierTargetKind
+from dnd.application.dto.modifiers import (
+    Modifier,
+    ModifierSourceKind,
+    ModifierTargetKind,
+    NumericBonusEffect,
+)
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.domain.values.damage import DamageInstance
 from dnd.domain.values.dice import DiceExpr
@@ -225,9 +230,50 @@ class HealSpellHandler:
             )
 
 
+def _concentration_source(caster_id: object, spell_id: object) -> str:
+    return f"spell:{spell_id}:{caster_id}"
+
+
+class BuffSpellHandler:
+    """BUFF: бафф цели (P1 — бонус КД, напр. Shield of Faith +2).
+
+    Concentration-баффы регистрируются модификатором в ModifierApplier с
+    source_id ``spell:{spell}:{caster}``; старт нового concentration-заклинания
+    снимает прежний бафф (одна концентрация на кастера, PHB-2024 стр. 235).
+    """
+
+    def apply(
+        self,
+        caster: Creature,
+        targets: tuple[Creature, ...],
+        spell: Spell,
+        ctx: TurnContext,
+    ) -> None:
+        if spell.concentration and caster.concentration is not None:
+            # Снять прежний concentration-эффект (заменяется новым).
+            ctx.modifier_applier.remove_by_source(
+                _concentration_source(caster.id, caster.concentration)
+            )
+        if spell.concentration:
+            caster.concentration = spell.id
+        source_id = _concentration_source(caster.id, spell.id)
+        for target in targets:
+            ctx.modifier_applier.add(
+                Modifier(
+                    source_id=source_id,
+                    source_kind=ModifierSourceKind.SPELL,
+                    target_kind=ModifierTargetKind.ARMOR_CLASS,
+                    effect=NumericBonusEffect(value=spell.ac_bonus),
+                    owner_id=target.id,
+                    stack_key=str(spell.id),
+                )
+            )
+
+
 __all__ = [
     "AttackSpellHandler",
     "AutoSpellHandler",
+    "BuffSpellHandler",
     "HealSpellHandler",
     "SaveSpellHandler",
 ]

@@ -6,6 +6,7 @@ from pathlib import Path
 from dnd.application.dto.action import Allowed, Forbidden
 from dnd.application.dto.engine_event import DamageDealt, SpellCast
 from dnd.application.dto.ids import SpellId
+from dnd.application.dto.modifiers import ModifierTargetKind
 from dnd.application.engine.actions.cast_spell import CastSpellAction, CastSpellParams
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_scripted_dependencies
@@ -221,6 +222,50 @@ def test_heal_raises_ally_from_dying() -> None:
     assert ally.death_saves is None
     assert not ally.has_condition(UNCONSCIOUS)
     assert ally.hit_points.current > 0
+
+
+# --- P1-8: BUFF + concentration (Shield of Faith) ------------------------
+
+def _ac_bonus(ctx: object, target: Creature) -> int:
+    mods = ctx.modifier_applier.collect(  # type: ignore[attr-defined]
+        owner_id=target.id, target_kind=ModifierTargetKind.ARMOR_CLASS
+    )
+    return ctx.modifier_applier.to_roll_adjustments(mods).numeric_bonus  # type: ignore[attr-defined]
+
+
+def test_shield_of_faith_grants_ac_and_concentration() -> None:
+    _enc, mage, _gob, ctx = _setup([20, 19])
+    mage.spell_slots = {1: 1}
+    out = CastSpellAction(_repo()).execute(
+        mage, CastSpellParams(spell_id=SpellId("shield_of_faith"), target_id=mage.id), ctx
+    )
+    assert out.success
+    assert _ac_bonus(ctx, mage) == 2
+    assert str(mage.concentration) == "shield_of_faith"
+
+
+def test_recasting_concentration_does_not_stack() -> None:
+    # Два каста в один ход невозможны (action economy) → проверяем хендлер
+    # напрямую: повторное наложение снимает прежний бафф, не стэкается.
+    from dnd.application.engine.spells.handlers import BuffSpellHandler
+    _enc, mage, _gob, ctx = _setup([20, 19])
+    spell = _repo().load(SpellId("shield_of_faith"))
+    handler = BuffSpellHandler()
+    handler.apply(mage, (mage,), spell, ctx)
+    handler.apply(mage, (mage,), spell, ctx)
+    assert _ac_bonus(ctx, mage) == 2  # не +4 — прежний бафф снят
+
+
+def test_concentration_moves_buff_to_new_target() -> None:
+    from dnd.application.engine.spells.handlers import BuffSpellHandler
+    _enc, mage, gob, ctx = _setup([20, 19])
+    spell = _repo().load(SpellId("shield_of_faith"))
+    handler = BuffSpellHandler()
+    handler.apply(mage, (mage,), spell, ctx)
+    assert _ac_bonus(ctx, mage) == 2
+    handler.apply(mage, (gob,), spell, ctx)  # новая концентрация на другой цели
+    assert _ac_bonus(ctx, mage) == 0  # прежний бафф снят
+    assert _ac_bonus(ctx, gob) == 2
 
 
 def test_save_for_half_yields_half_damage() -> None:

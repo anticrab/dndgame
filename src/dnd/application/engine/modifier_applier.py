@@ -80,6 +80,17 @@ class ModifierApplier:
     def __init__(self, bag: ModifierBag) -> None:
         self._bag = bag
 
+    def add(self, modifier: Modifier) -> None:
+        """Добавить активный модификатор (бафф заклинания, эффект предмета).
+
+        Делегирует в :class:`ModifierBag`. Снятие — :meth:`remove_by_source`
+        (истечение заклинания / смена концентрации / снятие состояния)."""
+        self._bag.add(modifier)
+
+    def remove_by_source(self, source_id: str) -> int:
+        """Снять все модификаторы с данным ``source_id``. Возвращает количество."""
+        return self._bag.remove_by_source(source_id)
+
     def collect(
         self,
         *,
