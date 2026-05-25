@@ -158,7 +158,7 @@ def test_save_for_half_yields_half_damage() -> None:
     from dnd.application.engine.spells.handlers import SaveSpellHandler
     from dnd.domain.values.damage import DamageType
     from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
-    enc, mage, gob, ctx = _setup([20, 19, 6, 18])  # урон 6, save success
+    _enc, mage, gob, ctx = _setup([20, 19, 6, 18])  # урон 6, save success
     spell = Spell(
         id=SpellId("fireball_like"), name="Half", level=1, school="evocation",
         effect=SpellEffect.SAVE, targeting=TargetingSpec(kind=TargetKind.SINGLE),

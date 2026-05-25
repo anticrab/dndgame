@@ -127,10 +127,12 @@ class SaveSpellHandler:
                 ),
             )
             full = max(0, dmg_roll.total)
-            if save_roll.total >= dc:
-                amount = full // 2 if spell.save_for_half else 0
+            if save_roll.total < dc:
+                amount = full              # провал — полный урон
+            elif spell.save_for_half:
+                amount = full // 2         # успех + save_for_half — половина
             else:
-                amount = full
+                amount = 0                 # успех без save_for_half — ноль
             result = target.take_damage(
                 DamageInstance(amount=amount, type_=spell.damage_type)
             )
