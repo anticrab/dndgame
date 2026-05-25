@@ -195,8 +195,15 @@ Textual-приложения, MVP-граница, многопоточная с�
   loot menu — требует Corpse-entity, естественнее в Q),
   `Drop`/`Equip`/`Unequip`-intents (нужна связь `Creature.equipped_weapon`
   и `Item.id`), encumbrance penalties.
-- 🔜 **Этап Q — Death & dying.** Death saves (PHB-2024), stabilize,
-  spare-the-dying, TUI death-save overlay (mockup C.6).
+- ✅ **Этап Q — Death & dying.** Спасброски от смерти (PHB-2024 стр. 27):
+  `Creature.uses_death_saves` + `death_saves`; dying/Unconscious при 0 HP;
+  авто death-save на старте хода; авто-крит по лежачему в упор; massive
+  damage → мгновенная смерть; `StabilizeAction` (Медицина DC10); end-condition
+  (downed PC ≠ поражение, бой идёт пока есть спасаемые); трупы павших NPC —
+  `CORPSE`-объект с лутом (переиспользует Interact+Pickup из O); события
+  `DeathSaveRolled`/`CreatureStabilized`/`CreatureDied`; TUI death-save
+  пипсы в StatusWidget. Закрыт O-хвост «лут трупов». См. `docs/DYING.md`.
+  ⏳ Отложено: `Spare the Dying` (→ P), воскрешение, multi-PC стабилизация.
 - 🔜 **Этап P — Заклинания.** `Spell`/`SpellSlot`, 5 базовых
   (Magic Missile, Fire Bolt, Cure Wounds, Shield, Bless),
   ActionBarWidget возвращается с динамическими `[1] Fire Bolt …`.

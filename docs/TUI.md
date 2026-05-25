@@ -226,6 +226,9 @@ PC- vs monster-turn: для не-PARTY actor'а `BattleScreen.set_turn`
 
 * Обновление — на каждое `TurnStarted` (новый actor) и каждое
   `DamageDealt` / `HealingApplied` (HP актуального актора в фокусе).
+* **Этап Q (death-save overlay):** если у актора `death_saves is not None`
+  (он умирает), в строку добавляется `| Death saves: ●●○ / ○○○` — зелёные
+  пипсы успехов / красные провалов (из трёх). См. `docs/DYING.md`.
 
 ### 6.3 LogWidget (RichLog)
 

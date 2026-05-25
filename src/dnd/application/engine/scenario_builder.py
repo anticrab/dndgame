@@ -211,6 +211,11 @@ def build_encounter_from_scenario(
         creature = build_creature_from_template(
             template, instance_id=instance_id, content=content
         )
+        # Q-11: существа фракции PARTY используют спасброски от смерти
+        # (PHB-2024 стр. 27) — при 0 HP уходят в dying, а не умирают сразу.
+        # NPC/MONSTERS — мгновенная смерть (CORPSE).
+        if spawn.faction is Faction.PARTY:
+            creature.uses_death_saves = True
         participants[instance_id] = creature
         factions[instance_id] = spawn.faction
         bf.place_creature(instance_id, Square(*spawn.at))

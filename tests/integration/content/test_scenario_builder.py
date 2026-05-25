@@ -88,6 +88,22 @@ def test_build_encounter_from_mvp_skirmish(repo: YamlContentRepository) -> None:
     assert enc.battlefield.height == 5
 
 
+def test_party_creatures_use_death_saves(repo: YamlContentRepository) -> None:
+    """Q-11: существа фракции PARTY получают uses_death_saves=True,
+    MONSTERS — False (мгновенная смерть → CORPSE)."""
+    scenario = repo.scenario_by_id("mvp_skirmish")
+    deps, _bus, _rng = build_scripted_dependencies(
+        battlefield=Battlefield(1, 1), rolls=[]
+    )
+    enc = build_encounter_from_scenario(scenario, content=repo, deps=deps)
+    for cid, faction in enc.factions.items():
+        creature = enc.participants[cid]
+        if faction is Faction.PARTY:
+            assert creature.uses_death_saves, f"{cid} (PARTY) должен иметь death saves"
+        else:
+            assert not creature.uses_death_saves, f"{cid} ({faction}) — без death saves"
+
+
 def test_e2e_scenario_run_via_yaml(repo: YamlContentRepository) -> None:
     """E2E: бой целиком из YAML-сценария до EncounterEnded."""
     scenario = repo.scenario_by_id("mvp_skirmish")
