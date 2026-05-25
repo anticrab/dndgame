@@ -27,6 +27,7 @@ from dnd.application.dto.player_intent import (
     AttackIntent,
     BreakIntent,
     CastSpellIntent,
+    ActionSurgeIntent,
     DashIntent,
     DisengageIntent,
     DodgeIntent,
@@ -35,6 +36,7 @@ from dnd.application.dto.player_intent import (
     MoveIntent,
     PickupIntent,
     PlayerIntent,
+    SecondWindIntent,
     StabilizeIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
@@ -46,6 +48,14 @@ from dnd.application.engine.actions.cast_spell import (
 from dnd.application.engine.actions.interact import InteractAction, InteractParams
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.pickup import PickupAction, PickupParams
+from dnd.application.engine.actions.action_surge import (
+    ActionSurgeAction,
+    ActionSurgeParams,
+)
+from dnd.application.engine.actions.second_wind import (
+    SecondWindAction,
+    SecondWindParams,
+)
 from dnd.application.engine.actions.stabilize import StabilizeAction, StabilizeParams
 from dnd.application.engine.actions.stances import (
     DashAction,
@@ -194,6 +204,16 @@ class GameRunner:
         if isinstance(intent, CastSpellIntent):
             self._do_cast(actor, intent, ctx)
             return
+        if isinstance(intent, SecondWindIntent):
+            self._do_simple_self_action(
+                SecondWindAction(), SecondWindParams(), actor, ctx, "second_wind"
+            )
+            return
+        if isinstance(intent, ActionSurgeIntent):
+            self._do_simple_self_action(
+                ActionSurgeAction(), ActionSurgeParams(), actor, ctx, "action_surge"
+            )
+            return
         # EndTurnIntent обрабатывается в _run_pc_turn до вызова.
         # Защита от расширения PlayerIntent без обновления GameRunner.
         raise TypeError(f"unknown PlayerIntent: {type(intent).__name__}")
@@ -267,6 +287,22 @@ class GameRunner:
             action.execute(actor, params, ctx)
         else:
             self._log_rejected(actor, "stabilize", _avail_reason(avail))
+
+    def _do_simple_self_action(
+        self,
+        action: object,
+        params: object,
+        actor: Creature,
+        ctx: TurnContext,
+        label: str,
+    ) -> None:
+        """Запустить self-направленное действие фичи (Second Wind / Action Surge):
+        проверить can_perform_against и выполнить, иначе залогировать реджект."""
+        avail = action.can_perform_against(actor, params, ctx)  # type: ignore[attr-defined]
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)  # type: ignore[attr-defined]
+        else:
+            self._log_rejected(actor, label, _avail_reason(avail))
 
     def _do_cast(
         self, actor: Creature, intent: CastSpellIntent, ctx: TurnContext

@@ -28,4 +28,33 @@ class SneakAttackHandler:
         return
 
 
-__all__ = ["ImprovedCriticalHandler", "SneakAttackHandler"]
+def _grant_ability(creature: Creature, ability_id: str) -> None:
+    """Выдать существу активную способность (добавить id в ability_ids)."""
+    from dnd.domain.values.ability_id import AbilityId
+    aid = AbilityId(ability_id)
+    if aid not in creature.ability_ids:
+        creature.ability_ids = (*creature.ability_ids, aid)
+
+
+class SecondWindHandler:
+    """Воин L1: Second Wind. on_gain — инициализирует ресурс и выдаёт ability."""
+
+    def on_gain(self, creature: Creature, ctx: TurnContext | None) -> None:
+        creature.resource_uses.setdefault("second_wind", 1)
+        _grant_ability(creature, "second_wind")
+
+
+class ActionSurgeHandler:
+    """Воин L2: Action Surge. on_gain — инициализирует ресурс и выдаёт ability."""
+
+    def on_gain(self, creature: Creature, ctx: TurnContext | None) -> None:
+        creature.resource_uses.setdefault("action_surge", 1)
+        _grant_ability(creature, "action_surge")
+
+
+__all__ = [
+    "ActionSurgeHandler",
+    "ImprovedCriticalHandler",
+    "SecondWindHandler",
+    "SneakAttackHandler",
+]

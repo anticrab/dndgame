@@ -133,6 +133,18 @@ class CastSpellIntent(_IntentBase):
     direction: Direction | None = None
 
 
+class SecondWindIntent(_IntentBase):
+    """Игрок активирует Second Wind (Воин L1, R1): bonus action, self-heal."""
+
+    kind: Literal["second_wind"] = "second_wind"
+
+
+class ActionSurgeIntent(_IntentBase):
+    """Игрок активирует Action Surge (Воин L2, R1): доп. действие в ходу."""
+
+    kind: Literal["action_surge"] = "action_surge"
+
+
 PlayerIntent = Annotated[
     AttackIntent
     | MoveIntent
@@ -144,12 +156,15 @@ PlayerIntent = Annotated[
     | BreakIntent
     | PickupIntent
     | StabilizeIntent
-    | CastSpellIntent,
+    | CastSpellIntent
+    | SecondWindIntent
+    | ActionSurgeIntent,
     Field(discriminator="kind"),
 ]
 
 
 __all__ = [
+    "ActionSurgeIntent",
     "AttackIntent",
     "BreakIntent",
     "CastSpellIntent",
@@ -161,5 +176,6 @@ __all__ = [
     "MoveIntent",
     "PickupIntent",
     "PlayerIntent",
+    "SecondWindIntent",
     "StabilizeIntent",
 ]
