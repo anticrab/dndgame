@@ -214,12 +214,13 @@ Textual-приложения, MVP-граница, многопоточная с�
   `ActionBarWidget` вернулся с динамическими `[1] Fire Bolt …` + спелл-
   таргетинг (враги/союзники); событие `SpellCast`; PC-кастер `mage_apprentice`
   в сценарии `mage_skirmish`. См. `docs/SPELLS.md`.
-  - 🔄 **P2 — AoE (зоны).** Движок готов: конфигурируемый `TargetingSpec`
-    (origin from_caster/at_point + shape circle/cone/line + размеры), чистая
-    геометрия, `AreaShapeRegistry` (open/closed), AoE-резолвинг в
-    `CastSpellAction` (friendly fire), 3 заклинания (Fireball/Burning Hands/
-    Lightning Bolt). ⏳ Осталось: TUI-выбор зоны (`BattleMode.AREA`: точка +
-    направление + превью) и финальный аудит P2. См. `docs/SPELLS.md`.
+  - ✅ **P2 — AoE (зоны).** Конфигурируемый `TargetingSpec` (origin
+    from_caster/at_point + shape circle/cone/line + размеры), чистая геометрия,
+    `AreaShapeRegistry` (open/closed — новая форма = резолвер + регистрация),
+    AoE-резолвинг в `CastSpellAction` (friendly fire), 3 заклинания
+    (Fireball/Burning Hands/Lightning Bolt), TUI `BattleMode.AREA` (выбор точки
+    для at-point / направления 8-сторон для from-caster + превью зоны). См.
+    `docs/SPELLS.md`.
   - ⏳ **P2b** — мультитаргет (выбор N целей: Bless, распределение Magic Missile).
   - ⏳ **P3** — справка/inspect по заклинанию-способности → база знаний.
   - Отложено: upcasting, реакция-каст, классовые таблицы ячеек (→ R).
