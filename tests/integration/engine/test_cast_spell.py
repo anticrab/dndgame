@@ -30,8 +30,10 @@ def _mage() -> Creature:
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
         max_hp=10, armor_class=12, speed_ft=30,
     )
-    c.spellcasting_ability = Ability.INT       # +3, prof +2 → spell attack +5
-    c.known_spells = (SpellId("fire_bolt"), SpellId("magic_missile"))
+    c.spellcasting_ability = Ability.INT       # +3, prof +2 → attack +5, DC 13
+    c.known_spells = (
+        SpellId("fire_bolt"), SpellId("magic_missile"), SpellId("sacred_flame"),
+    )
     return c
 
 
@@ -123,3 +125,45 @@ def test_unknown_spell_forbidden() -> None:
         mage, CastSpellParams(spell_id=SpellId("cure_wounds"), target_id=gob.id), ctx
     )
     assert isinstance(avail, Forbidden)  # не в known_spells мага
+
+
+# --- P1-5: SAVE (Sacred Flame) -------------------------------------------
+
+def test_sacred_flame_save_fail_full_damage() -> None:
+    # init x2, урон d8=5, спасбросок d20=5 (+2 DEX=7 < DC13 → провал) → 5.
+    enc, mage, gob, ctx = _setup([20, 19, 5, 5])
+    dmg: list[DamageDealt] = []
+    enc.event_bus.subscribe(DamageDealt, dmg.append)
+    CastSpellAction(_repo()).execute(
+        mage, CastSpellParams(spell_id=SpellId("sacred_flame"), target_id=gob.id), ctx
+    )
+    assert dmg and dmg[0].final_amount == 5
+    assert gob.hit_points.current == 7  # 12 - 5
+
+
+def test_sacred_flame_save_success_no_damage() -> None:
+    # урон d8=5, спасбросок d20=15 (+2=17 ≥ DC13 → успех); save_for_half=False → 0.
+    enc, mage, gob, ctx = _setup([20, 19, 5, 15])
+    dmg: list[DamageDealt] = []
+    enc.event_bus.subscribe(DamageDealt, dmg.append)
+    CastSpellAction(_repo()).execute(
+        mage, CastSpellParams(spell_id=SpellId("sacred_flame"), target_id=gob.id), ctx
+    )
+    assert dmg and dmg[0].final_amount == 0
+    assert gob.hit_points.current == 12
+
+
+def test_save_for_half_yields_half_damage() -> None:
+    """Прямой юнит SaveSpellHandler: save_for_half=True → половина урона."""
+    from dnd.application.engine.spells.handlers import SaveSpellHandler
+    from dnd.domain.values.damage import DamageType
+    from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
+    enc, mage, gob, ctx = _setup([20, 19, 6, 18])  # урон 6, save success
+    spell = Spell(
+        id=SpellId("fireball_like"), name="Half", level=1, school="evocation",
+        effect=SpellEffect.SAVE, targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=60, description="", dice="1d8", damage_type=DamageType.FIRE,
+        save_ability=Ability.DEX, save_for_half=True,
+    )
+    SaveSpellHandler().apply(mage, (gob,), spell, ctx)
+    assert gob.hit_points.current == 9  # 12 - (6//2=3)

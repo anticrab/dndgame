@@ -7,14 +7,18 @@
 from __future__ import annotations
 
 from dnd.application.engine.spells.effect_handler import SpellEffectRegistry
-from dnd.application.engine.spells.handlers import AttackSpellHandler
+from dnd.application.engine.spells.handlers import (
+    AttackSpellHandler,
+    SaveSpellHandler,
+)
 from dnd.domain.values.spell import SpellEffect
 
 
 def default_spell_effect_registry() -> SpellEffectRegistry:
     registry = SpellEffectRegistry()
     registry.register(SpellEffect.ATTACK, AttackSpellHandler())
-    # SAVE / AUTO / HEAL / BUFF — добавляются в P1-5..8.
+    registry.register(SpellEffect.SAVE, SaveSpellHandler())
+    # AUTO / HEAL / BUFF — добавляются в P1-6..8.
     return registry
 
 

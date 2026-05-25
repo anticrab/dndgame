@@ -89,4 +89,64 @@ class AttackSpellHandler:
             )
 
 
-__all__ = ["AttackSpellHandler"]
+class SaveSpellHandler:
+    """SAVE: цель кидает спасбросок против Сл. заклинания.
+
+    Провал → полный урон; успех → половина (``save_for_half=True``) или ноль.
+    """
+
+    def apply(
+        self,
+        caster: Creature,
+        targets: tuple[Creature, ...],
+        spell: Spell,
+        ctx: TurnContext,
+    ) -> None:
+        assert (
+            spell.dice is not None
+            and spell.damage_type is not None
+            and spell.save_ability is not None
+        )
+        dc = caster.spell_save_dc()
+        for target in targets:
+            dmg_roll = ctx.dice_roller.roll(
+                DiceExpr.parse(spell.dice),
+                RollContext(
+                    purpose=RollPurpose.DAMAGE,
+                    actor_id=caster.id,
+                    target_id=target.id,
+                ),
+            )
+            save_mod = target.abilities.modifier(spell.save_ability)
+            save_roll = ctx.dice_roller.roll(
+                DiceExpr.parse(f"d20{save_mod:+d}"),
+                RollContext(
+                    purpose=RollPurpose.SAVE,
+                    actor_id=target.id,
+                    tags=("spell_save",),
+                ),
+            )
+            full = max(0, dmg_roll.total)
+            if save_roll.total >= dc:
+                amount = full // 2 if spell.save_for_half else 0
+            else:
+                amount = full
+            result = target.take_damage(
+                DamageInstance(amount=amount, type_=spell.damage_type)
+            )
+            ctx.event_bus.publish(
+                DamageDealt(
+                    attacker_id=caster.id,
+                    target_id=target.id,
+                    damage_roll_id=dmg_roll.roll_id,
+                    damage_type=spell.damage_type,
+                    raw_amount=amount,
+                    final_amount=result.final_amount,
+                    is_critical=False,
+                    hp_after=target.hit_points.current,
+                    hp_max=target.hit_points.maximum,
+                )
+            )
+
+
+__all__ = ["AttackSpellHandler", "SaveSpellHandler"]
