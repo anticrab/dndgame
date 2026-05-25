@@ -48,12 +48,19 @@ class AttackSpellHandler:
         assert spell.dice is not None and spell.damage_type is not None
         for target in targets:
             atk_bonus = caster.spell_attack_bonus()
+            atk_mods = ctx.modifier_applier.collect(
+                owner_id=caster.id, target_kind=ModifierTargetKind.ATTACK_ROLL
+            )
+            atk_adj = ctx.modifier_applier.to_roll_adjustments(atk_mods)
             roll = ctx.dice_roller.roll(
-                DiceExpr.parse(f"d20{atk_bonus:+d}"),
+                DiceExpr.parse(f"d20{atk_bonus + atk_adj.numeric_bonus:+d}"),
                 RollContext(
                     purpose=RollPurpose.ATTACK,
                     actor_id=caster.id,
                     target_id=target.id,
+                    advantage=atk_adj.advantage,
+                    disadvantage=atk_adj.disadvantage,
+                    extra_dice=atk_adj.extra_dice,
                     tags=("spell_attack",),
                 ),
             )
@@ -124,11 +131,18 @@ class SaveSpellHandler:
                 ),
             )
             save_mod = target.abilities.modifier(spell.save_ability)
+            save_mods = ctx.modifier_applier.collect(
+                owner_id=target.id, target_kind=ModifierTargetKind.SAVING_THROW
+            )
+            save_adj = ctx.modifier_applier.to_roll_adjustments(save_mods)
             save_roll = ctx.dice_roller.roll(
-                DiceExpr.parse(f"d20{save_mod:+d}"),
+                DiceExpr.parse(f"d20{save_mod + save_adj.numeric_bonus:+d}"),
                 RollContext(
                     purpose=RollPurpose.SAVE,
                     actor_id=target.id,
+                    advantage=save_adj.advantage,
+                    disadvantage=save_adj.disadvantage,
+                    extra_dice=save_adj.extra_dice,
                     tags=("spell_save",),
                 ),
             )

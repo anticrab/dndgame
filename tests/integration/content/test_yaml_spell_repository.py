@@ -29,6 +29,7 @@ def test_loads_all_spells() -> None:
         SpellId("fire_bolt"), SpellId("sacred_flame"), SpellId("magic_missile"),
         SpellId("cure_wounds"), SpellId("shield_of_faith"),
         SpellId("fireball"), SpellId("burning_hands"), SpellId("lightning_bolt"),
+        SpellId("bless"),
     }
 
 

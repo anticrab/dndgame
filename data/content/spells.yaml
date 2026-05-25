@@ -97,3 +97,17 @@
   save_ability: DEX
   save_for_half: true
   description: "Луч молнии (30 фт, ширина 1) в выбранном направлении. Спасбросок Ловкости; провал — 2d6 электричеством, успех — половина."
+
+# --- мультитаргет-бафф (этап P2b) ---
+- id: bless
+  name: "Bless"
+  level: 1
+  school: enchantment
+  effect: buff
+  targeting: { kind: multi, max_targets: 3, allow_repeat_target: false }
+  range_ft: 30
+  concentration: true
+  buffs:
+    - { target: attack_roll, dice_bonus: "1d4" }
+    - { target: saving_throw, dice_bonus: "1d4" }
+  description: "Благословить до трёх существ: пока держится концентрация, каждое добавляет 1d4 к броскам атаки и спасброскам."

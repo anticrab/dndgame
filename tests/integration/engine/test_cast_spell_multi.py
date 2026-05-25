@@ -174,6 +174,50 @@ def test_magic_missile_distributes_across_targets() -> None:
     assert by_target[b.id] == (2 + 1)             # 1 дротик
 
 
+def test_bless_adds_d4_to_spell_save() -> None:
+    """Bless на цели → её спасбросок от спелла включает +1d4 (extra_dice)."""
+    from dnd.application.engine.spells.handlers import (
+        BuffSpellHandler,
+        SaveSpellHandler,
+    )
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.roll_purpose import RollPurpose
+    from dnd.domain.values.spell import BuffSpec
+    # init x3; затем SaveSpellHandler: урон d8=5, спасбросок d20=10 + bless d4=4.
+    _enc, mage, a, _b, ctx = _setup([20, 19, 19, 5, 10, 4])
+    bless = Spell(
+        id=SpellId("bless"), name="Bless", level=1, school="enchantment",
+        effect=SpellEffect.BUFF,
+        targeting=TargetingSpec(kind=TargetKind.MULTI, max_targets=3),
+        range_ft=30, description="", concentration=True,
+        buffs=(BuffSpec(target=ModifierTargetKind.SAVING_THROW, dice_bonus="1d4"),),
+    )
+    BuffSpellHandler().apply(mage, (a,), bless, ctx)
+    mods = ctx.modifier_applier.collect(
+        owner_id=a.id, target_kind=ModifierTargetKind.SAVING_THROW
+    )
+    assert ctx.modifier_applier.to_roll_adjustments(mods).extra_dice == ("1d4",)
+    save_spell = Spell(
+        id=SpellId("sf"), name="SF", level=0, school="evocation",
+        effect=SpellEffect.SAVE, targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=60, description="", dice="1d8", damage_type=DamageType.RADIANT,
+        save_ability=Ability.DEX, save_for_half=False,
+    )
+    captured: list[object] = []
+    orig_roll = ctx.dice_roller.roll
+
+    def _spy(expr: object, rc: object) -> object:
+        captured.append(rc)
+        return orig_roll(expr, rc)  # type: ignore[arg-type]
+
+    ctx.dice_roller.roll = _spy  # type: ignore[method-assign]
+    SaveSpellHandler().apply(mage, (a,), save_spell, ctx)
+    save_ctxs = [
+        rc for rc in captured if getattr(rc, "purpose", None) is RollPurpose.SAVE
+    ]
+    assert save_ctxs and save_ctxs[0].extra_dice == ("1d4",)  # type: ignore[attr-defined]
+
+
 def test_multi_out_of_range_forbidden() -> None:
     _enc, mage, _a, b, ctx = _setup([20, 19, 19])
     spell = Spell(
