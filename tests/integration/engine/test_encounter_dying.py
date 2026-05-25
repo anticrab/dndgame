@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import AttackResolved, DeathSaveRolled
+from dnd.application.engine.actions.attack import AttackAction, AttackKind, AttackParams
 from dnd.application.engine.encounter import Encounter
 from dnd.composition import build_scripted_dependencies
 from dnd.domain.conditions.builtin import UNCONSCIOUS
@@ -94,3 +95,36 @@ def test_dying_pc_auto_rolls_death_save_on_turn_start() -> None:
     assert captured[0].actor_id == pc.id
     assert captured[0].result == "success"
     assert pc.death_saves is not None and pc.death_saves.successes == 1
+
+
+def test_melee_hit_on_dying_pc_is_auto_crit() -> None:
+    pc, gob = _pc(), _goblin()
+    bf = Battlefield(8, 8)
+    bf.place_creature(pc.id, Square(2, 2))
+    bf.place_creature(gob.id, Square(2, 3))  # вплотную (1 клетка = 5 фт)
+    # rolls: 2 инициативы (gob выше), атака=10 (+4=14 vs AC12 → hit),
+    # урон 1d6→крит 2d6 = два значения ≤6.
+    deps, _, _ = build_scripted_dependencies(
+        battlefield=bf, rolls=[19, 20, 10, 3, 3] + [1] * 20
+    )
+    enc = Encounter(
+        participants={pc.id: pc, gob.id: gob},
+        factions={pc.id: Faction.PARTY, gob.id: Faction.MONSTERS},
+        deps=deps,
+    )
+    enc.start()
+    pc.take_damage(DamageInstance(amount=10, type_=DamageType.SLASHING))
+    pc.begin_dying()
+    for _ in range(12):
+        if enc.current_actor_id == gob.id:
+            break
+        enc.start_turn()
+        enc.end_turn()
+    assert enc.current_actor_id == gob.id
+    ctx = enc.start_turn()
+    before = pc.death_saves.failures
+    AttackAction().execute(gob, AttackParams(
+        target_id=pc.id, kind=AttackKind.MELEE, attack_bonus=4,
+        damage_expr="1d6", damage_type=DamageType.SLASHING, range_ft=5,
+    ), ctx)
+    assert pc.death_saves.failures - before == 2  # авто-крит → 2 провала

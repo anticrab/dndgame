@@ -355,6 +355,16 @@ class AttackAction:
         else:
             hit = attack_roll.total >= effective_ac
 
+        # Q-4: попадание по лежачему (0 HP) в упор (≤5 фт, melee) — авто-крит
+        # (PHB-2024 стр. 27). Усиливает добивание: 2 провала спасброска.
+        if (
+            hit
+            and target.is_at_zero_hp
+            and params.kind is AttackKind.MELEE
+            and distance_ft <= 5
+        ):
+            is_crit = True
+
         # d20_raw=None бывает для не-d20 бросков; здесь это всегда d20,
         # но pydantic-поле int — гонзим к 0 на всякий случай.
         d20_raw_safe = attack_roll.d20_raw if attack_roll.d20_raw is not None else 0
