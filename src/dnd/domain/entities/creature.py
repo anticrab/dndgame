@@ -42,8 +42,10 @@ EventBus.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 from dnd.application.dto.ids import ConditionId, CreatureId, SpellId
+from dnd.domain.conditions.builtin import UNCONSCIOUS
 from dnd.domain.entities.inventory import Inventory
 from dnd.domain.values.ability import AbilityScores
 from dnd.domain.values.ability_id import AbilityId
@@ -54,6 +56,7 @@ from dnd.domain.values.damage import (
     apply_damage_multiplier,
     combine_multipliers,
 )
+from dnd.domain.values.death_save_state import DeathSaveState
 from dnd.domain.values.hit_points import HitPoints
 from dnd.domain.values.vision import NORMAL_VISION, Vision
 from dnd.domain.values.weapon import WeaponProfile
@@ -118,6 +121,16 @@ class HealResult:
 
     revived: bool
     """Поднял ли с 0 HP в сознание."""
+
+
+@dataclass(frozen=True, slots=True)
+class DeathSaveOutcome:
+    """Результат одного спасброска от смерти (для публикации события)."""
+
+    result: Literal["success", "failure", "recovered"]
+    successes: int
+    failures: int
+    d20_raw: int
 
 
 @dataclass(slots=True)
@@ -226,6 +239,16 @@ class Creature:
     Концентрация — это связь с конкретным spell-эффектом, не Condition
     (см. Книгу 2024, стр. 352, глоссарий «Концентрация»; ADR Q27).
     None для MVP-классов (Воин/Плут) и большинства NPC."""
+
+    uses_death_saves: bool = False
+    """True у персонажей игроков и важных NPC: при 0 HP уходят в спасброски
+    от смерти (PHB-2024 стр. 27), а не умирают мгновенно. NPC-расходники —
+    False (default): при 0 HP их превращает в труп (CORPSE) Encounter."""
+
+    death_saves: DeathSaveState | None = None
+    """Не None ⟺ существо в dying (0 HP, ещё не мёртв и не поднят). Ставится
+    через begin_dying(); сбрасывается в None при лечении/нат-20. Инвариант
+    синхронизируется с HitPoints и Condition Unconscious."""
 
     ability_ids: tuple[AbilityId, ...] = (
         AbilityId("weapon_attack"),
@@ -401,6 +424,18 @@ class Creature:
         overflow = max(0, final - before_buffer)
         killed_outright = self.is_at_zero_hp and overflow >= self.hit_points.maximum
 
+        # Q-1: спасброски от смерти (PHB-2024 стр. 27). Только для тех, кто
+        # uses_death_saves; NPC просто становятся not is_alive.
+        if self.uses_death_saves:
+            if killed_outright:
+                # Огромный урон — мгновенная смерть, минуя спасброски.
+                self.death_saves = DeathSaveState(failures=3)
+            elif not was_alive and self.death_saves is not None:
+                # Удар по уже лежачему (был 0 HP до удара): провал, крит → 2.
+                self.death_saves = self.death_saves.apply_damage_at_zero(
+                    is_critical=is_critical
+                )
+
         # Концентрация (см. docstring пункт 6).
         concentration_ended_automatically = False
         save_dc: int | None = None
@@ -436,10 +471,73 @@ class Creature:
         before = self.hit_points.current
         self.hit_points = self.hit_points.heal(amount)
         final = self.hit_points.current - before
+        revived = was_at_zero and not self.is_at_zero_hp
+        # Q-1: лечение поднимает из dying в сознание — сброс DeathSaveState
+        # и снятие Unconscious (PHB-2024 стр. 27).
+        if revived and self.death_saves is not None:
+            self.death_saves = None
+            self.remove_condition(UNCONSCIOUS)
         return HealResult(
             raw_amount=amount,
             final_amount=final,
-            revived=was_at_zero and not self.is_at_zero_hp,
+            revived=revived,
+        )
+
+    # --- dying / спасброски от смерти ----------------------------------
+
+    def begin_dying(self) -> bool:
+        """Войти в состояние умирания. Вызывает Encounter при падении в 0 HP.
+
+        Возвращает True, если переход состоялся (PC при 0 HP, ещё не dying).
+        Накладывает Unconscious. Для NPC (uses_death_saves=False) — no-op.
+        """
+        if not self.uses_death_saves:
+            return False
+        if not self.is_at_zero_hp:
+            return False
+        if self.death_saves is not None:
+            return False
+        self.death_saves = DeathSaveState()
+        self.apply_condition(UNCONSCIOUS)
+        return True
+
+    def roll_death_save(self, d20_raw: int) -> DeathSaveOutcome:
+        """Применить бросок спасброска от смерти. ``d20_raw`` — сырое d20.
+
+        Нат-20 → восстановление 1 HP и выход из dying. Иначе делегирует в
+        DeathSaveState; result определяется по тому, вырос успех или провал.
+        """
+        if self.death_saves is None:
+            raise ValueError("roll_death_save called on a creature not dying")
+        if d20_raw == 20:
+            self.hit_points = self.hit_points.heal(1)
+            self.death_saves = None
+            self.remove_condition(UNCONSCIOUS)
+            return DeathSaveOutcome(
+                result="recovered", successes=0, failures=0, d20_raw=20
+            )
+        before = self.death_saves
+        self.death_saves = before.apply_save_roll(d20_raw)
+        result: Literal["success", "failure"] = (
+            "success"
+            if self.death_saves.successes > before.successes
+            else "failure"
+        )
+        return DeathSaveOutcome(
+            result=result,
+            successes=self.death_saves.successes,
+            failures=self.death_saves.failures,
+            d20_raw=d20_raw,
+        )
+
+    @property
+    def is_dead(self) -> bool:
+        """Окончательно мёртв (3 провала). Только для uses_death_saves; NPC
+        «мертвы» через is_alive=False + CORPSE (решает Encounter)."""
+        return (
+            self.uses_death_saves
+            and self.death_saves is not None
+            and self.death_saves.is_dead
         )
 
     def gain_temporary_hp(self, amount: int) -> int:
