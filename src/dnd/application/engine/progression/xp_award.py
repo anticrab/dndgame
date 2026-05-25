@@ -38,8 +38,8 @@ class XpAwardService:
 
     def _on_died(self, event: CreatureDied) -> None:
         dead_faction = self._factions.get(event.actor_id)
-        if dead_faction is None or dead_faction is Faction.PARTY:
-            return  # XP дают только за не-PARTY
+        if dead_faction is not Faction.MONSTERS:
+            return  # XP дают только за врагов (не PARTY и не NEUTRAL)
         dead = self._participants.get(event.actor_id)
         if dead is None:
             return

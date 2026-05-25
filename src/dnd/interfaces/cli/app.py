@@ -143,6 +143,30 @@ def play(
     console = Console()
     console.print(f"[bold]{scenario.name}[/]\n")
     EventPrinter(console).subscribe(enc.event_bus)
+    # Прогрессия (R1): XP за убийства + авто-применение level-up (в CLI без
+    # модалки — повышаемся сразу; LeveledUp печатается EventPrinter'ом).
+    from dnd.application.dto.engine_event import LevelUpReady
+    from dnd.application.engine.features.defaults import default_feature_registry
+    from dnd.application.engine.progression.level_up import LevelUpService
+    from dnd.application.engine.progression.xp_award import XpAwardService
+    from dnd.application.engine.progression.xp_curve import FastXpCurve
+
+    XpAwardService(
+        event_bus=enc.event_bus, curve=FastXpCurve(),
+        participants=enc.participants, factions=enc.factions,
+    ).subscribe()
+    _level_up = LevelUpService(
+        class_repository=class_repo,
+        feature_registry=default_feature_registry(),
+        event_bus=enc.event_bus,
+    )
+
+    def _auto_level_up(ev: LevelUpReady) -> None:
+        actor = enc.participants.get(ev.actor_id)
+        if actor is not None:
+            _level_up.apply(actor, to_level=ev.to_level, ctx=None)
+
+    enc.event_bus.subscribe(LevelUpReady, _auto_level_up)
     runner = GameRunner(
         intent_provider=ConsoleIntentProvider(item_repository=item_repo),
         item_repository=item_repo,
