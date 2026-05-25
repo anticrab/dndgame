@@ -202,8 +202,32 @@ secrets:
 
 ---
 
+## 7a. Реализовано в R1
+
+Этап **R1** реализовал ядро прогрессии (data-driven, расширяемо):
+
+- `Creature` несёт `level`/`xp`/`character_class`/`challenge_rating`/`features`/
+  `crit_range_min`/`resource_uses`.
+- Классы — данные: `data/content/classes.yaml` + `YamlClassRepository`
+  (`ClassProgression`/`ClassLevel`). Воин/Плут L1–3.
+- XP-кривые — стратегия (`Fast`/`Standard`/`Milestone`), дефолт `fast`.
+- `XpAwardService` начисляет XP за убийство (CR×100) и публикует `LevelUpReady`
+  при пересечении порога → level-up **в середине боя** (TUI `LevelUpScreen`:
+  «Сейчас / После боя / Подробнее»).
+- `LevelUpService` применяет уровень: +HP (фикс. среднее кости + ТЕЛ), prof,
+  ячейки, фичи (через `FeatureRegistry`, open/closed).
+- **Отдых** — полноценная абстракция `RestService`/`RechargeOn`; в R1 триггерится
+  «между боями» (SHORT на старте encounter) — будущие short/long rest вне боя
+  зовут ту же службу.
+- Фичи R1 (полные по PHB из переиспользующего набора): Improved Critical
+  (крит 19–20), Sneak Attack (+Nd6 раз за ход), Second Wind (bonus action heal),
+  Action Surge (доп. действие).
+
 ## 8. Что отложено
 
+- **R2** — подсистема навыков/владений + Expertise, Fighting Style (выбор),
+  Cunning Action, Fast Hands, Thieves' Cant; уровни Плута L2–L3 фич; true
+  short/long rest как внебоевые действия (через готовый `RestService`).
 - **Подклассы** на 3 уровне — для MVP даём один «базовый» подкласс на класс
   (**Чемпион** для Воина, **Вор (Thief)** для Плута). Полноценная развилка с
   выбором — пост-MVP.

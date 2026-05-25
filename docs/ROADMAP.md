@@ -236,8 +236,18 @@ Textual-приложения, MVP-граница, многопоточная с�
     `SpellCast` логирует все цели MULTI (M2).
   - ⏳ **P3** — справка/inspect по заклинанию-способности → база знаний.
   - Отложено: upcasting, реакция-каст, классовые таблицы ячеек (→ R).
-- 🔜 **Этап R — Уровни и опыт.** XP-tracking, level-up
-  (HP, proficiency_bonus, ASI), TUI level-up screen (mockup C.5).
+- **Этап R — Уровни и опыт.** Разбит на R1 (✅) и R2 (⏳):
+  - ✅ **R1 — прогрессия + level-up в бою.** `level`/`xp`/`character_class` в
+    Creature; data-driven классы (`classes.yaml` + `YamlClassRepository`,
+    Воин/Плут L1–3); XP-кривые (Fast/Standard/Milestone); `XpAwardService`
+    (CR×100 за убийство → `LevelUpReady`); `LevelUpService` (HP/prof/ячейки/
+    фичи через `FeatureRegistry`); `RestService`/`RechargeOn` (отдых заложен
+    архитектурно, в R1 — «между боями»); фичи Improved Critical / Sneak Attack /
+    Second Wind / Action Surge; TUI `LevelUpScreen` (Сейчас/После боя/Подробнее).
+    См. `docs/PROGRESSION.md` §7a.
+  - ⏳ **R2** — навыки/владения + Expertise, Fighting Style, Cunning Action,
+    Fast Hands, Thieves' Cant; уровни Плута L2–L3 фич; внебоевые short/long rest.
+  - Отложено (пост-MVP): ASI (L4), полноценный выбор подкласса.
 - 🔜 Главное меню, лист персонажа, экран исследования.
 - 🔜 Анимация атаки (mockup C.2).
 

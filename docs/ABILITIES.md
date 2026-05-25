@@ -114,6 +114,21 @@ registry.register(Ability(
   неизвестный id (fail-fast);
 * `requires_target ∧ requires_path` запрещены в `__post_init__`.
 
+## Классовые фичи как ability (этап R1)
+
+Активные классовые фичи выдаются ability'ями через тот же реестр:
+
+* **Second Wind** (`w`, bonus action) — Воин L1, лечение 1d10 + уровень;
+* **Action Surge** (`x`) — Воин L2, дополнительное действие в этом ходу.
+
+Фичи обретаются при level-up: `FeatureRegistry` (open/closed, feature_id →
+хендлер) при `on_gain` добавляет `ability_id` в `Creature.ability_ids` и
+инициализирует ограниченный ресурс (`resource_uses`). Ресурсы восстанавливает
+`RestService` по политике `recharge_on` (Second Wind / Action Surge — short rest;
+в R1 «отдых между боями» на старте encounter). Пассивные фичи (Improved Critical,
+Sneak Attack) ability не выдают — действуют в `AttackAction`. См.
+`docs/PROGRESSION.md` §7a.
+
 ## См. также
 
 * `docs/TUI.md` §6 — mode-state machine, ActionBarWidget;
