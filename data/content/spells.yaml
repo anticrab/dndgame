@@ -1,0 +1,58 @@
+# Каталог заклинаний (этап P1). Формат — см. YamlSpellRepository / docs/SPELLS.md.
+# P1: только single-target / self. AoE и мультитаргет — этап P2.
+
+- id: fire_bolt
+  name: "Fire Bolt"
+  level: 0
+  school: evocation
+  effect: attack
+  targeting: { kind: single }
+  range_ft: 120
+  dice: "1d10"
+  damage_type: fire
+  description: "Заговор: метнуть огненную стрелу. Дальнобойная атака заклинанием; при попадании 1d10 огнём."
+
+- id: sacred_flame
+  name: "Sacred Flame"
+  level: 0
+  school: evocation
+  effect: save
+  targeting: { kind: single }
+  range_ft: 60
+  dice: "1d8"
+  damage_type: radiant
+  save_ability: DEX
+  save_for_half: false
+  description: "Заговор: сияющее пламя нисходит на цель. Спасбросок Ловкости; провал — 1d8 излучением, успех — без урона."
+
+- id: magic_missile
+  name: "Magic Missile"
+  level: 1
+  school: evocation
+  effect: auto
+  targeting: { kind: single }
+  range_ft: 120
+  dice: "3d4+3"
+  damage_type: force
+  description: "Три светящихся дротика бьют автоматически (без броска атаки), всего 3d4+3 силового урона. (Распределение по нескольким целям — этап P2.)"
+
+- id: cure_wounds
+  name: "Cure Wounds"
+  level: 1
+  school: abjuration
+  effect: heal
+  targeting: { kind: single }
+  range_ft: 5
+  heal_dice: "1d8"
+  description: "Касанием восстановить существу 1d8 + модификатор заклинательной характеристики хитов."
+
+- id: shield_of_faith
+  name: "Shield of Faith"
+  level: 1
+  school: abjuration
+  effect: buff
+  targeting: { kind: single }
+  range_ft: 60
+  ac_bonus: 2
+  concentration: true
+  description: "Мерцающее поле даёт цели +2 к КД. Требует концентрации."
