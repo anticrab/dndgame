@@ -135,6 +135,25 @@ def test_fireball_at_point_hits_all_in_circle_incl_ally() -> None:
     assert cr["mage"].id not in hit_ids
 
 
+def test_fireball_hits_caster_in_own_blast() -> None:
+    """Friendly fire по себе: если кастер в зоне — он тоже получает урон."""
+    enc, cr, ctx = _setup(
+        positions={"mage": Square(4, 4), "gobA": Square(5, 4)},
+        factions={"mage": Faction.PARTY, "gobA": Faction.MONSTERS},
+        rolls=[20, 19] + [3] * 40,
+    )
+    dmg: list[DamageDealt] = []
+    enc.event_bus.subscribe(DamageDealt, dmg.append)
+    CastSpellAction(_Repo()).execute(
+        cr["mage"],
+        CastSpellParams(spell_id=SpellId("fireball"), target_point=Square(4, 4)),
+        ctx,
+    )
+    hit_ids = {d.target_id for d in dmg}
+    assert cr["mage"].id in hit_ids   # сам себя задел
+    assert cr["gobA"].id in hit_ids
+
+
 def test_fireball_out_of_range_forbidden() -> None:
     _enc, cr, ctx = _setup(
         positions={"mage": Square(0, 0), "gobA": Square(9, 9)},

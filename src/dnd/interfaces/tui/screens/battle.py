@@ -442,6 +442,9 @@ class BattleScreen(Screen[None]):
                 return
         elif isinstance(h, AreaModeHandler):
             if h.cancelled:
+                # audit MINOR-1: не оставляем висящий контекст зоны.
+                self._pending_area_spec = None
+                self._pending_ability = None
                 self.enter_mode(BattleMode.NORMAL)
                 return
             if h.confirmed_point is not None or h.confirmed_direction is not None:
@@ -554,6 +557,9 @@ class BattleScreen(Screen[None]):
         area_spell = self._spell_by_ability.get(ab.id)
         if area_spell is not None and area_spell.targeting.kind is TargetKind.AREA:
             self._current_battlefield = encounter.battlefield
+            # audit MINOR-2: свежая позиция кастера — иначе from-caster превью
+            # рисуется от старой клетки, если PC уже сходил в этом ходу.
+            self._current_actor_position = encounter.battlefield.position_of(actor.id)
             self._pending_area_spec = area_spell.targeting
             self._pending_area_range_ft = area_spell.range_ft
             self._pending_ability = ab
