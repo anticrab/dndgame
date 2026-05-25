@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from dnd.application.dto.ids import CreatureId, ObjectId, SpellId
 from dnd.application.engine.actions.interact import InteractKind
+from dnd.domain.values.direction import Direction
 from dnd.domain.values.item import ItemId
 from dnd.domain.values.square import Square
 
@@ -125,6 +126,9 @@ class CastSpellIntent(_IntentBase):
     kind: Literal["cast_spell"] = "cast_spell"
     spell_id: SpellId
     target_id: CreatureId | None = None
+    # AoE (P2): точка прицеливания (AT_POINT) или направление (FROM_CASTER).
+    target_point: Square | None = None
+    direction: Direction | None = None
 
 
 PlayerIntent = Annotated[

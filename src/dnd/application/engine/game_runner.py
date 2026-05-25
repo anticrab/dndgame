@@ -277,7 +277,10 @@ class GameRunner:
             )
             return
         params = CastSpellParams(
-            spell_id=intent.spell_id, target_id=intent.target_id
+            spell_id=intent.spell_id,
+            target_id=intent.target_id,
+            target_point=intent.target_point,
+            direction=intent.direction,
         )
         action = CastSpellAction(spell_repository=self._spell_repository)
         avail = action.can_perform_against(actor, params, ctx)

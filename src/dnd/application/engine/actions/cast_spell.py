@@ -18,17 +18,26 @@ from dnd.application.dto.action import (
 )
 from dnd.application.dto.engine_event import SpellCast
 from dnd.application.dto.ids import ActionId, CreatureId, SpellId
+from dnd.application.engine.spells.area import (
+    AreaShapeRegistry,
+    default_area_shape_registry,
+)
 from dnd.application.engine.spells.defaults import default_spell_effect_registry
 from dnd.application.engine.spells.effect_handler import SpellEffectRegistry
 from dnd.application.engine.turn_context import TurnContext
 from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.entities.creature import Creature
-from dnd.domain.values.spell import Spell, SpellEffect, TargetKind
+from dnd.domain.values.direction import Direction
+from dnd.domain.values.spell import OriginMode, Spell, SpellEffect, TargetKind
+from dnd.domain.values.square import Square
 
 
 class CastSpellParams(ActionParams):
     spell_id: SpellId
     target_id: CreatureId | None = None
+    # AoE (P2): точка прицеливания (AT_POINT) или направление (FROM_CASTER).
+    target_point: Square | None = None
+    direction: Direction | None = None
 
 
 class CastSpellAction:
@@ -41,24 +50,44 @@ class CastSpellAction:
         self,
         spell_repository: SpellRepository,
         effect_registry: SpellEffectRegistry | None = None,
+        area_registry: AreaShapeRegistry | None = None,
     ) -> None:
         self._spells = spell_repository
         self._effects = effect_registry or default_spell_effect_registry()
+        self._areas = area_registry or default_area_shape_registry()
 
     # --- helpers -------------------------------------------------------
 
     def _resolve_targets(
-        self, spell: Spell, caster: Creature, target_id: CreatureId | None,
+        self, spell: Spell, caster: Creature, params: CastSpellParams,
         ctx: TurnContext,
     ) -> tuple[Creature, ...]:
-        kind = spell.targeting.kind
+        spec = spell.targeting
+        kind = spec.kind
         if kind is TargetKind.SELF:
             return (caster,)
         if kind is TargetKind.SINGLE:
-            assert target_id is not None
-            return (ctx.participants[target_id],)
-        # P2: AoE/мультитаргет добавит резолвинг нескольких целей.
-        raise NotImplementedError(f"targeting {kind} — этап P2")
+            assert params.target_id is not None
+            return (ctx.participants[params.target_id],)
+        if kind is TargetKind.AREA:
+            assert spec.shape is not None
+            origin = (
+                ctx.battlefield.position_of(caster.id)
+                if spec.origin is OriginMode.FROM_CASTER
+                else params.target_point
+            )
+            assert origin is not None
+            squares = self._areas.get(spec.shape).squares(
+                origin, params.direction, spec, ctx.battlefield
+            )
+            # Все живые существа в задетых клетках (friendly fire включён).
+            return tuple(
+                cr
+                for cid, cr in ctx.participants.items()
+                if cr.is_alive and ctx.battlefield.position_of(cid) in squares
+            )
+        # MULTI (pick-N) — этап P2b.
+        raise NotImplementedError(f"targeting {kind} — этап P2b")
 
     # --- availability --------------------------------------------------
 
@@ -112,6 +141,21 @@ class CastSpellAction:
             target_pos = ctx.battlefield.position_of(params.target_id)
             if actor_pos.distance_to_feet(target_pos) > spell.range_ft:
                 return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
+        elif spell.targeting.kind is TargetKind.AREA:
+            shape = spell.targeting.shape
+            if shape is None or shape not in self._areas:
+                return Forbidden(
+                    reason=ForbiddenReason.CUSTOM,
+                    details=f"area shape not supported: {shape}",
+                )
+            if spell.targeting.origin is OriginMode.AT_POINT:
+                if params.target_point is None:
+                    return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
+                actor_pos = ctx.battlefield.position_of(actor.id)
+                if actor_pos.distance_to_feet(params.target_point) > spell.range_ft:
+                    return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
+            elif params.direction is None:  # FROM_CASTER требует направления
+                return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
         return Allowed()
 
     # --- execution -----------------------------------------------------
@@ -128,7 +172,7 @@ class CastSpellAction:
             return ActionOutcome(success=False, consumed=ActionEconomyCost.FREE)
 
         spell = self._spells.load(params.spell_id)
-        targets = self._resolve_targets(spell, actor, params.target_id, ctx)
+        targets = self._resolve_targets(spell, actor, params, ctx)
 
         actor.consume_spell_slot(spell.level)
         ctx.spend(ActionEconomyCost.ACTION)
