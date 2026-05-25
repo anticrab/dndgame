@@ -13,7 +13,7 @@ from dnd.application.dto.player_intent import (
 )
 
 
-def test_all_6_registered() -> None:
+def test_all_default_abilities_registered() -> None:
     r = AbilityRegistry()
     register_default_abilities(r)
     ids = {a.id for a in r.all()}
@@ -24,6 +24,7 @@ def test_all_6_registered() -> None:
         AbilityId("disengage"),
         AbilityId("interact"),
         AbilityId("break_object"),
+        AbilityId("stabilize"),
     }
 
 

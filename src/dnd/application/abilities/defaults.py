@@ -27,6 +27,7 @@ from dnd.application.dto.player_intent import (
     DodgeIntent,
     InteractIntent,
     PlayerIntent,
+    StabilizeIntent,
 )
 from dnd.application.engine.actions.interact import InteractKind
 
@@ -59,6 +60,10 @@ def _interact(target_id: CreatureId) -> PlayerIntent:
 
 def _break(target_id: CreatureId) -> PlayerIntent:
     return BreakIntent(target_object_id=ObjectId(str(target_id)))
+
+
+def _stabilize(target_id: CreatureId) -> PlayerIntent:
+    return StabilizeIntent(target_id=target_id)
 
 
 def register_default_abilities(registry: AbilityRegistry) -> None:
@@ -105,6 +110,12 @@ def register_default_abilities(registry: AbilityRegistry) -> None:
         default_hotkey="k", economy_cost=ActionEconomyCost.ACTION,
         requires_target=True, requires_path=False,
         intent_factory=_break,
+    ))
+    registry.register(Ability(
+        id=AbilityId("stabilize"), name="Stabilize", icon="S",
+        default_hotkey="s", economy_cost=ActionEconomyCost.ACTION,
+        requires_target=True, requires_path=False,
+        intent_factory=_stabilize,
     ))
 
 

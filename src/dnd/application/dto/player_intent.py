@@ -104,6 +104,17 @@ class PickupIntent(_IntentBase):
     qty: int | None = Field(default=None, ge=1)
 
 
+class StabilizeIntent(_IntentBase):
+    """Игрок стабилизирует умирающего союзника (Медицина DC 10, action).
+
+    Цель должна быть в dying (0 HP, спасброски) и в reach (5 фт);
+    проверки — в :class:`StabilizeAction`, GameRunner лишь собирает params.
+    """
+
+    kind: Literal["stabilize"] = "stabilize"
+    target_id: CreatureId
+
+
 PlayerIntent = Annotated[
     AttackIntent
     | MoveIntent
@@ -113,7 +124,8 @@ PlayerIntent = Annotated[
     | EndTurnIntent
     | InteractIntent
     | BreakIntent
-    | PickupIntent,
+    | PickupIntent
+    | StabilizeIntent,
     Field(discriminator="kind"),
 ]
 
@@ -129,4 +141,5 @@ __all__ = [
     "MoveIntent",
     "PickupIntent",
     "PlayerIntent",
+    "StabilizeIntent",
 ]

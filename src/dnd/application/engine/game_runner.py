@@ -34,12 +34,14 @@ from dnd.application.dto.player_intent import (
     MoveIntent,
     PickupIntent,
     PlayerIntent,
+    StabilizeIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.break_object import BreakAction, BreakParams
 from dnd.application.engine.actions.interact import InteractAction, InteractParams
 from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.pickup import PickupAction, PickupParams
+from dnd.application.engine.actions.stabilize import StabilizeAction, StabilizeParams
 from dnd.application.engine.actions.stances import (
     DashAction,
     DisengageAction,
@@ -176,6 +178,9 @@ class GameRunner:
         if isinstance(intent, PickupIntent):
             self._do_pickup(actor, intent, ctx)
             return
+        if isinstance(intent, StabilizeIntent):
+            self._do_stabilize(actor, intent, ctx)
+            return
         # EndTurnIntent обрабатывается в _run_pc_turn до вызова.
         # Защита от расширения PlayerIntent без обновления GameRunner.
         raise TypeError(f"unknown PlayerIntent: {type(intent).__name__}")
@@ -238,6 +243,17 @@ class GameRunner:
             action.execute(actor, params, ctx)
         else:
             self._log_rejected(actor, "pickup", _avail_reason(avail))
+
+    def _do_stabilize(
+        self, actor: Creature, intent: StabilizeIntent, ctx: TurnContext
+    ) -> None:
+        params = StabilizeParams(target_id=intent.target_id)
+        action = StabilizeAction()
+        avail = action.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "stabilize", _avail_reason(avail))
 
     def _do_break(
         self, actor: Creature, intent: BreakIntent, ctx: TurnContext
