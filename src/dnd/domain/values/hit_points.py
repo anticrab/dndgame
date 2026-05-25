@@ -97,6 +97,20 @@ class HitPoints:
             temporary=self.temporary,
         )
 
+    def gain_max(self, amount: int) -> HitPoints:
+        """Увеличить максимум и текущее на ``amount`` (level-up: PHB-2024 стр. 32).
+
+        И максимум, и текущее растут одинаково — повышение уровня сразу даёт
+        «живые» хиты (драматическое спасение в бою). Временные хиты не трогает.
+        """
+        if amount < 0:
+            raise ValueError(f"gain_max must be >= 0, got {amount}")
+        return HitPoints(
+            current=self.current + amount,
+            maximum=self.maximum + amount,
+            temporary=self.temporary,
+        )
+
     def with_temporary(self, amount: int) -> HitPoints:
         """Получить временные хиты. Не складываются — берётся **больший** буфер.
 

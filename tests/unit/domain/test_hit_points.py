@@ -241,3 +241,14 @@ def test_property_temp_hp_is_monotonically_non_decreasing_per_call(
     """`with_temporary` никогда не уменьшает текущие временные хиты."""
     after = state.with_temporary(new_temp)
     assert after.temporary >= state.temporary
+
+
+def test_gain_max_raises_current_and_maximum() -> None:
+    # R1: level-up даёт HP — растут и максимум, и текущее.
+    hp = HitPoints(current=5, maximum=12).gain_max(8)
+    assert hp.maximum == 20 and hp.current == 13
+
+
+def test_gain_max_zero_is_noop() -> None:
+    hp = HitPoints(current=5, maximum=12).gain_max(0)
+    assert hp.maximum == 12 and hp.current == 5
