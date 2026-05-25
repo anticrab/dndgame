@@ -53,13 +53,66 @@ def test_valid_heal_spell() -> None:
 
 
 def test_valid_buff_spell() -> None:
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.spell import BuffSpec
     s = Spell(
         id=SpellId("shield_of_faith"), name="Shield of Faith", level=1,
         school="abjuration", effect=SpellEffect.BUFF,
         targeting=TargetingSpec(kind=TargetKind.SINGLE), range_ft=60,
-        description="+2 КД.", ac_bonus=2, concentration=True,
+        description="+2 КД.",
+        buffs=(BuffSpec(target=ModifierTargetKind.ARMOR_CLASS, numeric_bonus=2),),
+        concentration=True,
     )
-    assert s.ac_bonus == 2 and s.concentration is True
+    assert s.buffs[0].numeric_bonus == 2 and s.concentration is True
+
+
+# --- P2b-1: BuffSpec + MULTI targeting -----------------------------------
+
+def test_buffspec_numeric_only_valid() -> None:
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.spell import BuffSpec
+    b = BuffSpec(target=ModifierTargetKind.ARMOR_CLASS, numeric_bonus=2)
+    assert b.numeric_bonus == 2 and b.dice_bonus is None
+
+
+def test_buffspec_dice_only_valid() -> None:
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.spell import BuffSpec
+    b = BuffSpec(target=ModifierTargetKind.ATTACK_ROLL, dice_bonus="1d4")
+    assert b.dice_bonus == "1d4" and b.numeric_bonus == 0
+
+
+def test_buffspec_both_rejected() -> None:
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.spell import BuffSpec
+    with pytest.raises(ValueError):
+        BuffSpec(target=ModifierTargetKind.ARMOR_CLASS, numeric_bonus=2, dice_bonus="1d4")
+
+
+def test_buffspec_neither_rejected() -> None:
+    from dnd.domain.values.modifiers import ModifierTargetKind
+    from dnd.domain.values.spell import BuffSpec
+    with pytest.raises(ValueError):
+        BuffSpec(target=ModifierTargetKind.ARMOR_CLASS)
+
+
+def test_buff_spell_requires_at_least_one_buff() -> None:
+    with pytest.raises(ValueError):
+        Spell(
+            id=SpellId("x"), name="X", level=1, school="e",
+            effect=SpellEffect.BUFF, targeting=TargetingSpec(kind=TargetKind.SINGLE),
+            range_ft=60, description="", buffs=(),
+        )
+
+
+def test_multi_targeting_requires_positive_max() -> None:
+    with pytest.raises(ValueError):
+        TargetingSpec(kind=TargetKind.MULTI, max_targets=0)
+
+
+def test_multi_targeting_allow_repeat_field() -> None:
+    spec = TargetingSpec(kind=TargetKind.MULTI, max_targets=3, allow_repeat_target=True)
+    assert spec.allow_repeat_target is True and spec.max_targets == 3
 
 
 def test_negative_level_rejected() -> None:

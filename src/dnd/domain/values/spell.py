@@ -16,6 +16,7 @@ from enum import StrEnum
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.ids import SpellId
+from dnd.domain.values.modifiers import ModifierTargetKind
 
 
 class SpellEffect(StrEnum):
@@ -66,8 +67,11 @@ class TargetingSpec:
     shape: AreaShape | None = None
     radius_ft: int = 0
     length_ft: int = 0
+    allow_repeat_target: bool = False   # MULTI: можно ли несколько «попаданий» в одну цель
 
     def __post_init__(self) -> None:
+        if self.kind is TargetKind.MULTI and self.max_targets < 1:
+            raise ValueError("MULTI targeting requires max_targets >= 1")
         if self.kind is not TargetKind.AREA:
             return
         if self.shape is None:
@@ -76,6 +80,28 @@ class TargetingSpec:
             raise ValueError("CIRCLE area requires radius_ft > 0")
         if self.shape in (AreaShape.CONE, AreaShape.LINE) and self.length_ft <= 0:
             raise ValueError(f"{self.shape} area requires length_ft > 0")
+
+
+@dataclass(frozen=True, slots=True)
+class BuffSpec:
+    """Один модификатор, накладываемый BUFF-заклинанием на цель.
+
+    Ровно одно из полей задаёт эффект: ``numeric_bonus`` (например, +2 КД у
+    Shield of Faith) ИЛИ ``dice_bonus`` (например, +1d4 к атаке/спасброскам у
+    Bless). ``target`` — категория броска/значения (:class:`ModifierTargetKind`).
+    """
+
+    target: ModifierTargetKind
+    numeric_bonus: int = 0
+    dice_bonus: str | None = None
+
+    def __post_init__(self) -> None:
+        has_numeric = self.numeric_bonus != 0
+        has_dice = self.dice_bonus is not None
+        if has_numeric == has_dice:
+            raise ValueError(
+                "BuffSpec требует ровно одно: numeric_bonus ИЛИ dice_bonus"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,7 +122,7 @@ class Spell:
     save_for_half: bool = True             # успех спасброска → половина урона
     concentration: bool = False
     heal_dice: str | None = None           # для HEAL
-    ac_bonus: int = 0                      # для BUFF (Shield of Faith +2)
+    buffs: tuple[BuffSpec, ...] = ()       # для BUFF (Shield of Faith, Bless)
 
     def __post_init__(self) -> None:
         if self.level < 0:
@@ -114,14 +140,15 @@ class Spell:
         elif self.effect is SpellEffect.HEAL:
             if self.heal_dice is None:
                 raise ValueError(f"HEAL spell {self.id} requires heal_dice")
-        elif self.effect is SpellEffect.BUFF and self.ac_bonus <= 0:
+        elif self.effect is SpellEffect.BUFF and not self.buffs:
             raise ValueError(
-                f"BUFF spell {self.id} requires ac_bonus > 0 (P1: только AC-баффы)"
+                f"BUFF spell {self.id} requires at least one BuffSpec"
             )
 
 
 __all__ = [
     "AreaShape",
+    "BuffSpec",
     "OriginMode",
     "Spell",
     "SpellEffect",
