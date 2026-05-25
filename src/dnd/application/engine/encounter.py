@@ -18,6 +18,9 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import (
+    AttackResolved,
+    CreatureDied,
+    DeathSaveRolled,
     EncounterEnded,
     InitiativeRolled,
     OpportunityAttackProvoked,
@@ -179,6 +182,7 @@ class Encounter:
         self._reaction_policy: ReactionPolicy = reaction_policy
         self._state = _State()
         self._unsubscribe_provoked: Callable[[], None] | None = None
+        self._unsubscribe_downed: Callable[[], None] | None = None
 
     # --- read-only API ------------------------------------------------
 
@@ -287,6 +291,10 @@ class Encounter:
         self._unsubscribe_provoked = self._deps.event_bus.subscribe(
             OpportunityAttackProvoked, self._on_provoked
         )
+        # Q-2: реакция на падение цели в 0 HP (PC → dying, NPC → CORPSE).
+        self._unsubscribe_downed = self._deps.event_bus.subscribe(
+            AttackResolved, self._on_downed
+        )
 
     def _on_provoked(self, event: OpportunityAttackProvoked) -> None:
         """Делегирование политике. Бой может уже быть concluded — тогда
@@ -314,6 +322,47 @@ class Encounter:
                 event.threatener_id,
                 event.actor_id,
             )
+
+    def _on_downed(self, event: AttackResolved) -> None:
+        """Реакция на падение цели в 0 HP (PHB-2024 стр. 27).
+
+        PC (uses_death_saves) → переход в dying: Unconscious + DeathSaveState.
+        NPC (расходник) → превращение в труп (CORPSE) — реализуется в Q-8.
+        """
+        if not event.downed or self._state.concluded:
+            return
+        target = self._participants.get(event.target_id)
+        if target is None:
+            return
+        if target.uses_death_saves and target.is_at_zero_hp:
+            target.begin_dying()
+        # NPC-ветка (CORPSE) добавляется в Q-8.
+
+    def _roll_death_save_for(self, actor: Creature) -> None:
+        """Бросить за лежачего PC спасбросок от смерти (PHB-2024 стр. 27).
+
+        Спасброски от смерти без модификаторов — чистый d20. Публикует
+        :class:`DeathSaveRolled`; при 3-м провале — :class:`CreatureDied`.
+        """
+        ctx = RollContext(
+            purpose=RollPurpose.DEATH_SAVE,
+            actor_id=actor.id,
+            tags=("death_save",),
+        )
+        result = self._deps.dice_roller.roll(DiceExpr.parse("d20"), ctx)
+        d20_raw = result.d20_raw if result.d20_raw is not None else result.total
+        outcome = actor.roll_death_save(d20_raw)
+        self._deps.event_bus.publish(
+            DeathSaveRolled(
+                actor_id=actor.id,
+                d20_raw=outcome.d20_raw,
+                result=outcome.result,
+                successes=outcome.successes,
+                failures=outcome.failures,
+            )
+        )
+        if actor.is_dead:
+            self._deps.event_bus.publish(CreatureDied(actor_id=actor.id))
 
     # --- lifecycle (F2) ----------------------------------------------
 
@@ -345,6 +394,15 @@ class Encounter:
         # Сброс Help-якорей (PHB-2024 стр. 22: «until the start of your
         # next turn or until you have advantaged an attack»). Аудит 13 EN-A004.
         self._clear_pending_help(actor)
+
+        # Q-3: лежачий PC на старте своего хода бросает спасбросок от смерти
+        # (PHB-2024 стр. 27). Stable/dead — не бросают.
+        if (
+            actor.death_saves is not None
+            and not actor.death_saves.is_dead
+            and not actor.death_saves.is_stable
+        ):
+            self._roll_death_save_for(actor)
 
         # Свежий TurnContext.
         ctx = TurnContext(
@@ -473,6 +531,9 @@ class Encounter:
         if self._unsubscribe_provoked is not None:
             self._unsubscribe_provoked()
             self._unsubscribe_provoked = None
+        if self._unsubscribe_downed is not None:
+            self._unsubscribe_downed()
+            self._unsubscribe_downed = None
         self._deps.event_bus.publish(
             EncounterEnded(
                 winners=None,
@@ -552,6 +613,9 @@ class Encounter:
         if self._unsubscribe_provoked is not None:
             self._unsubscribe_provoked()
             self._unsubscribe_provoked = None
+        if self._unsubscribe_downed is not None:
+            self._unsubscribe_downed()
+            self._unsubscribe_downed = None
         self._deps.event_bus.publish(
             EncounterEnded(
                 winners=winners,

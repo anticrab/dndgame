@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -253,6 +253,35 @@ class EncounterEnded(EngineEvent):
     winners: Faction | None
     round_number: int
     survivors: tuple[CreatureId, ...]
+
+
+class DeathSaveRolled(EngineEvent):
+    """Спасбросок от смерти PC (PHB-2024 стр. 27).
+
+    ``result``: success (>=10), failure (<10) или recovered (нат-20, +1 HP).
+    """
+
+    event_type: ClassVar[str] = "encounter.death_save_rolled"
+    actor_id: CreatureId
+    d20_raw: int
+    result: Literal["success", "failure", "recovered"]
+    successes: int
+    failures: int
+
+
+class CreatureStabilized(EngineEvent):
+    """Существо стабилизировано (Медицина / Spare the Dying)."""
+
+    event_type: ClassVar[str] = "encounter.creature_stabilized"
+    actor_id: CreatureId
+    by: CreatureId
+
+
+class CreatureDied(EngineEvent):
+    """Существо окончательно мертво (3 провала спасбросков либо massive)."""
+
+    event_type: ClassVar[str] = "encounter.creature_died"
+    actor_id: CreatureId
 
 
 class HelpGranted(EngineEvent):
