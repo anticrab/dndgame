@@ -27,6 +27,33 @@
       at: [3, 2]
       faction: monsters
 
+# Этап P1: сценарий с PC-кастером (Apprentice Mage) против гоблина —
+# демонстрация заклинаний (Fire Bolt / Magic Missile / и т.д.).
+- id: mage_skirmish
+  name: "Mage Skirmish"
+  map:
+    width: 8
+    height: 6
+    legend:
+      ".": floor
+      "#": wall
+    grid:
+      - "........"
+      - "........"
+      - "........"
+      - "........"
+      - "........"
+      - "........"
+  spawns:
+    - template_id: mage_apprentice
+      instance_id: aelar
+      at: [1, 2]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [5, 3]
+      faction: monsters
+
 # Аудит 16 SC-R-NEW-001: до появления InteractAction/OpenDoorAction
 # ставить closed_door в проходимом коридоре нельзя — сценарий иначе
 # неразрешим (бой завершается только по MAX_ROUNDS=100, потому что

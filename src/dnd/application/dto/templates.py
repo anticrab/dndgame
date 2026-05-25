@@ -71,6 +71,11 @@ class MonsterTemplate(BaseModel):
     vulnerabilities: tuple[str, ...] = ()
     immunities: tuple[str, ...] = ()
 
+    # Заклинания (этап P1). None/пусто — не-кастер (backward-compat).
+    spellcasting_ability: str | None = None  # "INT" / "WIS" / "CHA"
+    known_spells: tuple[str, ...] = ()
+    spell_slots: dict[int, int] = Field(default_factory=dict)  # level → count
+
 
 class SpawnTemplate(BaseModel):
     """Кто и где появляется в сценарии."""

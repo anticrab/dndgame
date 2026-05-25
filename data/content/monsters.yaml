@@ -47,3 +47,23 @@
   proficiency_bonus: 2
   weapon_id: longsword
   default_faction: party
+
+- id: mage_apprentice
+  name: Apprentice Mage
+  abilities:
+    str: 8
+    dex: 12
+    con: 12
+    int: 16
+    wis: 10
+    cha: 10
+  max_hp: 14
+  armor_class: 12
+  speed_ft: 30
+  proficiency_bonus: 2
+  weapon_id: longsword
+  default_faction: party
+  # Заклинания (этап P1): INT-кастер, 2 ячейки 1-го уровня, заговоры безлимит.
+  spellcasting_ability: INT
+  known_spells: [fire_bolt, sacred_flame, magic_missile, cure_wounds, shield_of_faith]
+  spell_slots: { 1: 2 }

@@ -8,7 +8,7 @@ gob#2). Идентификатор инстанса передаётся сна�
 
 from __future__ import annotations
 
-from dnd.application.dto.ids import CreatureId
+from dnd.application.dto.ids import CreatureId, SpellId
 from dnd.application.dto.templates import (
     AbilityScoresTemplate,
     MonsterTemplate,
@@ -54,7 +54,7 @@ def build_creature_from_template(
     if template.weapon_id is not None:
         weapon = build_weapon_profile(content.weapon_by_id(template.weapon_id))
 
-    return Creature.create(
+    creature = Creature.create(
         id_=instance_id,
         name=template.name,
         abilities=_build_abilities(template.abilities),
@@ -67,6 +67,12 @@ def build_creature_from_template(
         vulnerabilities=frozenset(template.vulnerabilities),
         immunities=frozenset(template.immunities),
     )
+    # Заклинания (P1): кастер получает характеристику/ячейки/список заклинаний.
+    if template.spellcasting_ability is not None:
+        creature.spellcasting_ability = Ability(template.spellcasting_ability)
+        creature.known_spells = tuple(SpellId(s) for s in template.known_spells)
+        creature.spell_slots = dict(template.spell_slots)
+    return creature
 
 
 def _build_abilities(t: AbilityScoresTemplate) -> AbilityScores:
