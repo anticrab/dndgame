@@ -445,8 +445,8 @@ Ultima», карта боя читаема на 80×24 (минимум), пол�
   - ✅ **V1 — фундамент:** `Skill`/`SKILL_ABILITY`, `Creature.skill_proficiencies/
     skill_expertise`, `skill_bonus`/`ability_check_bonus`/`roll_ability_check[_raw]`/
     `passive_score`, владения данными класса/шаблона.
-  - 🔜 **V2 — боевые проверки:** `opposed_check` (состязания), состояния
-    Grappled/Hidden, действия Shove/Grapple/Hide.
+  - ✅ **V2 — боевые проверки:** `opposed_check` (состязания), состояния
+    Grappled/Hidden, действия Shove/Grapple/Hide + интенты/диспатч.
 - **W — Создание персонажа и экипировка (приоритет 3).** `CharacterBuilder`
   (класс → вид + предыстория → характеристики (стандартный массив/покупка
   очков) → экипировка → стартовые фичи); **интерактивный выбор боевого стиля /
