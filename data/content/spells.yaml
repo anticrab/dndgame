@@ -54,6 +54,7 @@
   targeting: { kind: single }
   range_ft: 60
   concentration: true
+  duration: { unit: concentration, amount: 10 }  # до 10 минут концентрации
   buffs:
     - { target: armor_class, numeric_bonus: 2 }
   description: "Мерцающее поле даёт цели +2 к КД. Требует концентрации."
@@ -107,6 +108,7 @@
   targeting: { kind: multi, max_targets: 3, allow_repeat_target: false }
   range_ft: 30
   concentration: true
+  duration: { unit: concentration, amount: 1 }  # до 1 минуты концентрации
   buffs:
     - { target: attack_roll, dice_bonus: "1d4" }
     - { target: saving_throw, dice_bonus: "1d4" }
@@ -136,4 +138,5 @@
   save_ability: WIS
   concentration: true
   condition_repeat_save: true
+  duration: { unit: concentration, amount: 1 }  # до 1 минуты концентрации
   description: "Удерживает гуманоида (спасбросок Мудрости). Парализован; в конце каждого своего хода повторяет спасбросок Мудрости. Требует концентрации."

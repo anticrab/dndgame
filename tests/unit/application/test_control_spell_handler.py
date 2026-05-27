@@ -121,3 +121,48 @@ def test_hold_person_success_save_no_effect() -> None:
     ctx, _bus = _ctx([20], [mage, orc])  # d20=20 → успех
     ControlSpellHandler().apply(mage, (orc,), _hold(), ctx)
     assert not orc.has_condition(PARALYZED)
+
+
+def test_hold_person_with_duration_sets_clock_deadline() -> None:
+    from dnd.domain.values.duration import Duration
+
+    mage = _mage()
+    orc = _weak("orc", 15)
+    ctx, bus = _ctx([1], [mage, orc])  # провал спасброска
+    ctx.clock.advance(5)  # now_round = 5
+    applied: list[ConditionApplied] = []
+    bus.subscribe(ConditionApplied, applied.append)
+    hold = _hold_with_duration(Duration.concentration(cap_min=1))  # 10 раундов
+    ControlSpellHandler().apply(mage, (orc,), hold, ctx)
+    assert applied[-1].expires_at_round == 15  # 5 + 10
+
+
+def test_sleep_without_duration_has_no_clock_deadline() -> None:
+    mage = _mage()
+    low = _weak("low", 5)
+    ctx, bus = _ctx([2, 2, 2, 2, 2], [mage, low])  # 5d8 = 10 пула
+    applied: list[ConditionApplied] = []
+    bus.subscribe(ConditionApplied, applied.append)
+    ControlSpellHandler().apply(mage, (low,), _sleep(), ctx)  # INSTANT по умолчанию
+    assert applied[-1].expires_at_round is None  # снимается уроном, не по часам
+
+
+def _hold_with_duration(duration: object) -> Spell:
+    from dnd.domain.values.duration import Duration
+
+    assert isinstance(duration, Duration)
+    return Spell(
+        id=SpellId("hold_person"),
+        name="Hold Person",
+        level=2,
+        school="enchantment",
+        effect=SpellEffect.CONTROL,
+        targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=60,
+        description="",
+        condition=PARALYZED,
+        save_ability=Ability.WIS,
+        concentration=True,
+        condition_repeat_save=True,
+        duration=duration,
+    )

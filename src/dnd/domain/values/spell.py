@@ -11,11 +11,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.duration import Duration
 from dnd.domain.values.ids import ConditionId, SpellId
 from dnd.domain.values.modifiers import ModifierTargetKind
 
@@ -129,6 +130,10 @@ class Spell:
     hp_pool_dice: str | None = None
     condition_ends_on_damage: bool = False  # Sleep: пробуждение от урона
     condition_repeat_save: bool = False  # Hold Person: спасбросок в конце хода
+    # X0: длительность эффекта. INSTANT (по умолчанию) — нет снятия по часам;
+    # конечная положительная → дедлайн через GameClock; concentration/безлимит —
+    # снимается своими триггерами (срыв концентрации). Дополняет, не заменяет их.
+    duration: Duration = field(default_factory=Duration.instant)
 
     def __post_init__(self) -> None:
         if self.level < 0:

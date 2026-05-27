@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import (
+    BuffApplied,
     ConditionApplied,
     DamageDealt,
     HealingApplied,
@@ -30,6 +31,15 @@ if TYPE_CHECKING:
     from dnd.application.engine.turn_context import TurnContext
     from dnd.domain.entities.creature import Creature
     from dnd.domain.values.spell import Spell
+
+
+def _expires_at(spell: Spell, ctx: TurnContext) -> int | None:
+    """Дедлайн снятия эффекта по часам (X0) — только для конечной положительной
+    длительности. INSTANT (0) и безлимитные (None: PERMANENT / концентрация без
+    потолка) → ``None``: эффект снимается своими триггерами (урон / повторный
+    спасбросок / срыв концентрации), а не по времени. Длительность дополняет
+    триггеры, не заменяет их."""
+    return ctx.clock.expires_at(spell.duration) if spell.duration.to_rounds() else None
 
 
 def _effective_ac(target: Creature, ctx: TurnContext) -> int:
@@ -271,6 +281,7 @@ class BuffSpellHandler:
         if spell.concentration:
             caster.concentration = spell.id
         source_id = concentration_source(caster.id)
+        expires_at_round = _expires_at(spell, ctx)
         for target in targets:
             for buff in spell.buffs:
                 effect = (
@@ -286,6 +297,16 @@ class BuffSpellHandler:
                         effect=effect,
                         owner_id=target.id,
                         stack_key=str(spell.id),
+                    )
+                )
+            # X0: если длительность конечна — зарегистрировать дедлайн снятия по
+            # часам (concentration-баффы без потолка снимаются срывом концентрации).
+            if expires_at_round is not None:
+                ctx.event_bus.publish(
+                    BuffApplied(
+                        owner_id=target.id,
+                        source_id=source_id,
+                        expires_at_round=expires_at_round,
                     )
                 )
 
@@ -389,6 +410,7 @@ class ControlSpellHandler:
                 repeat_save_ability=(spell.save_ability if spell.condition_repeat_save else None),
                 save_dc=dc if spell.condition_repeat_save else None,
                 concentration=spell.concentration,
+                expires_at_round=_expires_at(spell, ctx),
             )
         )
         return True

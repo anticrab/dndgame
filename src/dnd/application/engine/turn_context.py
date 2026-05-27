@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.action import ActionEconomyCost
+from dnd.domain.entities.game_clock import GameClock
 from dnd.domain.values.ids import CreatureId
 
 if TYPE_CHECKING:
@@ -72,6 +73,10 @@ class TurnContext:
 
     round_number: int = 1
     turn_number_in_round: int = 0
+
+    # X0: общие игровые часы. Реальный общий clock проставляет Encounter
+    # (X0-6); default_factory — чтобы ручная сборка ctx в тестах не ломалась.
+    clock: GameClock = field(default_factory=GameClock)
 
     action_used: bool = False
     bonus_action_used: bool = False

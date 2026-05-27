@@ -14,6 +14,7 @@ import yaml
 
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
+from dnd.domain.values.duration import Duration, DurationUnit
 from dnd.domain.values.ids import ConditionId, SpellId
 from dnd.domain.values.modifiers import ModifierTargetKind
 from dnd.domain.values.spell import (
@@ -59,6 +60,12 @@ class YamlSpellRepository:
             length_ft=int(tgt.get("length_ft", 0)),
             allow_repeat_target=bool(tgt.get("allow_repeat_target", False)),
         )
+        raw_dur = entry.get("duration")
+        duration = (
+            Duration.instant()
+            if raw_dur is None
+            else Duration(DurationUnit(raw_dur["unit"]), int(raw_dur.get("amount", 0)))
+        )
         dmg = entry.get("damage_type")
         save = entry.get("save_ability")
         buffs = tuple(
@@ -89,6 +96,7 @@ class YamlSpellRepository:
             hp_pool_dice=entry.get("hp_pool_dice"),
             condition_ends_on_damage=bool(entry.get("condition_ends_on_damage", False)),
             condition_repeat_save=bool(entry.get("condition_repeat_save", False)),
+            duration=duration,
         )
 
     def list_ids(self) -> tuple[SpellId, ...]:
