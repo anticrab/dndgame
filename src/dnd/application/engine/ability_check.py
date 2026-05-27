@@ -86,6 +86,55 @@ def roll_ability_check_raw(
     return roll.total >= dc
 
 
+def _check_total(
+    actor: Creature,
+    skill: Skill,
+    dice_roller: DiceRoller,
+    modifier_applier: ModifierApplier,
+    condition_service: ConditionService | None,
+) -> int:
+    """Сырой итог проверки навыка ``d20 + бонус + adjustments`` (для состязаний)."""
+    bonus = skill_bonus(actor, skill)
+    mods = list(
+        modifier_applier.collect(owner_id=actor.id, target_kind=ModifierTargetKind.ABILITY_CHECK)
+    )
+    if condition_service is not None:
+        mods += condition_service.collect_modifiers(actor, ModifierTargetKind.ABILITY_CHECK)
+    adj = modifier_applier.to_roll_adjustments(mods)
+    roll = dice_roller.roll(
+        DiceExpr.parse(f"d20{bonus + adj.numeric_bonus:+d}"),
+        RollContext(
+            purpose=RollPurpose.ABILITY_CHECK,
+            actor_id=actor.id,
+            advantage=adj.advantage,
+            disadvantage=adj.disadvantage,
+            extra_dice=adj.extra_dice,
+            tags=("opposed_check",),
+        ),
+    )
+    return roll.total
+
+
+def opposed_check_raw(
+    actor: Creature,
+    actor_skill: Skill,
+    target: Creature,
+    target_skills: tuple[Skill, ...],
+    *,
+    dice_roller: DiceRoller,
+    modifier_applier: ModifierApplier,
+    condition_service: ConditionService | None = None,
+) -> bool:
+    """Состязание: актёр против лучшей из проверок цели. ``True``, если итог
+    актёра СТРОГО больше — ничья остаётся за защищающимся (PHB-2024 стр. 11)."""
+    a = _check_total(actor, actor_skill, dice_roller, modifier_applier, condition_service)
+    best = max(
+        _check_total(target, s, dice_roller, modifier_applier, condition_service)
+        for s in target_skills
+    )
+    return a > best
+
+
 def passive_score(
     actor: Creature,
     skill: Skill,
@@ -138,6 +187,7 @@ def roll_ability_check(
 
 __all__ = [
     "ability_check_bonus",
+    "opposed_check_raw",
     "passive_score",
     "roll_ability_check",
     "roll_ability_check_raw",

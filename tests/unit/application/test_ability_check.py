@@ -105,3 +105,45 @@ def test_passive_score_proficient() -> None:
     c = _c()
     c.skill_proficiencies = frozenset({Skill.PERCEPTION})
     assert passive_score(c, Skill.PERCEPTION) == 12  # 10 + 0 + prof 2
+
+
+def test_opposed_check_actor_wins() -> None:
+    from dnd.application.engine.ability_check import opposed_check_raw
+    from dnd.composition import build_scripted_dependencies
+    from dnd.domain.entities.battlefield import Battlefield
+
+    deps, _b, _ = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=[15, 10, 10])
+    a, t = _c(), _c()
+    # actor: d20=15 + 3(STR) = 18; target лучшее из Athletics(10+3=13)/Acrobatics(10+2=12)=13.
+    assert (
+        opposed_check_raw(
+            a,
+            Skill.ATHLETICS,
+            t,
+            (Skill.ATHLETICS, Skill.ACROBATICS),
+            dice_roller=deps.dice_roller,
+            modifier_applier=deps.modifier_applier,
+        )
+        is True
+    )
+
+
+def test_opposed_check_tie_goes_to_defender() -> None:
+    from dnd.application.engine.ability_check import opposed_check_raw
+    from dnd.composition import build_scripted_dependencies
+    from dnd.domain.entities.battlefield import Battlefield
+
+    # actor d20=10 + 3 = 13; target Athletics d20=10 + 3 = 13 → ничья → защитник → False.
+    deps, _b, _ = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=[10, 10])
+    a, t = _c(), _c()
+    assert (
+        opposed_check_raw(
+            a,
+            Skill.ATHLETICS,
+            t,
+            (Skill.ATHLETICS,),
+            dice_roller=deps.dice_roller,
+            modifier_applier=deps.modifier_applier,
+        )
+        is False
+    )
