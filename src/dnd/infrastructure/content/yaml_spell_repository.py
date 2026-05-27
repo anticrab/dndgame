@@ -13,7 +13,7 @@ import yaml  # type: ignore[import-untyped]
 
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
-from dnd.domain.values.ids import SpellId
+from dnd.domain.values.ids import ConditionId, SpellId
 from dnd.domain.values.modifiers import ModifierTargetKind
 from dnd.domain.values.spell import (
     AreaShape,
@@ -86,6 +86,10 @@ class YamlSpellRepository:
             concentration=bool(entry.get("concentration", False)),
             heal_dice=entry.get("heal_dice"),
             buffs=buffs,
+            condition=ConditionId(entry["condition"]) if entry.get("condition") else None,
+            hp_pool_dice=entry.get("hp_pool_dice"),
+            condition_ends_on_damage=bool(entry.get("condition_ends_on_damage", False)),
+            condition_repeat_save=bool(entry.get("condition_repeat_save", False)),
         )
 
     def list_ids(self) -> tuple[SpellId, ...]:

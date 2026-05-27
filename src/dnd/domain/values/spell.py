@@ -15,7 +15,7 @@ from enum import StrEnum
 
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
-from dnd.domain.values.ids import SpellId
+from dnd.domain.values.ids import ConditionId, SpellId
 from dnd.domain.values.modifiers import ModifierTargetKind
 
 
@@ -27,6 +27,7 @@ class SpellEffect(StrEnum):
     AUTO = "auto"       # авто-попадание → урон без броска (Magic Missile)
     HEAL = "heal"       # восстановление HP
     BUFF = "buff"       # модификатор/бафф на цель (± концентрация)
+    CONTROL = "control"  # наложение состояния (± длительность/снятие) — T2
 
 
 class TargetKind(StrEnum):
@@ -123,6 +124,12 @@ class Spell:
     concentration: bool = False
     heal_dice: str | None = None           # для HEAL
     buffs: tuple[BuffSpec, ...] = ()       # для BUFF (Shield of Faith, Bless)
+    # CONTROL (T2): наложение состояния. condition — что; ровно один гейт —
+    # hp_pool_dice (Sleep: пул хитов, без спасброска) ИЛИ save_ability (резист).
+    condition: ConditionId | None = None
+    hp_pool_dice: str | None = None
+    condition_ends_on_damage: bool = False   # Sleep: пробуждение от урона
+    condition_repeat_save: bool = False       # Hold Person: спасбросок в конце хода
 
     def __post_init__(self) -> None:
         if self.level < 0:
@@ -144,6 +151,23 @@ class Spell:
             raise ValueError(
                 f"BUFF spell {self.id} requires at least one BuffSpec"
             )
+        elif self.effect is SpellEffect.CONTROL:
+            if self.condition is None:
+                raise ValueError(
+                    f"CONTROL spell {self.id} requires condition"
+                )
+            has_pool = self.hp_pool_dice is not None
+            has_save = self.save_ability is not None
+            if has_pool == has_save:
+                raise ValueError(
+                    f"CONTROL spell {self.id}: ровно один гейт — "
+                    "hp_pool_dice ИЛИ save_ability"
+                )
+            if self.condition_repeat_save and not has_save:
+                raise ValueError(
+                    f"CONTROL spell {self.id}: condition_repeat_save требует "
+                    "save_ability (есть что перебрасывать)"
+                )
 
 
 __all__ = [
