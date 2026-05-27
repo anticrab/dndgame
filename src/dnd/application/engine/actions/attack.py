@@ -197,12 +197,20 @@ class AttackAction:
         if target.id == actor.id:
             return Forbidden(reason=ForbiddenReason.SELF_TARGET)
 
-        # Поверженные на 0 HP — не валидная цель стандартной атаки
-        # (coup-de-grace в 5e-2024 моделировать не нужно). UI-фильтр
-        # (console_provider) сам по себе ненадёжен: scripted/AI/TUI/
-        # master intent может пройти мимо него.
+        # Цель на 0 HP. «Добивание» лежачего спасаемого (PC при смерти)
+        # РАЗРЕШЕНО: удар в упор = авто-крит = 2 провала спасброска
+        # (PHB-2024 стр. 27, см. _resolve ниже). Это закрывает «ничью-
+        # зависание» (этап D): соло-PC без сознания иначе лежал бы стабильным,
+        # а бой висел бы до round-limit. Прочие 0-HP цели (мёртвые NPC) бить
+        # нельзя — для них смерть окончательна.
         if not target.is_alive or target.is_at_zero_hp:
-            return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
+            finishable = (
+                target.uses_death_saves
+                and target.death_saves is not None
+                and not target.death_saves.is_dead
+            )
+            if not finishable:
+                return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
 
         attacker_pos = ctx.battlefield.position_of(actor.id)
         target_pos = ctx.battlefield.position_of(target.id)

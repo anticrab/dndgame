@@ -113,24 +113,40 @@ def _find_nearest_hostile(
         return None
     actor_pos = bf.position_of(actor.id)
 
-    candidates: list[tuple[int, Creature]] = []
+    # Две корзины: сознательные враги (приоритет) и лежачие-добиваемые
+    # (PC при смерти). К лежачему идём, только если живых целей нет — иначе
+    # бой с одиночным поверженным PC висел бы до round-limit (этап D).
+    conscious: list[tuple[int, Creature]] = []
+    finishable: list[tuple[int, Creature]] = []
     for cid, cr in ctx.participants.items():
-        if cid == actor.id or not cr.is_alive or cr.is_at_zero_hp:
+        if cid == actor.id or not is_hostile(cid):
             continue
         if not bf.has_creature(cid):
-            continue
-        if not is_hostile(cid):
             continue
         cr_pos = bf.position_of(cid)
         if not bf.line_of_sight(actor_pos, cr_pos):
             continue
         dist = actor_pos.distance_to(cr_pos)
-        candidates.append((dist, cr))
+        if cr.is_alive and not cr.is_at_zero_hp:
+            conscious.append((dist, cr))
+        elif _is_finishable(cr):
+            finishable.append((dist, cr))
 
-    if not candidates:
+    pool = conscious or finishable
+    if not pool:
         return None
-    candidates.sort(key=lambda t: t[0])
-    return candidates[0][1]
+    pool.sort(key=lambda t: t[0])
+    return pool[0][1]
+
+
+def _is_finishable(cr: Creature) -> bool:
+    """Лежачий, но ещё не мёртвый спасаемый (PC при смерти) — его можно
+    добить (удар в упор = провалы спасбросков, PHB-2024 стр. 27)."""
+    return (
+        cr.uses_death_saves
+        and cr.death_saves is not None
+        and not cr.death_saves.is_dead
+    )
 
 
 def _path_towards(

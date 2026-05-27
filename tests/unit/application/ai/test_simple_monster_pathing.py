@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 from dnd.application.engine.ai.simple_monster import (
+    _find_nearest_hostile,
     is_hostile_from_factions,
     take_monster_turn,
 )
@@ -47,6 +48,71 @@ def _warrior(cid: str) -> Creature:
         speed_ft=30,
         equipped_weapon=LONGSWORD,
     )
+
+
+def _downed_pc(cid: str) -> Creature:
+    """PC, лежащий без сознания (0 HP, спасброски от смерти, ещё жив)."""
+    from dnd.domain.values.death_save_state import DeathSaveState
+
+    pc = _warrior(cid)
+    pc.uses_death_saves = True
+    pc.hit_points = pc.hit_points.take_damage(pc.hit_points.maximum)
+    pc.death_saves = DeathSaveState()
+    return pc
+
+
+def _ctx_for(actor: Creature, participants: dict[CreatureId, Creature],
+             factions: dict[CreatureId, Faction], bf: Battlefield,
+             rolls: list[int]) -> TurnContext:
+    deps, _bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=rolls)
+    return TurnContext(
+        actor_id=actor.id, battlefield=deps.battlefield, dice_roller=deps.dice_roller,
+        modifier_applier=deps.modifier_applier, condition_service=deps.condition_service,
+        event_bus=deps.event_bus, rng=deps.rng, participants=participants,
+        movement_remaining_ft=actor.speed_ft, factions=factions,
+    )
+
+
+def test_monster_finishes_downed_enemy_when_no_conscious() -> None:
+    """Нет живых целей → гоблин добивает лежачего PC (иначе бой висит до
+    round-limit). Удар в упор = авто-крит = 2 провала спасброска."""
+    bf = Battlefield(6, 3)
+    goblin = _goblin("g")
+    pc = _downed_pc("hero")
+    bf.place_creature(goblin.id, Square(1, 1))
+    bf.place_creature(pc.id, Square(2, 1))  # смежно — рукопашная достаёт
+    participants = {goblin.id: goblin, pc.id: pc}
+    factions = {goblin.id: Faction.MONSTERS, pc.id: Faction.PARTY}
+    # d20=19 (попадание) + 2 кубика урона (крит удваивает 1d6 скимитара).
+    ctx = _ctx_for(goblin, participants, factions, bf, rolls=[19, 3, 3])
+
+    take_monster_turn(goblin, ctx, is_hostile=is_hostile_from_factions(goblin.id, factions))
+
+    assert pc.death_saves is not None
+    assert pc.death_saves.failures == 2, "удар по лежачему в упор = 2 провала"
+
+
+def test_monster_prefers_conscious_over_downed() -> None:
+    """Если есть живой враг — добивать лежачего не идём."""
+    bf = Battlefield(8, 3)
+    goblin = _goblin("g")
+    downed = _downed_pc("downed")
+    alive = _warrior("alive")
+    bf.place_creature(goblin.id, Square(1, 1))
+    bf.place_creature(downed.id, Square(2, 1))   # лежачий ближе
+    bf.place_creature(alive.id, Square(5, 1))    # живой дальше
+    participants = {goblin.id: goblin, downed.id: downed, alive.id: alive}
+    factions = {
+        goblin.id: Faction.MONSTERS,
+        downed.id: Faction.PARTY,
+        alive.id: Faction.PARTY,
+    }
+    ctx = _ctx_for(goblin, participants, factions, bf, rolls=[])
+
+    target = _find_nearest_hostile(
+        goblin, ctx, is_hostile_from_factions(goblin.id, factions)
+    )
+    assert target is not None and target.id == alive.id
 
 
 def test_monster_move_through_ally_does_not_crash() -> None:

@@ -205,6 +205,25 @@ def test_against_dead_target_forbidden() -> None:
 
 
 @pytest.mark.rules
+def test_against_dying_pc_allowed_to_finish() -> None:
+    """Добивание лежачего спасаемого PC разрешено: удар в упор = авто-крит
+    (PHB-2024 стр. 27). Иначе соло-PC лежит стабильным, а бой висит до
+    round-limit (этап D — «ничья-зависание»)."""
+    from dnd.domain.values.death_save_state import DeathSaveState
+
+    pc = _make_goblin("downed_pc")
+    pc.uses_death_saves = True
+    pc.hit_points = pc.hit_points.take_damage(pc.hit_points.maximum)  # → 0 HP
+    pc.death_saves = DeathSaveState()  # dying, ещё не мёртв
+    attacker, target, ctx, _ = _setup(rng_rolls=[], target=pc)
+
+    assert target.is_at_zero_hp and target.death_saves is not None
+    assert not target.death_saves.is_dead
+    av = AttackAction().can_perform_against(attacker, _params(target.id), ctx)
+    assert isinstance(av, Allowed)
+
+
+@pytest.mark.rules
 def test_against_no_line_of_sight() -> None:
     """Стена между атакующим и целью блокирует LoS."""
     attacker, target, ctx, _ = _setup(
