@@ -620,6 +620,7 @@ class BattleScreen(Screen[None]):
 
     def _open_ability_menu(self) -> None:
         """Открыть меню способностей активного PC (этап S): выбор + перебинд."""
+        from dnd.application.abilities.spell_abilities import is_spell_ability
         from dnd.interfaces.tui.screens.ability_menu_screen import (
             AbilityMenuScreen,
             AbilityRow,
@@ -642,6 +643,15 @@ class BattleScreen(Screen[None]):
             )
             for aid in actor.ability_ids
         ]
+        # T1: заклинания живут в keymap (цифры 1–9), не в ability_ids — добавляем
+        # их в меню отдельно, чтобы маг видел и кастовал заклинания из списка.
+        seen = set(actor.ability_ids)
+        for key, ab in self._keymap.items():
+            if is_spell_ability(ab) and ab.id not in seen:
+                seen.add(ab.id)
+                rows.append(AbilityRow(
+                    ability=ab, hotkey=key, available=ability_can_afford(ab, ctx),
+                ))
 
         def _apply(ability: Ability) -> None:
             self._trigger_ability(ability)

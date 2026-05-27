@@ -216,3 +216,80 @@ def test_esc_from_target_mode_clears_pending_ability() -> None:
             assert host._scr._pending_ability is None
 
     asyncio.run(_go())
+
+
+def test_mage_spells_appear_in_menu_and_aoe_enters_area() -> None:
+    """T1: заклинания мага видны в меню способностей; выбор AoE → BattleMode.AREA."""
+    from pathlib import Path
+
+    from dnd.application.abilities.defaults import register_default_abilities
+    from dnd.application.abilities.registry import AbilityRegistry
+    from dnd.application.abilities.spell_abilities import is_spell_ability
+    from dnd.application.engine.encounter import Encounter
+    from dnd.composition import build_scripted_dependencies
+    from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import Ability as Abil
+    from dnd.domain.values.ability import AbilityScores
+    from dnd.domain.values.faction import Faction
+    from dnd.domain.values.ids import CreatureId, SpellId
+    from dnd.domain.values.square import Square
+    from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository
+    from dnd.interfaces.tui.screens.battle import BattleMode, BattleScreen
+
+    reg = AbilityRegistry()
+    register_default_abilities(reg)
+    spell_repo = YamlSpellRepository(Path("data/content/spells.yaml"))
+    bf = Battlefield(8, 8)
+    mage = Creature.create(
+        id_=CreatureId("mage"), name="mage",
+        abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
+        max_hp=14, armor_class=12, speed_ft=30,
+    )
+    mage.spellcasting_ability = Abil.INT
+    mage.known_spells = (SpellId("fire_bolt"), SpellId("fireball"))
+    mage.spell_slots = {1: 2}
+    gob = Creature.create(
+        id_=CreatureId("g"), name="g",
+        abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
+        max_hp=7, armor_class=13, speed_ft=30,
+    )
+    bf.place_creature(mage.id, Square(1, 1))
+    bf.place_creature(gob.id, Square(4, 4))
+    deps, _bus, _ = build_scripted_dependencies(battlefield=bf, rolls=[20, 1])
+    enc = Encounter(
+        participants={mage.id: mage, gob.id: gob},
+        factions={mage.id: Faction.PARTY, gob.id: Faction.MONSTERS},
+        deps=deps,
+    )
+    enc.start()
+    actor = enc.participants[enc.current_actor_id]
+    ctx = enc.start_turn()
+
+    class _Host(App[None]):
+        def on_mount(self) -> None:
+            self._scr = BattleScreen(ability_registry=reg, spell_repository=spell_repo)
+            self.push_screen(self._scr)
+
+    async def _go() -> None:
+        host = _Host()
+        async with host.run_test(size=(110, 34)) as pilot:
+            await pilot.pause(0.1)
+            host._scr.set_active_turn(actor, ctx, enc)
+            await pilot.pause(0.05)
+            await pilot.press("tab")
+            await pilot.pause(0.05)
+            menu = host.screen
+            assert isinstance(menu, AbilityMenuScreen)
+            spell_rows = [r for r in menu._rows if is_spell_ability(r.ability)]
+            assert spell_rows, "в меню должны быть заклинания мага"
+            # AoE-заклинание (fireball) → AREA-режим при применении.
+            fireball = next(
+                ab for ab in host._scr._keymap.values()
+                if ab.name == "Fireball"
+            )
+            host._scr._trigger_ability(fireball)
+            await pilot.pause(0.05)
+            assert host._scr._mode is BattleMode.AREA
+
+    asyncio.run(_go())

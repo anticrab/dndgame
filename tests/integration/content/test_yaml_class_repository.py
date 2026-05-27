@@ -15,8 +15,8 @@ def _repo() -> YamlClassRepository:
     return YamlClassRepository(_CLASSES)
 
 
-def test_loads_fighter_and_rogue() -> None:
-    assert set(_repo().list_ids()) == {"fighter", "rogue"}
+def test_loads_all_classes() -> None:
+    assert set(_repo().list_ids()) == {"fighter", "rogue", "wizard"}
 
 
 def test_fighter_levels() -> None:
@@ -28,6 +28,7 @@ def test_fighter_levels() -> None:
 
 def test_contains_and_unknown() -> None:
     repo = _repo()
-    assert repo.contains("rogue") and not repo.contains("wizard")
+    assert repo.contains("rogue") and repo.contains("wizard")
+    assert not repo.contains("bard")
     with pytest.raises(KeyError):
-        repo.load("wizard")
+        repo.load("bard")
