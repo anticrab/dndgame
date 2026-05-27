@@ -271,8 +271,12 @@ class Creature:
     """Накопленный опыт. Растёт через XpAwardService (за убийства/бонусы)."""
 
     character_class: str | None = None
-    """ID класса ("fighter"/"rogue"), резолвится в ClassProgression через
-    ClassRepository. None у монстров."""
+    """ID класса ("fighter"/"rogue"/"wizard"), резолвится в ClassProgression
+    через ClassRepository. None у монстров."""
+
+    saving_throw_proficiencies: frozenset[Ability] = field(default_factory=frozenset)
+    """Спасброски, в которых существо профициентно (из класса, T1): бросок
+    добавляет proficiency_bonus (PHB-2024 стр. 9). Пусто у обычных монстров."""
 
     challenge_rating: float = 0.0
     """CR для награды XP (XP = CR*100, PROGRESSION.md §2). 0 у PC."""

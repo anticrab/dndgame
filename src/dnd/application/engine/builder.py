@@ -8,6 +8,8 @@ gob#2). Идентификатор инстанса передаётся сна�
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from dnd.application.dto.templates import (
     AbilityScoresTemplate,
     MonsterTemplate,
@@ -18,6 +20,9 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.ids import CreatureId, SpellId
 from dnd.domain.values.weapon import WeaponProfile
+
+if TYPE_CHECKING:
+    from dnd.application.ports.class_repository import ClassRepository
 
 
 def build_weapon_profile(template: WeaponTemplate) -> WeaponProfile:
@@ -44,11 +49,15 @@ def build_creature_from_template(
     *,
     instance_id: CreatureId,
     content: ContentRepository,
+    class_repository: ClassRepository | None = None,
 ) -> Creature:
     """Собрать ``Creature`` из шаблона.
 
     ``content`` нужен, чтобы достать ``WeaponProfile`` по ``weapon_id``.
     Без оружия — ``equipped_weapon=None``.
+
+    ``class_repository`` (T1) — чтобы выставить профициентные спасброски из
+    класса PC; None → пусто (обычные монстры).
     """
     weapon: WeaponProfile | None = None
     if template.weapon_id is not None:
@@ -77,6 +86,15 @@ def build_creature_from_template(
     creature.character_class = template.character_class
     creature.level = template.level
     creature.xp = template.xp
+    # T1: профициентные спасброски из класса (для бросков спасбросков с prof).
+    if (
+        class_repository is not None
+        and template.character_class is not None
+        and class_repository.contains(template.character_class)
+    ):
+        creature.saving_throw_proficiencies = class_repository.load(
+            template.character_class
+        ).saving_throw_proficiencies
     return creature
 
 

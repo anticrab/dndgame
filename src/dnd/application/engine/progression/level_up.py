@@ -48,6 +48,8 @@ class LevelUpService:
     ) -> LevelUpResult:
         assert creature.character_class is not None, "level-up requires a class"
         progression = self._classes.load(creature.character_class)
+        # T1: держим профициентные спасброски в синхроне с таблицей класса.
+        creature.saving_throw_proficiencies = progression.saving_throw_proficiencies
         con_mod = creature.abilities.modifier(Ability.CON)
         hp_per_level = max(1, progression.hit_die_average() + con_mod)
 

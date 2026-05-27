@@ -121,6 +121,7 @@ def play(
         services=services,
         map_repository=map_repo,
         sprite_registry=sprite_reg,
+        class_repository=class_repo,  # T1: профициентные спасброски PC из класса
     )
 
     if tui:
