@@ -227,10 +227,17 @@ class BattleScreen(Screen[None]):
         if self._mode is not BattleMode.NORMAL:
             self.enter_mode(BattleMode.NORMAL)
         self.status_widget.refresh_from(actor, ctx)
-        # L2-7: пересобираем keymap под текущего актора (его
-        # ability_ids + keybindings override'ы) и обновляем
-        # action-bar. Делаем после refresh_from чтобы виджеты были
-        # точно смонтированы — query_one на TurnStarted безопасен.
+        # L2-7: пересобираем keymap под текущего актора (ability_ids +
+        # keybindings override'ы + заклинания 1..9). После refresh_from —
+        # виджеты точно смонтированы, query_one безопасен.
+        self._apply_keymap(actor)
+
+    def _apply_keymap(self, actor: Creature) -> None:
+        """Собрать ``self._keymap`` под актора и обновить action-bar.
+
+        Используется и при смене хода (set_active_turn), и при перебинде из
+        меню способностей (этап S) — чтобы перебинд не терял заклинания 1..9.
+        """
         self._keymap = build_keymap(actor, self._ability_registry)
         # P1-10: добавить заклинания актора (known_spells) на hotkey'и 1..9.
         self._spell_by_ability = {}
@@ -415,6 +422,12 @@ class BattleScreen(Screen[None]):
         if self._concluded:
             return
         if self._mode is BattleMode.NORMAL:
+            # Этап S: Tab открывает меню способностей (выбор + перебинд).
+            if event.key == "tab" and self._current is not None:
+                self._open_ability_menu()
+                event.stop()
+                event.prevent_default()
+                return
             ab = self._keymap.get(event.key) if self._keymap else None
             # Базовые умения на их default-хоткее обрабатываются Textual
             # BINDING'ом (action_intent_attack и т.д.) — не дублируем. Через
@@ -601,6 +614,42 @@ class BattleScreen(Screen[None]):
                 continue
             result.append(cid)
         return result
+
+    def _open_ability_menu(self) -> None:
+        """Открыть меню способностей активного PC (этап S): выбор + перебинд."""
+        from dnd.interfaces.tui.screens.ability_menu_screen import (
+            AbilityMenuScreen,
+            AbilityRow,
+        )
+        from dnd.interfaces.tui.screens.keymap import (
+            ability_can_afford,
+            rebind_ability,
+        )
+
+        if self._current is None:
+            return
+        actor, ctx, _enc = self._current
+        # обратная карта: ability_id → текущая клавиша (для показа в меню)
+        key_of: dict[AbilityId, str] = {ab.id: k for k, ab in self._keymap.items()}
+        rows = [
+            AbilityRow(
+                ability=self._ability_registry.get(aid),
+                hotkey=key_of.get(aid, ""),
+                available=ability_can_afford(self._ability_registry.get(aid), ctx),
+            )
+            for aid in actor.ability_ids
+        ]
+
+        def _apply(ability: Ability) -> None:
+            self._trigger_ability(ability)
+
+        def _rebind(ability: Ability, key: str) -> None:
+            rebind_ability(actor, key, ability.id)
+            self._apply_keymap(actor)
+
+        self.app.push_screen(
+            AbilityMenuScreen(rows, on_apply=_apply, on_rebind=_rebind)
+        )
 
     def _trigger_ability(self, ab: Ability) -> None:
         """Запустить ability через её ``intent_factory``.

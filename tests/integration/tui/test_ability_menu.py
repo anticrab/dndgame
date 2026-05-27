@@ -94,3 +94,61 @@ def test_rebind_captures_next_key() -> None:
 
     asyncio.run(_go())
     assert bound == [("atk", "z")]
+
+
+def test_tab_opens_ability_menu_in_battle() -> None:
+    """Интеграция: Tab на ходу PC выталкивает AbilityMenuScreen со способностями."""
+    from dnd.application.abilities.defaults import register_default_abilities
+    from dnd.application.abilities.registry import AbilityRegistry
+    from dnd.application.engine.encounter import Encounter
+    from dnd.composition import build_scripted_dependencies
+    from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import AbilityScores
+    from dnd.domain.values.faction import Faction
+    from dnd.domain.values.ids import CreatureId
+    from dnd.domain.values.square import Square
+    from dnd.domain.values.weapon import LONGSWORD, SCIMITAR
+    from dnd.interfaces.tui.screens.battle import BattleScreen
+
+    reg = AbilityRegistry()
+    register_default_abilities(reg)
+    bf = Battlefield(5, 5)
+    warrior = Creature.create(
+        id_=CreatureId("hero"), name="hero",
+        abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
+        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+    )
+    gob = Creature.create(
+        id_=CreatureId("g"), name="g",
+        abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
+        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=SCIMITAR,
+    )
+    bf.place_creature(warrior.id, Square(1, 2))
+    bf.place_creature(gob.id, Square(3, 2))
+    deps, _bus, _ = build_scripted_dependencies(battlefield=bf, rolls=[20, 1])
+    enc = Encounter(
+        participants={warrior.id: warrior, gob.id: gob},
+        factions={warrior.id: Faction.PARTY, gob.id: Faction.MONSTERS},
+        deps=deps,
+    )
+    enc.start()
+    actor = enc.participants[enc.current_actor_id]
+    ctx = enc.start_turn()
+
+    class _BattleHost(App[None]):
+        def on_mount(self) -> None:
+            self._scr = BattleScreen(ability_registry=reg)
+            self.push_screen(self._scr)
+
+    async def _go() -> None:
+        host = _BattleHost()
+        async with host.run_test(size=(100, 30)) as pilot:
+            await pilot.pause(0.1)
+            host._scr.set_active_turn(actor, ctx, enc)
+            await pilot.pause(0.05)
+            await pilot.press("tab")
+            await pilot.pause(0.05)
+            assert isinstance(host.screen, AbilityMenuScreen)
+
+    asyncio.run(_go())
