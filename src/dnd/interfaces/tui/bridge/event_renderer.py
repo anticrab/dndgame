@@ -12,6 +12,7 @@ API Textual для записи из не-event-loop треда. См. ``docs/TU
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -19,7 +20,10 @@ from textual.css.query import NoMatches
 
 from dnd.application.dto.engine_event import (
     AttackResolved,
+    CreatureDied,
+    CreatureStabilized,
     DamageDealt,
+    DeathSaveRolled,
     EncounterEnded,
     EngineEvent,
     HealingApplied,
@@ -60,6 +64,11 @@ class EventRenderer:
         self._screen = screen
         self._encounter = encounter
         self._call_raw = call_from_thread
+        # Поток, на котором создан renderer = поток приложения (main). События
+        # обычно приходят из worker-потока (→ call_from_thread), но колбэк
+        # LevelUpScreen «Сейчас!» публикует LeveledUp уже в main-потоке —
+        # там call_from_thread бросает RuntimeError, поэтому зовём fn напрямую.
+        self._main_thread_id = threading.get_ident()
         self._active_actor: CreatureId | None = None
         self._initiative_order: tuple[Any, ...] = ()
         # R1: применение level-up (по выбору игрока). None — прогрессия не
@@ -70,11 +79,17 @@ class EventRenderer:
     def _call(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         """Безопасно отправить callback в main-thread.
 
-        Если event loop уже закрыт (app завершился, worker ещё
-        доигрывает оставшиеся события) — call_from_thread кидает
-        ``RuntimeError("Event loop is closed")``. Гасим — иначе
-        worker-thread пробросит в pytest unraisable warning.
+        Если мы уже в main-потоке (событие опубликовано прямо из колбэка
+        UI, напр. level-up «Сейчас!») — call_from_thread бросил бы RuntimeError
+        «must run in a different thread»; зовём fn напрямую (REV-3).
+
+        Если event loop уже закрыт (app завершился, worker ещё доигрывает
+        оставшиеся события) — call_from_thread кидает RuntimeError; гасим,
+        иначе worker-thread пробросит pytest unraisable warning.
         """
+        if threading.get_ident() == self._main_thread_id:
+            fn(*args, **kwargs)
+            return
         try:
             self._call_raw(fn, *args, **kwargs)
         except RuntimeError:
@@ -117,9 +132,10 @@ class EventRenderer:
         if isinstance(event, AttackResolved) and event.downed:
             self._call(self._refresh_map_main)
 
-    def _on_hp_changed(self, event: HealingApplied | LeveledUp) -> None:
-        # Лечение / прирост HP при level-up — сразу отразить на статусе и
-        # в панели инициативы (иначе heal не виден до следующего хода).
+    def _on_hp_changed(self, event: EngineEvent) -> None:
+        # HP/состояние изменились (лечение, level-up +HP, спасбросок от смерти,
+        # стабилизация, смерть) — сразу отразить на статусе и в панели
+        # инициативы (REV-2), иначе UI отстаёт до следующего хода.
         del event
         self._call(self._refresh_status_main)
         self._call(self._refresh_initiative_main)
@@ -236,6 +252,9 @@ _DISPATCH: dict[type[EngineEvent], Callable[[EventRenderer, Any], None]] = {
     AttackResolved: lambda r, e: r._on_damage_or_attack(e),
     HealingApplied: lambda r, e: r._on_hp_changed(e),
     LeveledUp: lambda r, e: r._on_hp_changed(e),
+    DeathSaveRolled: lambda r, e: r._on_hp_changed(e),
+    CreatureStabilized: lambda r, e: r._on_hp_changed(e),
+    CreatureDied: lambda r, e: r._on_hp_changed(e),
     StanceTaken: lambda r, e: r._on_stance(e),
     LevelUpReady: lambda r, e: r._on_level_up_ready(e),
     EncounterEnded: lambda r, e: r._on_encounter_ended(e),

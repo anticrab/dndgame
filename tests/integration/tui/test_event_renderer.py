@@ -21,7 +21,10 @@ from uuid import uuid4
 
 from dnd.application.dto.engine_event import (
     AttackResolved,
+    CreatureDied,
+    CreatureStabilized,
     DamageDealt,
+    DeathSaveRolled,
     EncounterEnded,
     EngineEvent,
     HealingApplied,
@@ -234,6 +237,63 @@ def test_leveled_up_refreshes_status_and_initiative() -> None:
     )
     assert len(screen.status_widget.refresh_calls) > s_pre
     assert len(screen.initiative_widget.refresh_calls) > i_pre
+
+
+def test_death_save_rolled_refreshes_status_and_initiative() -> None:
+    """REV-2: спасбросок от смерти (в т.ч. recovered +1 HP) меняет HP/состояние —
+    UI обязан обновиться сразу, а не на следующем ходу."""
+    screen, _enc, bus, _ = _setup()
+    bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
+    s_pre = len(screen.status_widget.refresh_calls)
+    i_pre = len(screen.initiative_widget.refresh_calls)
+    bus.publish(
+        DeathSaveRolled(
+            actor_id=CreatureId("warrior"), d20_raw=20, result="recovered",
+            successes=0, failures=0,
+        )
+    )
+    assert len(screen.status_widget.refresh_calls) > s_pre
+    assert len(screen.initiative_widget.refresh_calls) > i_pre
+
+
+def test_stabilized_and_died_refresh_initiative() -> None:
+    """REV-2: стабилизация и смерть тоже меняют состояние бойца в панелях."""
+    screen, _enc, bus, _ = _setup()
+    bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
+    i_pre = len(screen.initiative_widget.refresh_calls)
+    bus.publish(
+        CreatureStabilized(actor_id=CreatureId("warrior"), by=CreatureId("warrior"))
+    )
+    bus.publish(CreatureDied(actor_id=CreatureId("goblin")))
+    assert len(screen.initiative_widget.refresh_calls) >= i_pre + 2
+
+
+def test_call_runs_directly_when_call_from_thread_unavailable() -> None:
+    """REV-3: если _call вызван из main-thread (call_from_thread бросает),
+    callback всё равно исполняется напрямую — иначе level-up «Сейчас!» не
+    обновлял бы +HP."""
+    bf = Battlefield(5, 5)
+    warrior = _warrior()
+    goblin = _goblin()
+    bf.place_creature(warrior.id, Square(1, 2))
+    bf.place_creature(goblin.id, Square(2, 2))
+    deps, bus, _ = build_scripted_dependencies(battlefield=bf, rolls=[20, 5])
+    enc = Encounter(
+        participants={warrior.id: warrior, goblin.id: goblin},
+        factions={warrior.id: Faction.PARTY, goblin.id: Faction.MONSTERS},
+        deps=deps,
+    )
+    screen = _FakeScreen()
+
+    def _raising(_f: Any, *_a: Any, **_kw: Any) -> Any:
+        raise RuntimeError("must run in a different thread from the app")
+
+    renderer = EventRenderer(screen, enc, call_from_thread=_raising)  # type: ignore[arg-type]
+    renderer.subscribe(bus)
+    bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
+    # call_from_thread (=_raising) недоступен, но мы в том же потоке, где создан
+    # renderer → должен сработать прямой вызов и обновить статус.
+    assert len(screen.status_widget.refresh_calls) >= 1
 
 
 def test_attack_resolved_downed_triggers_map_and_initiative_refresh() -> None:
