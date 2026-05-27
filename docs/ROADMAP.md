@@ -264,8 +264,12 @@ Textual-приложения, MVP-граница, многопоточная с�
   `roll_saving_throw` (`engine/saving_throw.py`); `Ability.requires_area` для
   AoE-заклинаний; заклинания видны и кастуются из меню способностей (`Tab`).
   `mage_apprentice` = PC-волшебник L1 + e2e-смок. См. `docs/PROGRESSION.md` §7b.
-  - ⏳ **T2 — интересные/контроль-заклинания.** Sleep→Unconscious,
-    Hold Person→Paralyzed; правка уровней Fireball/Lightning Bolt (3-й круг).
+  - ✅ **T2 — контроль-заклинания.** `SpellEffect.CONTROL` + `ControlSpellHandler`
+    (Sleep→Unconscious по пулу 5d8, Hold Person→Paralyzed по WIS-спасброску с
+    концентрацией). Длительность держит событийный `OngoingEffectTracker`
+    (снятие по урону / повторному спасброску / срыву концентрации) — фундамент
+    для T3. Инкапаситированный актёр пропускает ход. Правка кругов
+    Fireball/Lightning Bolt (3-й). См. `docs/SPELLS.md` «Контроль состояний».
   - ⏳ **T3 — боевые условия.** Cross-creature преимущество, авто-крит,
     Dodge-спасброски, авто-провалы спасбросков (Paralyzed/Unconscious).
   - ⏳ **T4 — подклассы L3 + добивка классов.** Школа магии / Чемпион / Вор,

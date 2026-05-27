@@ -41,6 +41,7 @@ SAVE — ещё save_ability; HEAL — heal_dice; BUFF — ≥1 `BuffSpec`).
 | AUTO | `AutoSpellHandler` | авто-попадание без броска (Magic Missile) |
 | HEAL | `HealSpellHandler` | `target.heal(heal_dice + mod)` |
 | BUFF | `BuffSpellHandler` | модификатор КД через `ModifierApplier`; концентрация |
+| CONTROL | `ControlSpellHandler` | наложение состояния (Sleep/Hold Person), T2 — см. ниже |
 
 Хендлеры публикуют свои события (`DamageDealt`/`HealingApplied`) через
 `ctx.event_bus`. `CastSpellAction` публикует `SpellCast` до делегирования.
@@ -186,6 +187,34 @@ weapon-атаки подхватывают `ATTACK_ROLL`-модификатор�
     - { target: attack_roll, dice_bonus: "1d4" }
     - { target: saving_throw, dice_bonus: "1d4" }
 ```
+
+## Контроль состояний (этап T2)
+
+`effect: control` накладывает состояние «до момента X». Поля `Spell`:
+`condition` (что накладываем), ровно один гейт — `hp_pool_dice` (Sleep: пул
+хитов без спасброска) **или** `save_ability` (резист-спасбросок); опционально
+`condition_ends_on_damage` (Sleep — пробуждение от урона) и
+`condition_repeat_save` (Hold Person — повторный спасбросок в конце хода).
+
+`ControlSpellHandler` накладывает состояние через `ConditionService.
+apply_with_implies` (каскад implies) и публикует `ConditionApplied` со всей
+метой снятия. Длительность держит `OngoingEffectTracker`
+(`engine/effects/ongoing_effect_tracker.py`) — application-служба на шине:
+
+| Событие | Снятие |
+|---------|--------|
+| `DamageDealt` по цели (`ends_on_damage`) | пробуждение Sleep |
+| `TurnEnded` цели (`repeat_save_ability`) | успешный повторный спасбросок |
+| `ConcentrationBroken` кастера | снятие удержания |
+
+Снятие убирает **ровно** наложенный набор состояний и публикует
+`ConditionRemoved`. Инкапаситированный (Paralyzed/Unconscious → Incapacitated)
+актёр не действует — guard в `GameRunner`/`SimpleMonsterAI`. Контент T2:
+**Sleep** (L1, сфера r5, пул 5d8), **Hold Person** (L2, WIS-спасбросок,
+концентрация). Заодно исправлены круги: Fireball/Lightning Bolt — 3-й.
+
+Упрощение: ограничение «только гуманоид» для Hold Person отложено (нет типа
+существа); стэкинг разных эффектов на одно состояние — тоже (см. ROADMAP T3).
 
 ## Отложено
 
