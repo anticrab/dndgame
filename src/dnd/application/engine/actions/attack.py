@@ -497,6 +497,10 @@ def _maybe_sneak_attack(
     типа, что оружие; на крите кости удваиваются (crit прокинут в RollContext)."""
     if _SNEAK_ATTACK not in actor.features or actor.sneak_used_this_turn:
         return
+    # PHB-2024: Sneak Attack нельзя при помехе на бросок атаки (REV-5) —
+    # даже если рядом с целью стоит союзник.
+    if attack_ctx.disadvantage:
+        return
     weapon = actor.equipped_weapon
     if weapon is None or not (weapon.finesse or params.kind is AttackKind.RANGED):
         return

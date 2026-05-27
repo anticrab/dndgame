@@ -67,6 +67,27 @@ def test_sneak_attack_adds_dice_when_ally_adjacent() -> None:
     assert rogue.sneak_used_this_turn is True
 
 
+def test_no_sneak_attack_with_disadvantage_even_if_ally_adjacent() -> None:
+    """PHB: Sneak Attack нельзя при помехе на бросок атаки — даже если союзник
+    рядом с целью (REV-5)."""
+    from dnd.application.dto.rolls import RollContext
+    from dnd.application.engine.actions.attack import _maybe_sneak_attack
+    from dnd.domain.values.roll_purpose import RollPurpose
+
+    rogue, gob, ctx = _setup([20, 19, 18], ally=True)
+    attack_ctx = RollContext(
+        purpose=RollPurpose.ATTACK, actor_id=rogue.id, target_id=gob.id,
+        advantage=False, disadvantage=True,
+    )
+    hp_before = gob.hit_points.current
+    _maybe_sneak_attack(
+        rogue, gob, weapon_attack_params(rogue, gob.id), attack_ctx, ctx,
+        is_crit=False,
+    )
+    assert rogue.sneak_used_this_turn is False
+    assert gob.hit_points.current == hp_before
+
+
 def test_no_sneak_without_condition() -> None:
     # без союзника и без преимущества — sneak не срабатывает
     rogue, gob, ctx = _setup([20, 19, 15, 4], ally=False)
