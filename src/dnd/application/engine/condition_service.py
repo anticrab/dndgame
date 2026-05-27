@@ -20,10 +20,16 @@ Incapacitated и Prone», потому что Incapacitated и Prone могут 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from dnd.domain.conditions.registry import ConditionRegistry
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ids import ConditionId
+
+if TYPE_CHECKING:
+    from dnd.domain.values.ability import Ability
+    from dnd.domain.values.attack_kind import AttackKind
+    from dnd.domain.values.modifiers import Modifier, ModifierTargetKind
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +126,55 @@ class ConditionService:
             skipped_immune=frozenset(skipped),
             already_present=frozenset(already),
         )
+
+    # --- T3: мост «данные состояния → бросок» --------------------------
+    def collect_modifiers(
+        self, creature: Creature, target_kind: ModifierTargetKind,
+    ) -> list[Modifier]:
+        """Self-модификаторы от активных состояний носителя для данного класса
+        броска (T3 — активирует осиротевший ``provides_modifiers``). Состояние
+        без модификаторов этого класса просто ничего не добавляет."""
+        out: list[Modifier] = []
+        for cid in creature.conditions:
+            if not self._registry.has(cid):
+                continue
+            for m in self._registry.get(cid).provides_modifiers(creature.id):
+                if m.target_kind is target_kind:
+                    out.append(m)
+        return out
+
+    def incoming_attack_adjustment(
+        self, target: Creature, *, distance_ft: int, attack_kind: AttackKind,
+    ) -> tuple[bool, bool]:
+        """``(advantage, disadvantage)`` для атакующего по ``target`` из боевых
+        данных состояний цели. Prone: melee ≤5 фт → преимущество, иначе помеха
+        (PHB-2024 стр. 367)."""
+        from dnd.domain.values.attack_kind import AttackKind as _AK
+
+        advantage = False
+        disadvantage = False
+        for cid in target.conditions:
+            if not self._registry.has(cid):
+                continue
+            cond = self._registry.get(cid)
+            if cond.grants_advantage_to_attackers:
+                advantage = True
+            if cond.melee_advantage_ranged_disadvantage:
+                if attack_kind is _AK.MELEE and distance_ft <= 5:
+                    advantage = True
+                else:
+                    disadvantage = True
+        return advantage, disadvantage
+
+    def auto_fails_save(self, creature: Creature, ability: Ability) -> bool:
+        """True, если активное состояние носителя авто-проваливает спасбросок
+        этой характеристики (Paralyzed/Unconscious/Stunned → STR, DEX)."""
+        for cid in creature.conditions:
+            if not self._registry.has(cid):
+                continue
+            if ability in self._registry.get(cid).auto_fail_saves:
+                return True
+        return False
 
 
 __all__ = ["ConditionApplyResult", "ConditionService"]

@@ -201,12 +201,14 @@ def test_attack_on_dodging_target_gets_disadvantage() -> None:
     bf.place_creature(target.id, Square(2, 1))
     bus = InMemoryEventBus()
     rng = ScriptedRNG([18, 5])  # два d20 для disadvantage
+    _reg = ConditionRegistry()
+    register_default_conditions(_reg)
     ctx = TurnContext(
         actor_id=attacker.id,
         battlefield=bf,
         dice_roller=ComputerDiceRoller(rng=rng, event_bus=bus),
         modifier_applier=ModifierApplier(ModifierBag()),
-        condition_service=MagicMock(),
+        condition_service=ConditionService(_reg),
         event_bus=bus,
         rng=rng,
         participants={attacker.id: attacker, target.id: target},
@@ -339,15 +341,22 @@ def test_dodge_suppressed_when_target_incapacitated(blocker_condition: str) -> N
     bf.place_creature(attacker.id, Square(1, 1))
     bf.place_creature(target.id, Square(2, 1))
     bus = InMemoryEventBus()
-    # Одно значение в RNG: если disadvantage применится — будет
-    # IndexError при попытке бросить второй d20.
-    rng = ScriptedRNG([18, 5])  # 2 значения; должно использоваться 1 для d20 + 1 для damage
+    # T3: Dodge подавлен (нет disadvantage), но эти состояния cross-creature
+    # дают атакующему ПРЕИМУЩЕСТВО (Stunned/Paralyzed/Unconscious; Incapacitated
+    # сам по себе — нет). Paralyzed/Unconscious в упор → авто-крит (2 кости).
+    advantage_conditions = {"stunned", "paralyzed", "unconscious"}
+    crit_conditions = {"paralyzed", "unconscious"}
+    d20s = [18, 18] if blocker_condition in advantage_conditions else [18]
+    dmg = [5, 5] if blocker_condition in crit_conditions else [5]
+    rng = ScriptedRNG(d20s + dmg)
+    _reg = ConditionRegistry()
+    register_default_conditions(_reg)
     ctx = TurnContext(
         actor_id=attacker.id,
         battlefield=bf,
         dice_roller=ComputerDiceRoller(rng=rng, event_bus=bus),
         modifier_applier=ModifierApplier(ModifierBag()),
-        condition_service=MagicMock(),
+        condition_service=ConditionService(_reg),
         event_bus=bus,
         rng=rng,
         participants={attacker.id: attacker, target.id: target},
@@ -367,8 +376,8 @@ def test_dodge_suppressed_when_target_incapacitated(blocker_condition: str) -> N
     AttackAction().execute(attacker, params, ctx)
 
     atk = next(e for e in captured if isinstance(e, AttackRolled))
-    # Без disadvantage: один d20 = 18; 18+5=23 vs AC 14 → попал.
-    # С disadvantage: два d20 [18, 5], берётся 5; 5+5=10 vs AC 14 → промах.
-    assert atk.hit is True, (
+    # Главное: Dodge подавлен — атака НЕ получает disadvantage (ST-R001).
+    assert atk.disadvantage is False, (
         "Dodge должен быть подавлен; атака не должна получать disadvantage"
     )
+    assert atk.hit is True

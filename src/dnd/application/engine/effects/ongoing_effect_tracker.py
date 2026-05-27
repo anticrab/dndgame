@@ -28,6 +28,7 @@ from dnd.application.engine.saving_throw import roll_saving_throw_raw
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    from dnd.application.engine.condition_service import ConditionService
     from dnd.application.engine.modifier_applier import ModifierApplier
     from dnd.application.ports.dice_roller import DiceRoller
     from dnd.application.ports.event_bus import EventBus
@@ -60,11 +61,13 @@ class OngoingEffectTracker:
         *,
         dice_roller: DiceRoller,
         modifier_applier: ModifierApplier,
+        condition_service: ConditionService | None = None,
     ) -> None:
         self._participants = participants
         self._bus = event_bus
         self._dice = dice_roller
         self._mods = modifier_applier
+        self._conds = condition_service
         self._effects: list[OngoingConditionEffect] = []
 
     def subscribe(self) -> None:
@@ -96,7 +99,7 @@ class OngoingEffectTracker:
             saved = roll_saving_throw_raw(
                 actor, effect.repeat_save_ability, dc=effect.save_dc,
                 dice_roller=self._dice, modifier_applier=self._mods,
-                tags=("repeat_save",),
+                condition_service=self._conds, tags=("repeat_save",),
             )
             if saved:
                 self._remove(effect, reason="save")

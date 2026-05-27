@@ -280,6 +280,11 @@ class AttackAction:
             owner_id=actor.id,
             target_kind=ModifierTargetKind.ATTACK_ROLL,
         )
+        # T3: self-помехи от состояний атакующего (Poisoned/Frightened/Prone) —
+        # раньше provides_modifiers были осиротевшими; теперь подмешиваем.
+        atk_mods = atk_mods + ctx.condition_service.collect_modifiers(
+            actor, ModifierTargetKind.ATTACK_ROLL
+        )
         atk_adj = ctx.modifier_applier.to_roll_adjustments(atk_mods)
 
         # Ranged за нормальной дальностью → disadvantage (PHB-2024 стр. 25).
@@ -329,6 +334,13 @@ class AttackAction:
             actor.helped_against = None
             actor.helped_by = None
 
+        # T3: cross-creature — преимущество/помеха от состояний ЦЕЛИ
+        # (Paralyzed/Unconscious/Stunned → advantage; Prone → advantage в упор
+        # ≤5 melee, иначе disadvantage). PHB-2024 стр. 367.
+        tgt_adv, tgt_disadv = ctx.condition_service.incoming_attack_adjustment(
+            target, distance_ft=distance_ft, attack_kind=params.kind
+        )
+
         # 2) Бросок атаки.
         total_atk_bonus = params.attack_bonus + atk_adj.numeric_bonus
         attack_expr = DiceExpr.parse(f"d20{total_atk_bonus:+d}")
@@ -336,9 +348,10 @@ class AttackAction:
             purpose=RollPurpose.ATTACK,
             actor_id=actor.id,
             target_id=target.id,
-            advantage=atk_adj.advantage or help_bonus,
+            advantage=atk_adj.advantage or help_bonus or tgt_adv,
             disadvantage=(
                 atk_adj.disadvantage or long_range_penalty or dodge_penalty
+                or tgt_disadv
             ),
             extra_dice=atk_adj.extra_dice,
         )
@@ -366,14 +379,16 @@ class AttackAction:
         else:
             hit = attack_roll.total >= effective_ac
 
-        # Q-4: попадание по лежачему (0 HP) в упор (≤5 фт, melee) — авто-крит
-        # (PHB-2024 стр. 27). Усиливает добивание: 2 провала спасброска.
-        if (
-            hit
-            and target.is_at_zero_hp
-            and params.kind is AttackKind.MELEE
-            and distance_ft <= 5
-        ):
+        # Q-4 / T3: попадание в упор (≤5 фт, melee) по беспомощной цели —
+        # авто-крит (PHB-2024 стр. 27, 367). Беспомощность: 0 HP (умирает)
+        # ИЛИ Paralyzed / Unconscious (даже при полном HP, напр. Hold Person).
+        melee_point_blank = params.kind is AttackKind.MELEE and distance_ft <= 5
+        helpless = (
+            target.is_at_zero_hp
+            or target.has_condition(PARALYZED)
+            or target.has_condition(UNCONSCIOUS)
+        )
+        if hit and melee_point_blank and helpless:
             is_crit = True
 
         # d20_raw=None бывает для не-d20 бросков; здесь это всегда d20,

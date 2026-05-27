@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from dnd.domain.values.ability import Ability
 from dnd.domain.values.ids import ConditionId, CreatureId
 from dnd.domain.values.modifiers import Modifier
 
@@ -48,6 +49,17 @@ class Condition(Protocol):
     Paralyzed и Stunned. Используется ``apply_condition`` для
     каскадного применения.
     """
+
+    grants_advantage_to_attackers: bool
+    """T3: атаки по носителю — с преимуществом (Paralyzed/Unconscious/Stunned/
+    Restrained). PHB-2024 стр. 367. Дефолт у конкретных состояний — False."""
+
+    melee_advantage_ranged_disadvantage: bool
+    """T3: Prone — атака в упор (melee ≤5 фт) с преимуществом, иначе с помехой."""
+
+    auto_fail_saves: frozenset[Ability]
+    """T3: спасброски этих характеристик авто-проваливаются (Paralyzed/
+    Unconscious/Stunned → STR, DEX). Дефолт — пустой frozenset."""
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
         """Какие модификаторы налагает это состояние на броски существа.

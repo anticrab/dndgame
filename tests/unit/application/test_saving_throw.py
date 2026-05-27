@@ -73,3 +73,54 @@ def test_roll_saving_throw_raw_uses_services() -> None:
         actor, Ability.WIS, dc=12,
         dice_roller=deps.dice_roller, modifier_applier=deps.modifier_applier,
     ) is True
+
+
+def test_auto_fails_save_paralyzed_dex() -> None:
+    from dnd.application.engine.condition_service import ConditionService
+    from dnd.domain.conditions.builtin import PARALYZED, register_default_conditions
+    from dnd.domain.conditions.registry import ConditionRegistry
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import Ability, AbilityScores
+    from dnd.domain.values.ids import CreatureId
+
+    reg = ConditionRegistry()
+    register_default_conditions(reg)
+    svc = ConditionService(reg)
+    c = Creature.create(
+        id_=CreatureId("c"), name="c",
+        abilities=AbilityScores.of(str_=10, dex=18, con=10, int_=10, wis=10, cha=10),
+        max_hp=10, armor_class=10, speed_ft=30,
+    )
+    c.apply_condition(PARALYZED)
+    assert svc.auto_fails_save(c, Ability.DEX) is True
+    assert svc.auto_fails_save(c, Ability.CON) is False
+
+
+def test_roll_saving_throw_auto_fails_under_paralyzed() -> None:
+    from dnd.application.engine.condition_service import ConditionService
+    from dnd.application.engine.saving_throw import roll_saving_throw_raw
+    from dnd.composition import build_scripted_dependencies
+    from dnd.domain.conditions.builtin import PARALYZED, register_default_conditions
+    from dnd.domain.conditions.registry import ConditionRegistry
+    from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import Ability, AbilityScores
+    from dnd.domain.values.ids import CreatureId
+
+    reg = ConditionRegistry()
+    register_default_conditions(reg)
+    svc = ConditionService(reg)
+    deps, _bus, _ = build_scripted_dependencies(
+        battlefield=Battlefield(1, 1), rolls=[20]  # даже d20=20 не спасёт
+    )
+    c = Creature.create(
+        id_=CreatureId("c"), name="c",
+        abilities=AbilityScores.of(str_=10, dex=18, con=10, int_=10, wis=10, cha=10),
+        max_hp=10, armor_class=10, speed_ft=30,
+    )
+    c.apply_condition(PARALYZED)
+    assert roll_saving_throw_raw(
+        c, Ability.DEX, dc=5,
+        dice_roller=deps.dice_roller, modifier_applier=deps.modifier_applier,
+        condition_service=svc,
+    ) is False

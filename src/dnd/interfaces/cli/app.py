@@ -132,6 +132,7 @@ def play(
     OngoingEffectTracker(
         participants=enc.participants, event_bus=enc.event_bus,
         dice_roller=services.dice_roller, modifier_applier=services.modifier_applier,
+        condition_service=services.condition_service,
     ).subscribe()
 
     if tui:

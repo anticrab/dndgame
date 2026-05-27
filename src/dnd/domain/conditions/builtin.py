@@ -33,6 +33,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from dnd.domain.values.ability import Ability
 from dnd.domain.values.ids import ConditionId, CreatureId
 from dnd.domain.values.modifiers import (
     DisadvantageEffect,
@@ -82,6 +83,9 @@ class IncapacitatedCondition:
 
     id: ConditionId = INCAPACITATED
     implies: frozenset[ConditionId] = field(default_factory=frozenset)
+    grants_advantage_to_attackers: bool = False
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset()
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
         return ()
@@ -99,6 +103,10 @@ class ProneCondition:
 
     id: ConditionId = PRONE
     implies: frozenset[ConditionId] = field(default_factory=frozenset)
+    grants_advantage_to_attackers: bool = False
+    # Prone: атака в упор (melee ≤5) — с преимуществом, иначе — с помехой.
+    melee_advantage_ranged_disadvantage: bool = True
+    auto_fail_saves: frozenset[Ability] = frozenset()
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
         return _self_disadvantage(owner_id, self.id, ModifierTargetKind.ATTACK_ROLL)
@@ -113,6 +121,9 @@ class PoisonedCondition:
 
     id: ConditionId = POISONED
     implies: frozenset[ConditionId] = field(default_factory=frozenset)
+    grants_advantage_to_attackers: bool = False
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset()
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
         return _self_disadvantage(
@@ -138,6 +149,9 @@ class FrightenedCondition:
 
     id: ConditionId = FRIGHTENED
     implies: frozenset[ConditionId] = field(default_factory=frozenset)
+    grants_advantage_to_attackers: bool = False
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset()
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
         return _self_disadvantage(
@@ -160,12 +174,16 @@ class StunnedCondition:
 
     id: ConditionId = STUNNED
     implies: frozenset[ConditionId] = field(default_factory=lambda: frozenset({INCAPACITATED}))
+    grants_advantage_to_attackers: bool = True
+    melee_advantage_ranged_disadvantage: bool = False
+    # T3: авто-провал спасбросков Силы и Ловкости (PHB-2024 стр. 367).
+    auto_fail_saves: frozenset[Ability] = frozenset({Ability.STR, Ability.DEX})
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
-        # TODO(post-MVP): SaveAutoFail для STR/DEX вместо disadvantage —
-        # сейчас приближаем через помеху на спасброски, фактически
-        # автопровал = «крайняя помеха». См. ConditionInstance / Q38.
-        return _self_disadvantage(owner_id, self.id, ModifierTargetKind.SAVING_THROW)
+        # T3: авто-провал STR/DEX-спасбросков теперь через auto_fail_saves
+        # (ConditionService.auto_fails_save). provides_modifiers не нужен —
+        # SAVING_THROW-помеха была приближением до появления авто-провала.
+        return ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,9 +197,16 @@ class ParalyzedCondition:
 
     id: ConditionId = PARALYZED
     implies: frozenset[ConditionId] = field(default_factory=lambda: frozenset({INCAPACITATED}))
+    # T3: атаки по парализованному — с преимуществом; в упор ≤5 melee — крит
+    # (авто-крит в attack.py). Авто-провал спасбросков Силы и Ловкости.
+    grants_advantage_to_attackers: bool = True
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset({Ability.STR, Ability.DEX})
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
-        return _self_disadvantage(owner_id, self.id, ModifierTargetKind.SAVING_THROW)
+        # T3: STR/DEX-спасброски авто-проваливаются через auto_fail_saves;
+        # blanket-помеха на ВСЕ спасброски была неточной (CON/WIS не страдают).
+        return ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,9 +225,14 @@ class UnconsciousCondition:
     implies: frozenset[ConditionId] = field(
         default_factory=lambda: frozenset({INCAPACITATED, PRONE})
     )
+    # T3: атаки по бессознательному — с преимуществом; в упор — авто-крит.
+    grants_advantage_to_attackers: bool = True
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset({Ability.STR, Ability.DEX})
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
-        return _self_disadvantage(owner_id, self.id, ModifierTargetKind.SAVING_THROW)
+        # T3: STR/DEX-спасброски авто-проваливаются через auto_fail_saves.
+        return ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -220,6 +250,9 @@ class InvisibleCondition:
 
     id: ConditionId = INVISIBLE
     implies: frozenset[ConditionId] = field(default_factory=frozenset)
+    grants_advantage_to_attackers: bool = False
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset()
 
     def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
         return ()
