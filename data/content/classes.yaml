@@ -16,9 +16,11 @@
     1: { proficiency_bonus: 2, features: [sneak_attack] }
     2: { proficiency_bonus: 2, features: [cunning_action] }   # T4
     3: { proficiency_bonus: 2, features: [subclass] }          # T4: Вор
-# Волшебник (T1): d6, INT/WIS-спасброски, таблица ячеек L1-3 (PHB-2024).
-# Фичи Spellcasting/Arcane Recovery/подкласс — содержательно на T4; здесь
-# каст обеспечивают ячейки + known_spells.
+# Волшебник: d6, INT/WIS-спасброски, таблица ячеек L1-3 (PHB-2024).
+# Spellcasting обеспечивается ячейками (spell_slots) + known_spells — отдельной
+# фичи не требуется. Подкласс (Школа магии) на L3 реализован в T4 (subclass →
+# Эвокатор/Sculpt Spells). Arcane Recovery (восстановление ячеек на коротком
+# отдыхе) — отложено (пост-T4), см. docs/PROGRESSION.md §8.
 - id: wizard
   name: "Волшебник"
   hit_die: "1d6"
