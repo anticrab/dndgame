@@ -39,6 +39,7 @@ def spell_ability(spell: Spell, hotkey: str) -> Ability:
         economy_cost=ActionEconomyCost.ACTION,
         requires_target=spell.targeting.kind is TargetKind.SINGLE,
         requires_path=False,
+        requires_area=spell.targeting.kind is TargetKind.AREA,
         intent_factory=_factory,
     )
 

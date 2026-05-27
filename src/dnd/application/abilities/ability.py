@@ -38,15 +38,16 @@ class Ability:
     requires_target: bool
     requires_path: bool
     intent_factory: Callable[..., PlayerIntent]
+    requires_area: bool = False  # T1: AoE-заклинание → BattleMode.AREA
 
     def __post_init__(self) -> None:
-        # Mode-handler у нас один за раз (MOVE либо TARGET); умение,
-        # которое хочет и то и другое, нельзя выразить текущим mode-state-
-        # machine'ом — лучше явно запретить, чем чинить рантайм-сюрприз.
-        if self.requires_target and self.requires_path:
+        # Mode-handler один за раз (MOVE / TARGET / AREA); умение, которое
+        # хочет несколько режимов сразу, нельзя выразить текущим mode-state-
+        # machine'ом — явно запрещаем, чтобы не ловить рантайм-сюрприз.
+        if sum((self.requires_target, self.requires_path, self.requires_area)) > 1:
             raise ValueError(
-                f"Ability {self.id}: requires_target и requires_path "
-                "mutually exclusive (mode либо TARGET, либо MOVE)"
+                f"Ability {self.id}: requires_target/requires_path/requires_area "
+                "взаимоисключающие (режим один за раз)"
             )
 
 

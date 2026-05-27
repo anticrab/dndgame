@@ -34,10 +34,31 @@ def test_ability_required_flags_exclusive() -> None:
     """``requires_target`` и ``requires_path`` не могут быть оба True
     одновременно — mode-state-machine поддерживает только один из режимов
     за раз."""
-    with pytest.raises(ValueError, match="mutually exclusive"):
+    with pytest.raises(ValueError, match="взаимоисключающие"):
         Ability(
             id=AbilityId("x"), name="X", icon="x", default_hotkey="x",
             economy_cost=ActionEconomyCost.ACTION,
             requires_target=True, requires_path=True,
             intent_factory=_dodge_factory,
+        )
+
+
+def test_requires_area_flag_and_exclusivity() -> None:
+    import pytest
+
+    from dnd.application.abilities.ability import Ability, AbilityId
+    from dnd.application.dto.action import ActionEconomyCost
+
+    ab = Ability(
+        id=AbilityId("fb"), name="Fireball", icon="*", default_hotkey="",
+        economy_cost=ActionEconomyCost.ACTION, requires_target=False,
+        requires_path=False, requires_area=True, intent_factory=lambda: None,
+    )
+    assert ab.requires_area is True
+
+    with pytest.raises(ValueError):
+        Ability(
+            id=AbilityId("bad"), name="Bad", icon="*", default_hotkey="",
+            economy_cost=ActionEconomyCost.ACTION, requires_target=True,
+            requires_path=False, requires_area=True, intent_factory=lambda: None,
         )
