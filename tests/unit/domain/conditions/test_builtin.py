@@ -17,6 +17,8 @@ import pytest
 
 from dnd.domain.conditions.builtin import (
     FRIGHTENED,
+    GRAPPLED,
+    HIDDEN,
     INCAPACITATED,
     INVISIBLE,
     PARALYZED,
@@ -48,10 +50,10 @@ _AELAR = CreatureId("aelar")
 # -- register_default_conditions -----------------------------------------
 
 
-def test_register_default_conditions_registers_eight() -> None:
+def test_register_default_conditions_registers_all() -> None:
     reg = ConditionRegistry()
     register_default_conditions(reg)
-    assert len(reg) == 8
+    assert len(reg) == 10
     expected = {
         INCAPACITATED,
         PRONE,
@@ -61,6 +63,8 @@ def test_register_default_conditions_registers_eight() -> None:
         PARALYZED,
         UNCONSCIOUS,
         INVISIBLE,
+        GRAPPLED,  # V2
+        HIDDEN,  # V2
     }
     assert reg.ids() == frozenset(expected)
 

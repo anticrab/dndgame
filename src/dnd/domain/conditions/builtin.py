@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.ids import ConditionId, CreatureId
 from dnd.domain.values.modifiers import (
+    AdvantageEffect,
     DisadvantageEffect,
     Modifier,
     ModifierSourceKind,
@@ -50,6 +51,27 @@ STUNNED = ConditionId("stunned")
 PARALYZED = ConditionId("paralyzed")
 UNCONSCIOUS = ConditionId("unconscious")
 INVISIBLE = ConditionId("invisible")
+GRAPPLED = ConditionId("grappled")
+HIDDEN = ConditionId("hidden")
+
+
+def _self_advantage(
+    owner_id: CreatureId,
+    condition_id: ConditionId,
+    *targets: ModifierTargetKind,
+) -> tuple[Modifier, ...]:
+    """Удобная фабрика: «существо имеет преимущество на броски такого-то типа»."""
+    return tuple(
+        Modifier(
+            source_id=f"condition:{condition_id}",
+            source_kind=ModifierSourceKind.CONDITION,
+            target_kind=target,
+            effect=AdvantageEffect(),
+            owner_id=owner_id,
+            stack_key=f"condition:{condition_id}:{target.value}",
+        )
+        for target in targets
+    )
 
 
 def _self_disadvantage(
@@ -256,6 +278,45 @@ class InvisibleCondition:
         return ()
 
 
+@dataclass(frozen=True, slots=True)
+class GrappledCondition:
+    """Книга 2024 стр. 368, «Схваченный».
+
+    * Скорость = 0 (guard в ``MoveAction.can_perform``).
+    * Сам по себе боевых cross-creature эффектов не даёт.
+
+    Освобождение (повторное состязание) и перетаскивание — задел (см. план V).
+    """
+
+    id: ConditionId = GRAPPLED
+    implies: frozenset[ConditionId] = field(default_factory=frozenset)
+    grants_advantage_to_attackers: bool = False
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset()
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return ()
+
+
+@dataclass(frozen=True, slots=True)
+class HiddenCondition:
+    """Спрятавшийся (V2, лёгкая версия).
+
+    Даёт преимущество на свою следующую атаку (self-модификатор ATTACK_ROLL);
+    снимается в ``attack.py`` после атаки. Полный стелс («не виден», помеха
+    атакам по нему, прерывание скрытности движением) — задел (см. план V).
+    """
+
+    id: ConditionId = HIDDEN
+    implies: frozenset[ConditionId] = field(default_factory=frozenset)
+    grants_advantage_to_attackers: bool = False
+    melee_advantage_ranged_disadvantage: bool = False
+    auto_fail_saves: frozenset[Ability] = frozenset()
+
+    def provides_modifiers(self, owner_id: CreatureId) -> tuple[Modifier, ...]:
+        return _self_advantage(owner_id, self.id, ModifierTargetKind.ATTACK_ROLL)
+
+
 # -- регистрация ----------------------------------------------------------
 
 
@@ -277,10 +338,14 @@ def register_default_conditions(registry: object) -> None:
     registry.register(ParalyzedCondition())
     registry.register(UnconsciousCondition())
     registry.register(InvisibleCondition())
+    registry.register(GrappledCondition())
+    registry.register(HiddenCondition())
 
 
 __all__ = [
     "FRIGHTENED",
+    "GRAPPLED",
+    "HIDDEN",
     "INCAPACITATED",
     "INVISIBLE",
     "PARALYZED",
@@ -289,6 +354,8 @@ __all__ = [
     "STUNNED",
     "UNCONSCIOUS",
     "FrightenedCondition",
+    "GrappledCondition",
+    "HiddenCondition",
     "IncapacitatedCondition",
     "InvisibleCondition",
     "ParalyzedCondition",

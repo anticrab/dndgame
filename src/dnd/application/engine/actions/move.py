@@ -52,6 +52,7 @@ from dnd.application.dto.engine_event import (
 )
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.conditions.builtin import (
+    GRAPPLED,
     INCAPACITATED,
     PARALYZED,
     STUNNED,
@@ -62,8 +63,8 @@ from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import ActionId, CreatureId
 from dnd.domain.values.square import Square
 
-# Состояния, отключающие движение в MVP.
-_MOVEMENT_BLOCKERS: Final = frozenset({INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS})
+# Состояния, отключающие движение в MVP. Grappled (V2) — скорость 0.
+_MOVEMENT_BLOCKERS: Final = frozenset({INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS, GRAPPLED})
 
 
 class MoveParams(ActionParams):
