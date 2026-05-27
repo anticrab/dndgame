@@ -18,7 +18,9 @@ from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.modifiers import ModifierTargetKind
 
 if TYPE_CHECKING:
+    from dnd.application.engine.modifier_applier import ModifierApplier
     from dnd.application.engine.turn_context import TurnContext
+    from dnd.application.ports.dice_roller import DiceRoller
     from dnd.domain.entities.creature import Creature
     from dnd.domain.values.ability import Ability
 
@@ -32,23 +34,25 @@ def saving_throw_bonus(actor: Creature, ability: Ability) -> int:
     return mod
 
 
-def roll_saving_throw(
+def roll_saving_throw_raw(
     actor: Creature,
     ability: Ability,
     *,
     dc: int,
-    ctx: TurnContext,
+    dice_roller: DiceRoller,
+    modifier_applier: ModifierApplier,
     tags: tuple[str, ...] = ("saving_throw",),
 ) -> bool:
-    """Бросить спасбросок в контексте хода: ``d20 + saving_throw_bonus +
-    adjustments`` ≥ dc. Учитывает advantage/disadvantage от состояний."""
+    """Бросок спасброска без боевого ``TurnContext`` — нужен службам вне хода
+    (OngoingEffectTracker, concentration). ``d20 + saving_throw_bonus +
+    adjustments`` ≥ dc; учитывает advantage/disadvantage от состояний."""
     bonus = saving_throw_bonus(actor, ability)
-    adj = ctx.modifier_applier.to_roll_adjustments(
-        ctx.modifier_applier.collect(
+    adj = modifier_applier.to_roll_adjustments(
+        modifier_applier.collect(
             owner_id=actor.id, target_kind=ModifierTargetKind.SAVING_THROW
         )
     )
-    roll = ctx.dice_roller.roll(
+    roll = dice_roller.roll(
         DiceExpr.parse(f"d20{bonus + adj.numeric_bonus:+d}"),
         RollContext(
             purpose=RollPurpose.SAVE, actor_id=actor.id,
@@ -59,4 +63,20 @@ def roll_saving_throw(
     return roll.total >= dc
 
 
-__all__ = ["roll_saving_throw", "saving_throw_bonus"]
+def roll_saving_throw(
+    actor: Creature,
+    ability: Ability,
+    *,
+    dc: int,
+    ctx: TurnContext,
+    tags: tuple[str, ...] = ("saving_throw",),
+) -> bool:
+    """Бросок спасброска в контексте хода — делегирует в raw."""
+    return roll_saving_throw_raw(
+        actor, ability, dc=dc,
+        dice_roller=ctx.dice_roller, modifier_applier=ctx.modifier_applier,
+        tags=tags,
+    )
+
+
+__all__ = ["roll_saving_throw", "roll_saving_throw_raw", "saving_throw_bonus"]

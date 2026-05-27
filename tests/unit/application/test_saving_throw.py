@@ -49,3 +49,27 @@ def test_nonproficient_save_no_proficiency() -> None:
     actor = _actor(con_prof=False)
     # d20=10 + CON(2) = 12 < DC 13 → провал (prof не добавился)
     assert roll_saving_throw(actor, Ability.CON, dc=13, ctx=_ctx(actor, [10])) is False
+
+
+def test_roll_saving_throw_raw_uses_services() -> None:
+    """raw-вариант не требует TurnContext — берёт службы напрямую."""
+    from dnd.application.engine.saving_throw import roll_saving_throw_raw
+    from dnd.composition import build_scripted_dependencies
+    from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import Ability, AbilityScores
+    from dnd.domain.values.ids import CreatureId
+
+    deps, _bus, _rng = build_scripted_dependencies(
+        battlefield=Battlefield(1, 1), rolls=[10]
+    )
+    actor = Creature.create(
+        id_=CreatureId("a"), name="a",
+        abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=14, cha=10),
+        max_hp=10, armor_class=10, speed_ft=30,
+    )
+    # d20=10 + WIS(+2) = 12 >= 12 → успех.
+    assert roll_saving_throw_raw(
+        actor, Ability.WIS, dc=12,
+        dice_roller=deps.dice_roller, modifier_applier=deps.modifier_applier,
+    ) is True
