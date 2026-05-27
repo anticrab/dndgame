@@ -32,6 +32,7 @@ from dnd.application.dto.engine_event import (
 )
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import RollContext, RollPurpose
+from dnd.application.engine.saving_throw import saving_throw_bonus
 from dnd.application.engine.spells.handlers import concentration_source
 from dnd.application.engine.turn_context import TurnContext
 from dnd.application.inventory.loot_helpers import dump_loot_entries
@@ -391,13 +392,14 @@ class Encounter:
         if target.concentration is None or event.final_amount <= 0:
             return
         dc = max(10, event.final_amount // 2)
-        con_mod = target.abilities.modifier(Ability.CON)
+        # T1: prof учитывается через общий saving_throw_bonus (Воин — CON-проф).
+        con_bonus = saving_throw_bonus(target, Ability.CON)
         save_mods = self._deps.modifier_applier.collect(
             owner_id=target.id, target_kind=ModifierTargetKind.SAVING_THROW
         )
         save_adj = self._deps.modifier_applier.to_roll_adjustments(save_mods)
         roll = self._deps.dice_roller.roll(
-            DiceExpr.parse(f"d20{con_mod + save_adj.numeric_bonus:+d}"),
+            DiceExpr.parse(f"d20{con_bonus + save_adj.numeric_bonus:+d}"),
             RollContext(
                 purpose=RollPurpose.SAVE, actor_id=target.id,
                 advantage=save_adj.advantage, disadvantage=save_adj.disadvantage,

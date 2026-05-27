@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import DamageDealt, HealingApplied
 from dnd.application.dto.rolls import RollContext, RollPurpose
+from dnd.application.engine.saving_throw import roll_saving_throw
 from dnd.domain.values.damage import DamageInstance
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.modifiers import (
@@ -131,24 +132,12 @@ class SaveSpellHandler:
                     target_id=target.id,
                 ),
             )
-            save_mod = target.abilities.modifier(spell.save_ability)
-            save_mods = ctx.modifier_applier.collect(
-                owner_id=target.id, target_kind=ModifierTargetKind.SAVING_THROW
-            )
-            save_adj = ctx.modifier_applier.to_roll_adjustments(save_mods)
-            save_roll = ctx.dice_roller.roll(
-                DiceExpr.parse(f"d20{save_mod + save_adj.numeric_bonus:+d}"),
-                RollContext(
-                    purpose=RollPurpose.SAVE,
-                    actor_id=target.id,
-                    advantage=save_adj.advantage,
-                    disadvantage=save_adj.disadvantage,
-                    extra_dice=save_adj.extra_dice,
-                    tags=("spell_save",),
-                ),
+            # T1: единый бросок спасброска (учитывает prof класса цели).
+            saved = roll_saving_throw(
+                target, spell.save_ability, dc=dc, ctx=ctx, tags=("spell_save",),
             )
             full = max(0, dmg_roll.total)
-            if save_roll.total < dc:
+            if not saved:
                 amount = full              # провал — полный урон
             elif spell.save_for_half:
                 amount = full // 2         # успех + save_for_half — половина
