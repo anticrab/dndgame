@@ -24,7 +24,9 @@ from dnd.application.dto.engine_event import (
     DamageDealt,
     EncounterEnded,
     EngineEvent,
+    HealingApplied,
     InitiativeRolled,
+    LeveledUp,
     StanceTaken,
     TurnStarted,
 )
@@ -177,6 +179,61 @@ def test_damage_dealt_refreshes_status_of_active_actor() -> None:
         )
     )
     assert len(screen.status_widget.refresh_calls) > pre
+
+
+def test_damage_dealt_refreshes_initiative_so_target_hp_updates() -> None:
+    """HP цели показывается в панели инициативы — она должна обновляться
+    сразу при уроне, а не ждать следующего хода (демо-баг «HP не обновляется
+    вовремя»)."""
+    screen, _enc, bus, _ = _setup()
+    bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
+    pre = len(screen.initiative_widget.refresh_calls)
+    bus.publish(
+        DamageDealt(
+            attacker_id=CreatureId("warrior"),
+            target_id=CreatureId("goblin"),
+            damage_roll_id=RollId(uuid4()),
+            damage_type=DamageType.SLASHING,
+            raw_amount=4,
+            final_amount=4,
+            is_critical=False,
+            hp_after=3,
+            hp_max=7,
+        )
+    )
+    assert len(screen.initiative_widget.refresh_calls) > pre
+
+
+def test_healing_applied_refreshes_status_and_initiative() -> None:
+    """Лечение (Second Wind / Cure Wounds) должно сразу отражаться на HP."""
+    screen, _enc, bus, _ = _setup()
+    bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
+    s_pre = len(screen.status_widget.refresh_calls)
+    i_pre = len(screen.initiative_widget.refresh_calls)
+    bus.publish(
+        HealingApplied(
+            healer_id=CreatureId("warrior"),
+            target_id=CreatureId("warrior"),
+            amount=6,
+            hp_after=20,
+            hp_max=20,
+        )
+    )
+    assert len(screen.status_widget.refresh_calls) > s_pre
+    assert len(screen.initiative_widget.refresh_calls) > i_pre
+
+
+def test_leveled_up_refreshes_status_and_initiative() -> None:
+    """Прирост HP при level-up в бою должен быть виден сразу."""
+    screen, _enc, bus, _ = _setup()
+    bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
+    s_pre = len(screen.status_widget.refresh_calls)
+    i_pre = len(screen.initiative_widget.refresh_calls)
+    bus.publish(
+        LeveledUp(actor_id=CreatureId("warrior"), new_level=2, hp_gained=6)
+    )
+    assert len(screen.status_widget.refresh_calls) > s_pre
+    assert len(screen.initiative_widget.refresh_calls) > i_pre
 
 
 def test_attack_resolved_downed_triggers_map_and_initiative_refresh() -> None:

@@ -22,7 +22,9 @@ from dnd.application.dto.engine_event import (
     DamageDealt,
     EncounterEnded,
     EngineEvent,
+    HealingApplied,
     InitiativeRolled,
+    LeveledUp,
     LevelUpReady,
     MoveCompleted,
     StanceTaken,
@@ -108,11 +110,19 @@ class EventRenderer:
         self._call(self._refresh_map_main)
 
     def _on_damage_or_attack(self, event: DamageDealt | AttackResolved) -> None:
-        # HP мог измениться — перерисовать статус активного актора.
+        # HP мог измениться — статус активного актора И панель инициативы
+        # (там видны HP всех бойцов; иначе HP цели «отстаёт» до след. хода).
         self._call(self._refresh_status_main)
+        self._call(self._refresh_initiative_main)
         if isinstance(event, AttackResolved) and event.downed:
             self._call(self._refresh_map_main)
-            self._call(self._refresh_initiative_main)
+
+    def _on_hp_changed(self, event: HealingApplied | LeveledUp) -> None:
+        # Лечение / прирост HP при level-up — сразу отразить на статусе и
+        # в панели инициативы (иначе heal не виден до следующего хода).
+        del event
+        self._call(self._refresh_status_main)
+        self._call(self._refresh_initiative_main)
 
     def _on_stance(self, event: StanceTaken) -> None:
         del event
@@ -224,6 +234,8 @@ _DISPATCH: dict[type[EngineEvent], Callable[[EventRenderer, Any], None]] = {
     MoveCompleted: lambda r, e: r._on_move(e),
     DamageDealt: lambda r, e: r._on_damage_or_attack(e),
     AttackResolved: lambda r, e: r._on_damage_or_attack(e),
+    HealingApplied: lambda r, e: r._on_hp_changed(e),
+    LeveledUp: lambda r, e: r._on_hp_changed(e),
     StanceTaken: lambda r, e: r._on_stance(e),
     LevelUpReady: lambda r, e: r._on_level_up_ready(e),
     EncounterEnded: lambda r, e: r._on_encounter_ended(e),
