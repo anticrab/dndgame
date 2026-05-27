@@ -76,6 +76,7 @@ def build_creature_from_template(
     creature.challenge_rating = template.cr
     creature.character_class = template.character_class
     creature.level = template.level
+    creature.xp = template.xp
     return creature
 
 

@@ -81,6 +81,9 @@ class MonsterTemplate(BaseModel):
     cr: float = Field(default=0.0, ge=0)
     character_class: str | None = None  # "fighter" / "rogue"
     level: int = Field(default=1, ge=1)
+    # Накопленный XP на старте (для PC-«ветеранов»: демо-сцена ставит воина
+    # у порога уровня, чтобы level-up случился в бою). 0 — обычный старт.
+    xp: int = Field(default=0, ge=0)
 
 
 class SpawnTemplate(BaseModel):
