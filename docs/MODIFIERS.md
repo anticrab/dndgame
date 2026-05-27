@@ -499,3 +499,18 @@ def test_attack_with_bless_and_magic_sword() -> None:
 
 Все три случая укладываются в текущую модель — нужны только новые типы
 эффектов и условий.
+
+## Модификаторы от состояний (этап T3)
+
+`ModifierApplier.collect` читает только активные модификаторы из `ModifierBag`
+(баффы заклинаний). Self-модификаторы состояний (`Condition.provides_modifiers`,
+например помеха Poisoned/Frightened/Prone на атаки) подмешиваются **отдельно**
+на момент броска через `ConditionService.collect_modifiers(creature, target_kind)`
+и складываются в общий список перед `to_roll_adjustments` (правило
+«advantage + disadvantage = обычный» применяется поверх всего).
+
+До T3 `provides_modifiers` нигде не вызывались — эти помехи фактически не
+работали; T3 это исправил. Cross-creature (преимущество атакующему от состояний
+цели) и авто-провал спасбросков идут не через модификаторы, а через
+`ConditionService.incoming_attack_adjustment` / `auto_fails_save` —
+см. `docs/CONDITIONS.md`.

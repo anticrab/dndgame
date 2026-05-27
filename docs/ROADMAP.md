@@ -270,16 +270,23 @@ Textual-приложения, MVP-граница, многопоточная с�
     (снятие по урону / повторному спасброску / срыву концентрации) — фундамент
     для T3. Инкапаситированный актёр пропускает ход. Правка кругов
     Fireball/Lightning Bolt (3-й). См. `docs/SPELLS.md` «Контроль состояний».
-  - ⏳ **T3 — боевые условия.** Cross-creature преимущество, авто-крит,
-    Dodge-спасброски, авто-провалы спасбросков (Paralyzed/Unconscious).
+  - ✅ **T3 — боевые условия.** `ConditionService` как мост данные→бросок:
+    self-помехи состояний (фикс осиротевшего `provides_modifiers` —
+    Poisoned/Frightened/Prone теперь реально работают), cross-creature
+    преимущество (Paralyzed/Unconscious/Stunned → атакующему advantage; Prone —
+    adv в упор / disadv в дали), авто-крит по Paralyzed/Unconscious в упор,
+    авто-провал STR/DEX-спасбросков, преимущество на DEX-спасброски в Dodge.
+    Декларативные боевые поля на состояниях (data, не switch).
+    См. `docs/CONDITIONS.md`.
   - ⏳ **T4 — подклассы L3 + добивка классов.** Школа магии / Чемпион / Вор,
     Fighting Style, Cunning Action; все классы полно по L1–3.
 - ⏳ **Доработки по аудиту 2026-05-27** (`docs/superpowers/reviews/2026-05-27-audit-findings.md`):
   острые баги (концентрация, UI-рефреш death-save/level-up, неверный intent,
   Sneak при disadvantage, спам level-up, dying-условия) — исправлены (REV-1..7);
-  профициентные спасброски — **сделано в T1**; отложено в правила/этапы:
-  cross-creature преимущество + Dodge-saves + Exhaustion + авто-провалы (→ T3),
-  ranged-в-упор, умный pathfinding-AI (обход трупов).
+  профициентные спасброски — **сделано в T1**; cross-creature преимущество +
+  Dodge-saves + авто-провалы спасбросков + авто-крит — **сделано в T3**;
+  отложено: Exhaustion -2, ranged-в-упор disadvantage, умный pathfinding-AI
+  (обход трупов).
 - 🔜 Главное меню, лист персонажа, экран исследования.
 - 🔜 Анимация атаки (mockup C.2).
 
