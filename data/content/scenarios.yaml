@@ -181,3 +181,50 @@
       instance_id: goblin5
       at: [22, 20]
       faction: monsters
+
+# Этап D: курированная демо-сцена для «первичного показа» (TUI-first).
+# Один воин L1 против 5 гоблинов; стены-колонны делят подход врагов на
+# волны, чтобы воин не получал свалку атак. XP-бюджет (5×25=125) с запасом
+# покрывает порог 2 уровня (100, FastXpCurve) — level-up срабатывает в бою
+# на 4-м убийстве, пока жив 5-й гоблин. См. docs/DEMO.md, docs/SCENARIO_DEMO.md.
+- id: demo_skirmish
+  name: "Демо: Туннель гоблинов"
+  map:
+    width: 11
+    height: 7
+    legend:
+      ".": floor
+      "#": wall
+    grid:
+      - "..........."
+      - "...#...#..."
+      - "..........."
+      - "...#...#..."
+      - "..........."
+      - "...#...#..."
+      - "..........."
+  spawns:
+    - template_id: warrior_lv1
+      instance_id: aelar
+      at: [0, 3]
+      faction: party
+    - template_id: goblin
+      instance_id: goblin1
+      at: [10, 3]
+      faction: monsters
+    - template_id: goblin
+      instance_id: goblin2
+      at: [9, 1]
+      faction: monsters
+    - template_id: goblin
+      instance_id: goblin3
+      at: [9, 5]
+      faction: monsters
+    - template_id: goblin
+      instance_id: goblin4
+      at: [8, 2]
+      faction: monsters
+    - template_id: goblin
+      instance_id: goblin5
+      at: [8, 4]
+      faction: monsters
