@@ -11,6 +11,7 @@ from dnd.application.engine.spells.handlers import (
     AttackSpellHandler,
     AutoSpellHandler,
     BuffSpellHandler,
+    ControlSpellHandler,
     HealSpellHandler,
     SaveSpellHandler,
 )
@@ -24,6 +25,7 @@ def default_spell_effect_registry() -> SpellEffectRegistry:
     registry.register(SpellEffect.AUTO, AutoSpellHandler())
     registry.register(SpellEffect.HEAL, HealSpellHandler())
     registry.register(SpellEffect.BUFF, BuffSpellHandler())
+    registry.register(SpellEffect.CONTROL, ControlSpellHandler())
     return registry
 
 

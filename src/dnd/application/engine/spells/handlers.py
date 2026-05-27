@@ -8,7 +8,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dnd.application.dto.engine_event import DamageDealt, HealingApplied
+from dnd.application.dto.engine_event import (
+    ConditionApplied,
+    DamageDealt,
+    HealingApplied,
+)
 from dnd.application.dto.rolls import RollContext, RollPurpose
 from dnd.application.engine.saving_throw import roll_saving_throw
 from dnd.domain.values.damage import DamageInstance
@@ -285,10 +289,99 @@ class BuffSpellHandler:
                 )
 
 
+class ControlSpellHandler:
+    """CONTROL: наложение состояния. Две ветки гейта (валидация — в Spell):
+
+    * пул (``hp_pool_dice``, Sleep): кидаем пул хитов, усыпляем цели по
+      возрастанию текущего HP, пока хватает; без спасброска;
+    * спасбросок (``save_ability``, Hold Person): провал → состояние.
+
+    Накладывает через ConditionService (каскад implies) и публикует
+    ``ConditionApplied`` со всей метой снятия — её слушает OngoingEffectTracker.
+    """
+
+    def apply(
+        self,
+        caster: Creature,
+        targets: tuple[Creature, ...],
+        spell: Spell,
+        ctx: TurnContext,
+    ) -> None:
+        assert spell.condition is not None
+        if spell.hp_pool_dice is not None:
+            affected = self._apply_pool(caster, targets, spell, ctx)
+        else:
+            affected = self._apply_save(caster, targets, spell, ctx)
+        if affected and spell.concentration:
+            caster.concentration = spell.id
+
+    def _apply_pool(
+        self, caster: Creature, targets: tuple[Creature, ...],
+        spell: Spell, ctx: TurnContext,
+    ) -> list[Creature]:
+        assert spell.hp_pool_dice is not None
+        pool_roll = ctx.dice_roller.roll(
+            DiceExpr.parse(spell.hp_pool_dice),
+            RollContext(purpose=RollPurpose.OTHER, actor_id=caster.id),
+        )
+        pool = pool_roll.total
+        candidates = sorted(
+            (t for t in targets if t.is_alive and not t.is_at_zero_hp),
+            key=lambda c: c.hit_points.current,
+        )
+        affected: list[Creature] = []
+        for cand in candidates:
+            need = cand.hit_points.current
+            if need > pool:
+                break  # книга: первый, на кого не хватило пула, не засыпает
+            pool -= need
+            if self._apply_condition(caster, cand, spell, ctx):
+                affected.append(cand)
+        return affected
+
+    def _apply_save(
+        self, caster: Creature, targets: tuple[Creature, ...],
+        spell: Spell, ctx: TurnContext,
+    ) -> list[Creature]:
+        assert spell.save_ability is not None
+        dc = caster.spell_save_dc()
+        affected: list[Creature] = []
+        for target in targets:
+            if not target.is_alive or target.is_at_zero_hp:
+                continue
+            saved = roll_saving_throw(
+                target, spell.save_ability, dc=dc, ctx=ctx, tags=("spell_save",),
+            )
+            if not saved and self._apply_condition(caster, target, spell, ctx):
+                affected.append(target)
+        return affected
+
+    def _apply_condition(
+        self, caster: Creature, target: Creature, spell: Spell, ctx: TurnContext,
+    ) -> bool:
+        assert spell.condition is not None
+        result = ctx.condition_service.apply_with_implies(target, spell.condition)
+        if not result.applied:
+            return False
+        dc = caster.spell_save_dc() if spell.save_ability is not None else None
+        ctx.event_bus.publish(ConditionApplied(
+            caster_id=caster.id, target_id=target.id, spell_id=spell.id,
+            conditions=result.applied,
+            ends_on_damage=spell.condition_ends_on_damage,
+            repeat_save_ability=(
+                spell.save_ability if spell.condition_repeat_save else None
+            ),
+            save_dc=dc if spell.condition_repeat_save else None,
+            concentration=spell.concentration,
+        ))
+        return True
+
+
 __all__ = [
     "AttackSpellHandler",
     "AutoSpellHandler",
     "BuffSpellHandler",
+    "ControlSpellHandler",
     "HealSpellHandler",
     "SaveSpellHandler",
 ]
