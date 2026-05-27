@@ -16,3 +16,14 @@
     1: { proficiency_bonus: 2, features: [sneak_attack] }
     2: { proficiency_bonus: 2, features: [] }
     3: { proficiency_bonus: 2, features: [] }
+# Волшебник (T1): d6, INT/WIS-спасброски, таблица ячеек L1-3 (PHB-2024).
+# Фичи Spellcasting/Arcane Recovery/подкласс — содержательно на T4; здесь
+# каст обеспечивают ячейки + known_spells.
+- id: wizard
+  name: "Волшебник"
+  hit_die: "1d6"
+  saving_throw_proficiencies: [INT, WIS]
+  levels:
+    1: { proficiency_bonus: 2, features: [], spell_slots: { 1: 2 } }
+    2: { proficiency_bonus: 2, features: [], spell_slots: { 1: 3 } }
+    3: { proficiency_bonus: 2, features: [], spell_slots: { 1: 4, 2: 2 } }
