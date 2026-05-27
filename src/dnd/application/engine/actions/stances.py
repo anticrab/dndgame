@@ -58,10 +58,13 @@ class CombatStance(StrEnum):
 
 
 def _check_action_blockers(
-    actor: Creature, ctx: TurnContext
+    actor: Creature,
+    ctx: TurnContext,
+    economy: ActionEconomyCost = ActionEconomyCost.ACTION,
 ) -> ActionAvailability:
-    """Общая проверка can_perform: action-бюджет + блокирующие conditions."""
-    if not ctx.can_spend(ActionEconomyCost.ACTION):
+    """Общая проверка can_perform: бюджет (по умолчанию ACTION; для Cunning
+    Action — BONUS_ACTION) + блокирующие conditions."""
+    if not ctx.can_spend(economy):
         return Forbidden(reason=ForbiddenReason.NO_ECONOMY_LEFT)
     for cond in _ACTION_BLOCKERS:
         if actor.has_condition(cond):
@@ -127,6 +130,12 @@ class DashAction:
     name_key_value: ClassVar[str] = "action.dash"
     economy_cost_value: ClassVar[ActionEconomyCost] = ActionEconomyCost.ACTION
 
+    def __init__(
+        self, *, economy: ActionEconomyCost = ActionEconomyCost.ACTION
+    ) -> None:
+        # T4: Cunning Action (Плут L2) выполняет Dash бонусным действием.
+        self._economy = economy
+
     @property
     def id(self) -> ActionId:
         return self.id_value
@@ -137,14 +146,14 @@ class DashAction:
 
     @property
     def economy_cost(self) -> ActionEconomyCost:
-        return self.economy_cost_value
+        return self._economy
 
     def can_perform(
         self, actor: Creature, ctx: TurnContext
     ) -> ActionAvailability:
         # Под Paralyzed/Stunned speed=0 — Dash смысла не имеет;
         # _ACTION_BLOCKERS уже это закрывает.
-        return _check_action_blockers(actor, ctx)
+        return _check_action_blockers(actor, ctx, self._economy)
 
     def execute(
         self,
@@ -152,7 +161,7 @@ class DashAction:
         params: ActionParams,
         ctx: TurnContext,
     ) -> ActionOutcome:
-        ctx.spend(ActionEconomyCost.ACTION)
+        ctx.spend(self._economy)
         ctx.movement_remaining_ft += actor.speed_ft
         actor.combat_stances.add(CombatStance.DASHING.value)
         ctx.event_bus.publish(
@@ -160,7 +169,7 @@ class DashAction:
         )
         return ActionOutcome(
             success=True,
-            consumed=ActionEconomyCost.ACTION,
+            consumed=self._economy,
             events_published=("stance.taken",),
             notes=f"+{actor.speed_ft} ft movement this turn",
         )
@@ -174,6 +183,12 @@ class DisengageAction:
     name_key_value: ClassVar[str] = "action.disengage"
     economy_cost_value: ClassVar[ActionEconomyCost] = ActionEconomyCost.ACTION
 
+    def __init__(
+        self, *, economy: ActionEconomyCost = ActionEconomyCost.ACTION
+    ) -> None:
+        # T4: Cunning Action (Плут L2) выполняет Disengage бонусным действием.
+        self._economy = economy
+
     @property
     def id(self) -> ActionId:
         return self.id_value
@@ -184,12 +199,12 @@ class DisengageAction:
 
     @property
     def economy_cost(self) -> ActionEconomyCost:
-        return self.economy_cost_value
+        return self._economy
 
     def can_perform(
         self, actor: Creature, ctx: TurnContext
     ) -> ActionAvailability:
-        return _check_action_blockers(actor, ctx)
+        return _check_action_blockers(actor, ctx, self._economy)
 
     def execute(
         self,
@@ -197,7 +212,7 @@ class DisengageAction:
         params: ActionParams,
         ctx: TurnContext,
     ) -> ActionOutcome:
-        ctx.spend(ActionEconomyCost.ACTION)
+        ctx.spend(self._economy)
         ctx.disengaged = True
         actor.combat_stances.add(CombatStance.DISENGAGED.value)
         ctx.event_bus.publish(
@@ -205,7 +220,7 @@ class DisengageAction:
         )
         return ActionOutcome(
             success=True,
-            consumed=ActionEconomyCost.ACTION,
+            consumed=self._economy,
             events_published=("stance.taken",),
             notes="disengaged: no opportunity attacks this turn",
         )

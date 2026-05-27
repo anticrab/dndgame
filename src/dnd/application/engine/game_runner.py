@@ -19,6 +19,7 @@ from collections.abc import Callable
 
 from dnd.application.dto.action import (
     ActionAvailability,
+    ActionEconomyCost,
     Allowed,
     Forbidden,
 )
@@ -189,10 +190,19 @@ class GameRunner:
             self._do_stance(DodgeAction(), actor, ctx)
             return
         if isinstance(intent, DashIntent):
-            self._do_stance(DashAction(), actor, ctx)
+            # T4: Cunning Action — Dash бонусным действием при флаге интента.
+            economy = (
+                ActionEconomyCost.BONUS_ACTION if intent.bonus_action
+                else ActionEconomyCost.ACTION
+            )
+            self._do_stance(DashAction(economy=economy), actor, ctx)
             return
         if isinstance(intent, DisengageIntent):
-            self._do_stance(DisengageAction(), actor, ctx)
+            economy = (
+                ActionEconomyCost.BONUS_ACTION if intent.bonus_action
+                else ActionEconomyCost.ACTION
+            )
+            self._do_stance(DisengageAction(economy=economy), actor, ctx)
             return
         if isinstance(intent, InteractIntent):
             self._do_interact(actor, intent, ctx)

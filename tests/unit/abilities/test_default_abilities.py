@@ -27,14 +27,18 @@ def test_all_default_abilities_registered() -> None:
         AbilityId("stabilize"),
         AbilityId("second_wind"),
         AbilityId("action_surge"),
+        # T4: Cunning Action (Плут L2) — без дефолтного хоткея (через меню).
+        AbilityId("cunning_dash"),
+        AbilityId("cunning_disengage"),
     }
 
 
 def test_no_hotkey_collisions() -> None:
-    """ИНВАРИАНТ §11-7: default hotkey'и не должны коллидировать."""
+    """ИНВАРИАНТ §11-7: default hotkey'и не должны коллидировать. Пустой
+    хоткей ("" — «нет дефолтного», T4 cunning-абилки) не считается коллизией."""
     r = AbilityRegistry()
     register_default_abilities(r)
-    keys = [a.default_hotkey for a in r.all()]
+    keys = [a.default_hotkey for a in r.all() if a.default_hotkey]
     assert len(keys) == len(set(keys)), f"hotkey collision: {keys}"
 
 

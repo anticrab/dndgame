@@ -50,6 +50,15 @@ def _disengage() -> PlayerIntent:
     return DisengageIntent()
 
 
+def _cunning_dash() -> PlayerIntent:
+    # T4: Cunning Action (Плут L2) — Dash бонусным действием.
+    return DashIntent(bonus_action=True)
+
+
+def _cunning_disengage() -> PlayerIntent:
+    return DisengageIntent(bonus_action=True)
+
+
 def _interact(target_id: CreatureId) -> PlayerIntent:
     # ``target_id`` — это CreatureId-обёртка над str (см. action_intent_interact
     # в BattleScreen). InteractIntent ждёт ObjectId; конвертация
@@ -141,6 +150,21 @@ def register_default_abilities(registry: AbilityRegistry) -> None:
         default_hotkey="x", economy_cost=ActionEconomyCost.FREE,
         requires_target=False, requires_path=False,
         intent_factory=_action_surge,
+    ))
+    # T4: Cunning Action (Плут L2) — Dash/Disengage бонусным действием.
+    # Выдаются через CunningActionHandler (ability_ids); хоткей пуст (доступ
+    # через меню способностей).
+    registry.register(Ability(
+        id=AbilityId("cunning_dash"), name="Cunning Dash", icon="h",
+        default_hotkey="", economy_cost=ActionEconomyCost.BONUS_ACTION,
+        requires_target=False, requires_path=False,
+        intent_factory=_cunning_dash,
+    ))
+    registry.register(Ability(
+        id=AbilityId("cunning_disengage"), name="Cunning Disengage", icon="g",
+        default_hotkey="", economy_cost=ActionEconomyCost.BONUS_ACTION,
+        requires_target=False, requires_path=False,
+        intent_factory=_cunning_disengage,
     ))
 
 

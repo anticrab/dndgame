@@ -48,10 +48,14 @@ class DodgeIntent(_IntentBase):
 
 class DashIntent(_IntentBase):
     kind: Literal["dash"] = "dash"
+    # T4: Cunning Action (Плут L2) — выполнить бонусным действием.
+    bonus_action: bool = False
 
 
 class DisengageIntent(_IntentBase):
     kind: Literal["disengage"] = "disengage"
+    # T4: Cunning Action (Плут L2) — выполнить бонусным действием.
+    bonus_action: bool = False
 
 
 class EndTurnIntent(_IntentBase):
