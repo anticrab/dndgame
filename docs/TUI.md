@@ -294,6 +294,14 @@ PC- vs monster-turn: для не-PARTY actor'а `BattleScreen.set_turn`
 highlights=, path_preview=)`. На TurnStarted mode сбрасывается в
 NORMAL (инвариант §11-2 spec).
 
+### 6.11 Меню способностей (этап S)
+
+В NORMAL-режиме **`Tab`** открывает `AbilityMenuScreen` — список всех
+способностей активного PC: `↑↓` выбор, `Enter` применить (через
+`_trigger_ability` → нужный mode), `b`+клавиша перебиндить хоткей (на сессию),
+`Esc` закрыть. Снимает потолок «одна способность = один хоткей» (нужно
+волшебнику). Подробнее — `docs/ABILITIES.md` («Меню способностей»).
+
 Handler'ы лежат в `interfaces/tui/screens/battle_modes/*`:
 `NormalModeHandler`, `MoveModeHandler`, `TargetModeHandler`,
 `AreaModeHandler`, `MultiTargetModeHandler` — все имплементируют

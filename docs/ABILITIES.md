@@ -129,6 +129,27 @@ registry.register(Ability(
 Sneak Attack) ability не выдают — действуют в `AttackAction`. См.
 `docs/PROGRESSION.md` §7a.
 
+## Меню способностей (этап S)
+
+Помимо хоткеев, все способности активного PC доступны через **меню** —
+`AbilityMenuScreen` (`interfaces/tui/screens/ability_menu_screen.py`),
+открывается клавишей **`Tab`** в NORMAL-режиме. Это снимает потолок «одна
+способность = один хоткей» (важно для волшебника с многими заклинаниями).
+
+* `↑`/`↓` — выбор, `Enter` — применить (через тот же `BattleScreen._trigger_ability`:
+  target → TARGET-режим, иначе сразу intent), `Esc` — закрыть.
+* `b` + клавиша — **перебиндить** выбранную способность на эту клавишу
+  (`rebind_ability` в `keymap.py`; на сессию, в `Creature.keybindings`).
+  Инвариант «одна клавиша = одна способность» (старые привязки снимаются),
+  затем `BattleScreen._apply_keymap` пересобирает keymap, сохраняя заклинания 1–9.
+* Доступность строки — по экономии действия (`ability_can_afford`); грейинг по
+  ресурсу/слоту и персист биндов на диск (привязка к персонажу) — отложены
+  (см. спек `docs/superpowers/specs/2026-05-27-s-ability-menu-design.md` §5).
+
+Источник строк — `actor.ability_ids → AbilityRegistry`: новые способности
+(в т.ч. заклинания-как-`Ability` у будущего волшебника) появляются в меню без
+правок UI.
+
 ## См. также
 
 * `docs/TUI.md` §6 — mode-state machine, ActionBarWidget;
