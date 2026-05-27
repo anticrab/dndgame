@@ -91,7 +91,13 @@
   proficiency_bonus: 2
   weapon_id: longsword
   default_faction: party
+  # T1: PC-волшебник 1-го уровня — класс/уровень для прогрессии и
+  # профициентных спасбросков (INT, WIS). Ячейки берём из таблицы Волшебника
+  # (L1 = две ячейки 1-го круга); fireball/lightning_bolt в known_spells —
+  # «известны», но кастуются только начиная с 5-го уровня (ячейки 3-го круга).
+  character_class: wizard
+  level: 1
   # Заклинания: INT-кастер, заговоры безлимит. P2 — добавлены AoE.
   spellcasting_ability: INT
   known_spells: [fire_bolt, sacred_flame, magic_missile, cure_wounds, shield_of_faith, fireball, burning_hands, lightning_bolt]
-  spell_slots: { 1: 4 }
+  spell_slots: { 1: 2 }
