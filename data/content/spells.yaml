@@ -61,7 +61,7 @@
 # --- AoE (этап P2) ---
 - id: fireball
   name: "Fireball"
-  level: 1
+  level: 3
   school: evocation
   effect: save
   targeting: { kind: area, origin: at_point, shape: circle, radius_ft: 10 }
@@ -87,7 +87,7 @@
 
 - id: lightning_bolt
   name: "Lightning Bolt"
-  level: 1
+  level: 3
   school: evocation
   effect: save
   targeting: { kind: area, origin: from_caster, shape: line, length_ft: 30 }
@@ -111,3 +111,29 @@
     - { target: attack_roll, dice_bonus: "1d4" }
     - { target: saving_throw, dice_bonus: "1d4" }
   description: "Благословить до трёх существ: пока держится концентрация, каждое добавляет 1d4 к броскам атаки и спасброскам."
+
+# --- Контроль (этап T2) ---
+- id: sleep
+  name: "Sleep"
+  level: 1
+  school: enchantment
+  effect: control
+  targeting: { kind: area, shape: circle, radius_ft: 5, origin: at_point }
+  range_ft: 90
+  condition: unconscious
+  hp_pool_dice: "5d8"
+  condition_ends_on_damage: true
+  description: "Усыпляет существ в сфере: пул хитов 5d8 тратится от самых раненых к здоровым; без спасброска; цель просыпается, получив урон."
+
+- id: hold_person
+  name: "Hold Person"
+  level: 2
+  school: enchantment
+  effect: control
+  targeting: { kind: single }
+  range_ft: 60
+  condition: paralyzed
+  save_ability: WIS
+  concentration: true
+  condition_repeat_save: true
+  description: "Удерживает гуманоида (спасбросок Мудрости). Парализован; в конце каждого своего хода повторяет спасбросок Мудрости. Требует концентрации."

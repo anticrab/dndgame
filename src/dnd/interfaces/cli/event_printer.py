@@ -17,6 +17,8 @@ from dnd.application.dto.engine_event import (
     AttackResolved,
     AttackRolled,
     ConcentrationBroken,
+    ConditionApplied,
+    ConditionRemoved,
     CreatureDied,
     CreatureStabilized,
     DamageDealt,
@@ -247,6 +249,22 @@ class EventPrinter:
             f"({event.spell_id}; спасбросок {event.roll_total} < {event.dc})"
         )
 
+    def _on_condition_applied(self, event: ConditionApplied) -> None:
+        names = ", ".join(sorted(str(c) for c in event.conditions))
+        self._print(
+            f"  ✦ [magenta]{event.target_id} получает состояние: {names}[/]"
+        )
+
+    def _on_condition_removed(self, event: ConditionRemoved) -> None:
+        names = ", ".join(sorted(str(c) for c in event.conditions))
+        reason = {
+            "damage": "от урона", "save": "спасброском",
+            "concentration_ended": "конец концентрации", "manual": "снято",
+        }.get(event.reason, event.reason)
+        self._print(
+            f"  ✧ [green]{event.target_id} освобождается[/] ({names}, {reason})"
+        )
+
     def _on_leveled_up(self, event: LeveledUp) -> None:
         feats = (
             f" ({', '.join(event.features_gained)})" if event.features_gained else ""
@@ -309,6 +327,8 @@ class EventPrinter:
         CreatureDied: lambda self, e: self._on_died(e),
         CreatureStabilized: lambda self, e: self._on_stabilized(e),
         ConcentrationBroken: lambda self, e: self._on_concentration_broken(e),
+        ConditionApplied: lambda self, e: self._on_condition_applied(e),
+        ConditionRemoved: lambda self, e: self._on_condition_removed(e),
         SpellCast: lambda self, e: self._on_spell_cast(e),
         LeveledUp: lambda self, e: self._on_leveled_up(e),
         HealingApplied: lambda self, e: self._on_healing(e),

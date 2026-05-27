@@ -99,5 +99,5 @@
   level: 1
   # Заклинания: INT-кастер, заговоры безлимит. P2 — добавлены AoE.
   spellcasting_ability: INT
-  known_spells: [fire_bolt, sacred_flame, magic_missile, cure_wounds, shield_of_faith, fireball, burning_hands, lightning_bolt]
+  known_spells: [fire_bolt, sacred_flame, magic_missile, cure_wounds, shield_of_faith, fireball, burning_hands, lightning_bolt, sleep, hold_person]
   spell_slots: { 1: 2 }

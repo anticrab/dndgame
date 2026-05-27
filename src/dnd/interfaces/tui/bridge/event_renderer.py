@@ -20,6 +20,8 @@ from textual.css.query import NoMatches
 
 from dnd.application.dto.engine_event import (
     AttackResolved,
+    ConditionApplied,
+    ConditionRemoved,
     CreatureDied,
     CreatureStabilized,
     DamageDealt,
@@ -255,6 +257,8 @@ _DISPATCH: dict[type[EngineEvent], Callable[[EventRenderer, Any], None]] = {
     DeathSaveRolled: lambda r, e: r._on_hp_changed(e),
     CreatureStabilized: lambda r, e: r._on_hp_changed(e),
     CreatureDied: lambda r, e: r._on_hp_changed(e),
+    ConditionApplied: lambda r, e: r._on_hp_changed(e),
+    ConditionRemoved: lambda r, e: r._on_hp_changed(e),
     StanceTaken: lambda r, e: r._on_stance(e),
     LevelUpReady: lambda r, e: r._on_level_up_ready(e),
     EncounterEnded: lambda r, e: r._on_encounter_ended(e),

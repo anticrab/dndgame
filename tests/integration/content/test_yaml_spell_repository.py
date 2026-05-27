@@ -24,12 +24,12 @@ def test_repo_implements_port() -> None:
 def test_loads_all_spells() -> None:
     repo = YamlSpellRepository(_SPELLS)
     ids = set(repo.list_ids())
-    # P1 single/self + P2 AoE.
+    # P1 single/self + P2 AoE + P2b мультитаргет + T2 контроль.
     assert ids == {
         SpellId("fire_bolt"), SpellId("sacred_flame"), SpellId("magic_missile"),
         SpellId("cure_wounds"), SpellId("shield_of_faith"),
         SpellId("fireball"), SpellId("burning_hands"), SpellId("lightning_bolt"),
-        SpellId("bless"),
+        SpellId("bless"), SpellId("sleep"), SpellId("hold_person"),
     }
 
 

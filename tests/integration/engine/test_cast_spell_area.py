@@ -71,7 +71,9 @@ def _mage() -> Creature:
     )
     c.spellcasting_ability = Ability.INT
     c.known_spells = (SpellId("fireball"), SpellId("burning_hands"))
-    c.spell_slots = {1: 5}
+    # T2: реальный Fireball теперь 3-го круга — даём ячейку 3-го для smoke;
+    # ячейки 1-го круга нужны inline-фикстуре FIREBALL (level 1) в этом файле.
+    c.spell_slots = {1: 5, 3: 1}
     return c
 
 
