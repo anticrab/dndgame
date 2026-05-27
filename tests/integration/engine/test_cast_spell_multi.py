@@ -246,7 +246,10 @@ def test_spell_kill_breaks_concentration() -> None:
     )
     from dnd.domain.values.modifiers import ModifierTargetKind
     from dnd.domain.values.spell import BuffSpec
-    _enc, mage, a, _b, ctx = _setup([20, 19, 19, 4, 4, 4])
+    # init×3; gobA 12 HP, дротики 1d4+1=5: дротик1 (12→7) + CON-save d20=10
+    # (успех, REV-1), дротик2 (7→2) + CON-save d20=10 (успех), дротик3 (→0,
+    # летальный — рвёт концентрацию убийством, как и проверяет тест).
+    _enc, mage, a, _b, ctx = _setup([20, 19, 19, 4, 10, 4, 10, 4])
     spell = _mm()
     mage.known_spells = (spell.id,)
     # gobA «концентрируется»: вешаем concentration-бафф на него (source=gobA).

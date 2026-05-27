@@ -283,6 +283,16 @@ class CreatureStabilized(EngineEvent):
     by: CreatureId
 
 
+class ConcentrationBroken(EngineEvent):
+    """Концентрация прервана провалом CON-спасброска при уроне (PHB-2024 стр. 235)."""
+
+    event_type: ClassVar[str] = "encounter.concentration_broken"
+    actor_id: CreatureId
+    spell_id: str
+    dc: int
+    roll_total: int
+
+
 class CreatureDied(EngineEvent):
     """Существо окончательно мертво (3 провала спасбросков либо massive)."""
 

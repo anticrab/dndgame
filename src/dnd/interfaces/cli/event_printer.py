@@ -16,6 +16,7 @@ from rich.console import Console
 from dnd.application.dto.engine_event import (
     AttackResolved,
     AttackRolled,
+    ConcentrationBroken,
     CreatureDied,
     CreatureStabilized,
     DamageDealt,
@@ -240,6 +241,12 @@ class EventPrinter:
     def _on_stabilized(self, event: CreatureStabilized) -> None:
         self._print(f"  ✚ [green]{event.by} stabilizes {event.actor_id}[/]")
 
+    def _on_concentration_broken(self, event: ConcentrationBroken) -> None:
+        self._print(
+            f"  ✘ [magenta]{event.actor_id} теряет концентрацию[/] "
+            f"({event.spell_id}; спасбросок {event.roll_total} < {event.dc})"
+        )
+
     def _on_leveled_up(self, event: LeveledUp) -> None:
         feats = (
             f" ({', '.join(event.features_gained)})" if event.features_gained else ""
@@ -301,6 +308,7 @@ class EventPrinter:
         DeathSaveRolled: lambda self, e: self._on_death_save(e),
         CreatureDied: lambda self, e: self._on_died(e),
         CreatureStabilized: lambda self, e: self._on_stabilized(e),
+        ConcentrationBroken: lambda self, e: self._on_concentration_broken(e),
         SpellCast: lambda self, e: self._on_spell_cast(e),
         LeveledUp: lambda self, e: self._on_leveled_up(e),
         HealingApplied: lambda self, e: self._on_healing(e),

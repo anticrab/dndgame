@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import (
+    ConcentrationBroken,
     CreatureDied,
     DamageDealt,
     DeathSaveRolled,
@@ -45,6 +46,7 @@ from dnd.domain.values.ability import Ability
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import ConditionId, CreatureId, ObjectId
+from dnd.domain.values.modifiers import ModifierTargetKind
 from dnd.domain.values.object_kind import ObjectKind
 
 _log = logging.getLogger(__name__)
@@ -343,10 +345,15 @@ class Encounter:
         Триггерится на ``DamageDealt`` с ``was_lethal`` — единый сигнал для
         урона оружием и заклинанием (P2b-audit M1).
         """
-        if not event.was_lethal or self._state.concluded:
+        if self._state.concluded:
             return
         target = self._participants.get(event.target_id)
         if target is None:
+            return
+        # REV-1: ненулевой НЕ-летальный урон по концентрирующемуся → CON-save
+        # (PHB-2024 стр. 235). Летальный урон рвёт концентрацию сам (ниже).
+        if not event.was_lethal:
+            self._check_concentration(target, event)
             return
         # MAJOR-1 (P1-audit): летальный урон авто-рвёт концентрацию
         # (Creature.take_damage обнулил target.concentration); снимаем и
@@ -372,6 +379,39 @@ class Encounter:
             # NPC-расходник: труп с лутом (Q-8). CreatureDied для лога.
             self._spawn_corpse(target)
             self._deps.event_bus.publish(CreatureDied(actor_id=target.id))
+
+    def _check_concentration(self, target: Creature, event: DamageDealt) -> None:
+        """REV-1: CON-спасбросок на удержание концентрации при уроне.
+
+        DC = max(10, урон // 2). Бросок d20 + модификатор ТЕЛ (+ адъюстменты
+        от состояний); бонус мастерства профициентных спасбросков пока не
+        моделируется (отложено, см. audit). Провал → концентрация спадает,
+        её модификатор-бафф снимается, публикуется ConcentrationBroken.
+        """
+        if target.concentration is None or event.final_amount <= 0:
+            return
+        dc = max(10, event.final_amount // 2)
+        con_mod = target.abilities.modifier(Ability.CON)
+        save_mods = self._deps.modifier_applier.collect(
+            owner_id=target.id, target_kind=ModifierTargetKind.SAVING_THROW
+        )
+        save_adj = self._deps.modifier_applier.to_roll_adjustments(save_mods)
+        roll = self._deps.dice_roller.roll(
+            DiceExpr.parse(f"d20{con_mod + save_adj.numeric_bonus:+d}"),
+            RollContext(
+                purpose=RollPurpose.SAVE, actor_id=target.id,
+                advantage=save_adj.advantage, disadvantage=save_adj.disadvantage,
+                extra_dice=save_adj.extra_dice, tags=("concentration",),
+            ),
+        )
+        if roll.total >= dc:
+            return
+        broken = target.concentration
+        target.concentration = None
+        self._deps.modifier_applier.remove_by_source(concentration_source(target.id))
+        self._deps.event_bus.publish(ConcentrationBroken(
+            actor_id=target.id, spell_id=str(broken), dc=dc, roll_total=roll.total,
+        ))
 
     def _spawn_corpse(self, dead: Creature) -> None:
         """Положить CORPSE-объект с инвентарём павшего NPC для лута (Q-8).
