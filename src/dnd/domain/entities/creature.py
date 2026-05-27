@@ -58,6 +58,7 @@ from dnd.domain.values.damage import (
 from dnd.domain.values.death_save_state import DeathSaveState
 from dnd.domain.values.hit_points import HitPoints
 from dnd.domain.values.ids import ConditionId, CreatureId, FeatureId, SpellId
+from dnd.domain.values.skill import Skill
 from dnd.domain.values.vision import NORMAL_VISION, Vision
 from dnd.domain.values.weapon import WeaponProfile
 
@@ -277,6 +278,13 @@ class Creature:
     saving_throw_proficiencies: frozenset[Ability] = field(default_factory=frozenset)
     """Спасброски, в которых существо профициентно (из класса, T1): бросок
     добавляет proficiency_bonus (PHB-2024 стр. 9). Пусто у обычных монстров."""
+
+    skill_proficiencies: frozenset[Skill] = field(default_factory=frozenset)
+    """Навыки с владением (+ proficiency_bonus, V1). Пусто у обычных монстров."""
+
+    skill_expertise: frozenset[Skill] = field(default_factory=frozenset)
+    """Навыки с Экспертизой (×2 proficiency_bonus, Плут/Бард). Только поверх
+    владения."""
 
     challenge_rating: float = 0.0
     """CR для награды XP (XP = CR*100, PROGRESSION.md §2). 0 у PC."""
