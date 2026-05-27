@@ -458,6 +458,9 @@ class BattleScreen(Screen[None]):
                 return
         elif isinstance(h, TargetModeHandler):
             if h.cancelled:
+                # REV-4: не оставляем висящий _pending_ability — иначе
+                # следующая атака/interact улетит как старая способность.
+                self._pending_ability = None
                 self.enter_mode(BattleMode.NORMAL)
                 return
             if h.confirmed_target is not None:
@@ -748,6 +751,7 @@ class BattleScreen(Screen[None]):
         bf = encounter.battlefield
         self._current_battlefield = bf
         self._reachable_targets = [(cid, bf.position_of(cid)) for cid in targets]
+        self._pending_ability = None  # REV-4: чистим возможный висящий ability
         self._pending_target_kind = "attack"
         self.enter_mode(BattleMode.TARGET)
 
@@ -825,6 +829,7 @@ class BattleScreen(Screen[None]):
             return
         self._current_battlefield = bf
         self._reachable_targets = candidates
+        self._pending_ability = None  # REV-4
         self._pending_target_kind = "interact"
         self.enter_mode(BattleMode.TARGET)
 
@@ -851,6 +856,7 @@ class BattleScreen(Screen[None]):
             return
         self._current_battlefield = bf
         self._reachable_targets = candidates
+        self._pending_ability = None  # REV-4
         self._pending_target_kind = "break"
         self.enter_mode(BattleMode.TARGET)
 
