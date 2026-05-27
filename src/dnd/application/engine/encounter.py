@@ -355,7 +355,14 @@ class Encounter:
             concentration_source(target.id)
         )
         if target.uses_death_saves and target.is_at_zero_hp:
-            target.begin_dying()
+            became_dying = target.begin_dying()
+            # REV-7: Unconscious подразумевает Prone и Incapacitated (PHB-2024
+            # стр. 367). begin_dying уже выставил сам Unconscious (domain), но
+            # implies — забота ConditionService; догоняем их каскадом.
+            if became_dying:
+                cs = self._deps.condition_service
+                for implied in cs.implies_of(UNCONSCIOUS):
+                    cs.apply_with_implies(target, implied)
             # Огромный урон (massive damage) убивает PC мгновенно: take_damage
             # уже выставил failures=3, begin_dying() стал no-op. Публикуем
             # CreatureDied здесь, иначе смерть пройдёт «молча» (audit M-1).

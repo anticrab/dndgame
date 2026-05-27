@@ -49,6 +49,12 @@ class ConditionService:
     def __init__(self, registry: ConditionRegistry) -> None:
         self._registry = registry
 
+    def implies_of(self, condition_id: ConditionId) -> frozenset[ConditionId]:
+        """Прямые implies состояния (из registry). Нужно, когда корневое
+        состояние уже наложено (напр. Unconscious выставлен begin_dying), а
+        каскад implies всё равно надо догнать (REV-7)."""
+        return self._registry.get(condition_id).implies
+
     def apply_with_implies(
         self,
         creature: Creature,

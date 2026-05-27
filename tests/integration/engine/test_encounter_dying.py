@@ -73,6 +73,20 @@ def test_pc_dropped_to_zero_enters_dying_not_dead() -> None:
     assert not enc.is_concluded  # бой продолжается
 
 
+def test_dying_pc_gets_implied_prone_and_incapacitated() -> None:
+    """REV-7: Unconscious подразумевает Prone и Incapacitated (PHB-2024 стр. 367)
+    — накладываются через ConditionService, а не голым apply_condition."""
+    from dnd.domain.conditions.builtin import INCAPACITATED, PRONE
+
+    pc, gob = _pc(), _goblin()
+    enc = _enc(pc, gob)
+    pc.take_damage(DamageInstance(amount=10, type_=DamageType.SLASHING))
+    enc.event_bus.publish(_lethal(gob, pc))
+    assert pc.has_condition(UNCONSCIOUS)
+    assert pc.has_condition(PRONE)
+    assert pc.has_condition(INCAPACITATED)
+
+
 def test_npc_downed_does_not_get_death_saves() -> None:
     pc, gob = _pc(), _goblin()
     enc = _enc(pc, gob)
