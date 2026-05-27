@@ -67,6 +67,18 @@ SAVE — ещё save_ability; HEAL — heal_dice; BUFF — ≥1 `BuffSpec`).
 Старт нового concentration-заклинания снимает прежний эффект (BuffSpellHandler
 удаляет модификатор по `source_id = spell:{spell}:{caster}`).
 
+## Длительность (`Spell.duration`, этап X0)
+
+Заклинание несёт `duration: Duration` (данными в `spells.yaml`,
+`duration: { unit, amount }`; отсутствие → `INSTANT`). Для **конечной** длительности
+хендлеры кладут дедлайн снятия по игровым часам в событие
+(`ConditionApplied.expires_at_round` / `BuffApplied.expires_at_round`), и
+`OngoingEffectTracker` снимает эффект на границе раунда. Это **дополняет** триггеры
+(урон / повторный спасбросок / срыв концентрации), не заменяет их: `INSTANT` и
+безлимитная концентрация по часам не снимаются. Концентрация-потолки:
+Bless / Hold Person — 1 мин (10 раундов), Shield of Faith — 10 мин (100 раундов).
+Подробно — `docs/TIME.md`.
+
 ## UI
 
 - **TUI**: заклинания актора попадают в `ActionBarWidget` на hotkey'и `1..9`

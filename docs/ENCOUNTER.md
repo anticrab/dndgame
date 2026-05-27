@@ -146,6 +146,13 @@ Character.
 `Encounter` (зависимость идёт «вниз»: Encounter → TurnContext, не
 наоборот).
 
+**X0 — игровые часы.** `EncounterDependencies.clock: GameClock` — общие часы
+сессии (тот же объект держит `GameSession` и читает `OngoingEffectTracker`).
+`Encounter` двигает их на **+1 раунд** на границе раунда — в
+`_advance_turn_pointer` **до** публикации `RoundEnded`, чтобы трекер сравнивал
+дедлайны эффектов с уже обновлёнными часами. Часы двигает только `Encounter`
+(остальные читают) — двойного продвижения нет. См. `docs/TIME.md`.
+
 ---
 
 ## 5. Faction и условие победы
