@@ -1,4 +1,5 @@
 """Path helper для inline MOVE mode: chebyshev path + стоимость в футах."""
+
 from dnd.application.engine.actions.move_path import (
     find_chebyshev_path,
     path_cost_ft,

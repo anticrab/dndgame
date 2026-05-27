@@ -1,4 +1,5 @@
 """JsonMapRepository — карты в data/content/maps/{id}.json."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,8 +13,12 @@ from dnd.infrastructure.content.json_map_repository import JsonMapRepository
 def test_save_then_load_roundtrip(tmp_path: Path) -> None:
     repo = JsonMapRepository(tmp_path)
     doc = MapDocument(
-        id="test", name="Test", width=3, height=3,
-        tiles=(MapTileDoc(x=0, y=0, base="floor"),), objects=(),
+        id="test",
+        name="Test",
+        width=3,
+        height=3,
+        tiles=(MapTileDoc(x=0, y=0, base="floor"),),
+        objects=(),
     )
     repo.save(doc)
     assert repo.load("test") == doc
@@ -53,14 +58,19 @@ def test_creates_dir(tmp_path: Path) -> None:
 
 def test_implements_protocol(tmp_path: Path) -> None:
     from dnd.application.ports.map_repository import MapRepository
+
     assert isinstance(JsonMapRepository(tmp_path), MapRepository)
 
 
 def test_cross_repo_roundtrip(tmp_path: Path) -> None:
     """YamlMap save -> JsonMap load (через model_dump): должны быть равны."""
     from dnd.infrastructure.content.yaml_map_repository import YamlMapRepository
+
     doc = MapDocument(
-        id="x", name="X", width=4, height=3,
+        id="x",
+        name="X",
+        width=4,
+        height=3,
         tiles=(MapTileDoc(x=1, y=1, base="grass"),),
         objects=(),
     )

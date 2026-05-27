@@ -8,6 +8,7 @@
 `can_perform_against` → `ValueError: not enough movement` в середине пути.
 Это роняло живой бой (демо `demo_skirmish`, где гоблины скучены).
 """
+
 from __future__ import annotations
 
 from dnd.application.engine.ai.simple_monster import (
@@ -61,15 +62,25 @@ def _downed_pc(cid: str) -> Creature:
     return pc
 
 
-def _ctx_for(actor: Creature, participants: dict[CreatureId, Creature],
-             factions: dict[CreatureId, Faction], bf: Battlefield,
-             rolls: list[int]) -> TurnContext:
+def _ctx_for(
+    actor: Creature,
+    participants: dict[CreatureId, Creature],
+    factions: dict[CreatureId, Faction],
+    bf: Battlefield,
+    rolls: list[int],
+) -> TurnContext:
     deps, _bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=rolls)
     return TurnContext(
-        actor_id=actor.id, battlefield=deps.battlefield, dice_roller=deps.dice_roller,
-        modifier_applier=deps.modifier_applier, condition_service=deps.condition_service,
-        event_bus=deps.event_bus, rng=deps.rng, participants=participants,
-        movement_remaining_ft=actor.speed_ft, factions=factions,
+        actor_id=actor.id,
+        battlefield=deps.battlefield,
+        dice_roller=deps.dice_roller,
+        modifier_applier=deps.modifier_applier,
+        condition_service=deps.condition_service,
+        event_bus=deps.event_bus,
+        rng=deps.rng,
+        participants=participants,
+        movement_remaining_ft=actor.speed_ft,
+        factions=factions,
     )
 
 
@@ -99,8 +110,8 @@ def test_monster_prefers_conscious_over_downed() -> None:
     downed = _downed_pc("downed")
     alive = _warrior("alive")
     bf.place_creature(goblin.id, Square(1, 1))
-    bf.place_creature(downed.id, Square(2, 1))   # лежачий ближе
-    bf.place_creature(alive.id, Square(5, 1))    # живой дальше
+    bf.place_creature(downed.id, Square(2, 1))  # лежачий ближе
+    bf.place_creature(alive.id, Square(5, 1))  # живой дальше
     participants = {goblin.id: goblin, downed.id: downed, alive.id: alive}
     factions = {
         goblin.id: Faction.MONSTERS,
@@ -109,9 +120,7 @@ def test_monster_prefers_conscious_over_downed() -> None:
     }
     ctx = _ctx_for(goblin, participants, factions, bf, rolls=[])
 
-    target = _find_nearest_hostile(
-        goblin, ctx, is_hostile_from_factions(goblin.id, factions)
-    )
+    target = _find_nearest_hostile(goblin, ctx, is_hostile_from_factions(goblin.id, factions))
     assert target is not None and target.id == alive.id
 
 

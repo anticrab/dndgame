@@ -20,9 +20,7 @@ def _make(creature_id: str, *, str_: int, dex: int, weapon=LONGSWORD, prof: int 
     return Creature.create(
         id_=CreatureId(creature_id),
         name=creature_id,
-        abilities=AbilityScores.of(
-            str_=str_, dex=dex, con=12, int_=10, wis=10, cha=10
-        ),
+        abilities=AbilityScores.of(str_=str_, dex=dex, con=12, int_=10, wis=10, cha=10),
         max_hp=20,
         armor_class=14,
         speed_ft=30,
@@ -137,7 +135,5 @@ def test_is_hostile_from_factions_same_faction_friendly() -> None:
 
     a = CreatureId("a")
     b = CreatureId("b")
-    pred = is_hostile_from_factions(
-        a, {a: Faction.PARTY, b: Faction.PARTY}
-    )
+    pred = is_hostile_from_factions(a, {a: Faction.PARTY, b: Faction.PARTY})
     assert pred(b) is False  # союзник

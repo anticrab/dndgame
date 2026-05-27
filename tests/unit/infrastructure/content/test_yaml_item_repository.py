@@ -1,4 +1,5 @@
 """YamlItemRepository — каталог items из одного YAML."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -29,12 +30,15 @@ def test_missing_file_yields_empty_repository(tmp_path: Path) -> None:
 
 
 def test_loads_minimum_item(tmp_path: Path) -> None:
-    f = _write(tmp_path, """
+    f = _write(
+        tmp_path,
+        """
 - id: gold
   name: "Gold"
   kind: misc
   stackable: true
-""")
+""",
+    )
     repo = YamlItemRepository(f)
     item = repo.load(ItemId("gold"))
     assert item.name == "Gold"
@@ -44,13 +48,16 @@ def test_loads_minimum_item(tmp_path: Path) -> None:
 
 
 def test_loads_with_weight_and_description(tmp_path: Path) -> None:
-    f = _write(tmp_path, """
+    f = _write(
+        tmp_path,
+        """
 - id: sword
   name: "Longsword"
   kind: weapon
   weight_lb: 3.0
   description: "1d8 slashing."
-""")
+""",
+    )
     repo = YamlItemRepository(f)
     sword = repo.load(ItemId("sword"))
     assert sword.weight_lb == 3.0
@@ -65,12 +72,15 @@ def test_missing_id_raises_key_error(tmp_path: Path) -> None:
 
 
 def test_contains_distinguishes_known_from_unknown(tmp_path: Path) -> None:
-    f = _write(tmp_path, """
+    f = _write(
+        tmp_path,
+        """
 - id: gold
   name: Gold
   kind: misc
   stackable: true
-""")
+""",
+    )
     repo = YamlItemRepository(f)
     assert repo.contains(ItemId("gold"))
     assert not repo.contains(ItemId("nope"))
@@ -79,7 +89,9 @@ def test_contains_distinguishes_known_from_unknown(tmp_path: Path) -> None:
 def test_duplicate_ids_rejected(tmp_path: Path) -> None:
     """Защита от опечатки в каталоге — иначе один из дубликатов
     тихо потеряется."""
-    f = _write(tmp_path, """
+    f = _write(
+        tmp_path,
+        """
 - id: gold
   name: Gold
   kind: misc
@@ -88,7 +100,8 @@ def test_duplicate_ids_rejected(tmp_path: Path) -> None:
   name: "Gold (copy)"
   kind: misc
   stackable: true
-""")
+""",
+    )
     with pytest.raises(ValueError, match="duplicate"):
         YamlItemRepository(f)
 

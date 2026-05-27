@@ -43,9 +43,7 @@ def test_active_actor_marker() -> None:
     hero = _make_creature("Hero")
     goblin = _make_creature("Goblin")
     order = [_entry("hero", 18, 0), _entry("goblin", 12, 1)]
-    text = format_initiative(
-        order, {hero.id: hero, goblin.id: goblin}, active_id=hero.id
-    )
+    text = format_initiative(order, {hero.id: hero, goblin.id: goblin}, active_id=hero.id)
     lines = text.splitlines()
     assert lines[0].startswith("1 ▶ Hero")
     assert lines[1].startswith("2 - Goblin")
@@ -58,9 +56,7 @@ def test_dead_creature_gets_cross_marker_and_dead_label() -> None:
     hero = _make_creature("Hero")
     goblin = _make_creature("Goblin", alive=False)
     order = [_entry("hero", 18, 0), _entry("goblin", 12, 1)]
-    text = format_initiative(
-        order, {hero.id: hero, goblin.id: goblin}, active_id=hero.id
-    )
+    text = format_initiative(order, {hero.id: hero, goblin.id: goblin}, active_id=hero.id)
     assert "✗" in text
     assert "DEAD" in text
     assert "[dim strike]Goblin" in text  # markup присутствует

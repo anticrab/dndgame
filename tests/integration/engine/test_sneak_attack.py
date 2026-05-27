@@ -1,4 +1,5 @@
 """R1-9: Sneak Attack — +Nd6 при условии, раз за ход."""
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import DamageDealt
@@ -17,17 +18,25 @@ from dnd.domain.values.weapon import SHORTSWORD  # finesse
 
 def _setup(rolls: list[int], *, ally: bool) -> tuple[Creature, Creature, object]:
     rogue = Creature.create(
-        id_="rogue", name="Rogue",
+        id_="rogue",
+        name="Rogue",
         abilities=AbilityScores.of(str_=10, dex=16, con=12, int_=10, wis=10, cha=10),
-        max_hp=16, armor_class=14, speed_ft=30, equipped_weapon=SHORTSWORD,
+        max_hp=16,
+        armor_class=14,
+        speed_ft=30,
+        equipped_weapon=SHORTSWORD,
     )
     rogue.character_class = "rogue"
     rogue.level = 3
     rogue.features = (FeatureId("sneak_attack"),)
     gob = Creature.create(
-        id_="gob", name="Gob",
+        id_="gob",
+        name="Gob",
         abilities=AbilityScores.of(str_=8, dex=8, con=10, int_=8, wis=8, cha=8),
-        max_hp=40, armor_class=5, speed_ft=30, equipped_weapon=SHORTSWORD,
+        max_hp=40,
+        armor_class=5,
+        speed_ft=30,
+        equipped_weapon=SHORTSWORD,
     )
     participants = {rogue.id: rogue, gob.id: gob}
     factions = {rogue.id: Faction.PARTY, gob.id: Faction.MONSTERS}
@@ -36,9 +45,13 @@ def _setup(rolls: list[int], *, ally: bool) -> tuple[Creature, Creature, object]
     bf.place_creature(gob.id, Square(3, 2))
     if ally:
         mate = Creature.create(
-            id_="mate", name="Mate",
+            id_="mate",
+            name="Mate",
             abilities=AbilityScores.of(str_=12, dex=12, con=12, int_=10, wis=10, cha=10),
-            max_hp=10, armor_class=14, speed_ft=30, equipped_weapon=SHORTSWORD,
+            max_hp=10,
+            armor_class=14,
+            speed_ft=30,
+            equipped_weapon=SHORTSWORD,
         )
         participants[mate.id] = mate
         factions[mate.id] = Faction.PARTY
@@ -76,12 +89,19 @@ def test_no_sneak_attack_with_disadvantage_even_if_ally_adjacent() -> None:
 
     rogue, gob, ctx = _setup([20, 19, 18], ally=True)
     attack_ctx = RollContext(
-        purpose=RollPurpose.ATTACK, actor_id=rogue.id, target_id=gob.id,
-        advantage=False, disadvantage=True,
+        purpose=RollPurpose.ATTACK,
+        actor_id=rogue.id,
+        target_id=gob.id,
+        advantage=False,
+        disadvantage=True,
     )
     hp_before = gob.hit_points.current
     _maybe_sneak_attack(
-        rogue, gob, weapon_attack_params(rogue, gob.id), attack_ctx, ctx,
+        rogue,
+        gob,
+        weapon_attack_params(rogue, gob.id),
+        attack_ctx,
+        ctx,
         is_crit=False,
     )
     assert rogue.sneak_used_this_turn is False
@@ -94,5 +114,5 @@ def test_no_sneak_without_condition() -> None:
     dmg: list[DamageDealt] = []
     ctx.event_bus.subscribe(DamageDealt, dmg.append)
     AttackAction().execute(rogue, weapon_attack_params(rogue, gob.id), ctx)
-    assert sum(d.raw_amount for d in dmg) < 4 + 6   # только shortsword
+    assert sum(d.raw_amount for d in dmg) < 4 + 6  # только shortsword
     assert rogue.sneak_used_this_turn is False

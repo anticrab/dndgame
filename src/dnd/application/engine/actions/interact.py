@@ -8,6 +8,7 @@ PHB-2024 стр. 21 «Object Interaction»: открыть/закрыть две
 Cost: FREE (через TurnContext.use_object_interaction).
 Reach: 5ft (стандарт melee).
 """
+
 from __future__ import annotations
 
 from enum import StrEnum
@@ -62,9 +63,7 @@ class InteractAction:
     def economy_cost(self) -> ActionEconomyCost:
         return self.economy_cost_value
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         """Free object-interaction: проверяем что в этом ходу ещё не
         потрачено (PHB-2024 стр. 21)."""
         if not ctx.can_use_object_interaction():
@@ -89,9 +88,11 @@ class InteractAction:
         if actor_pos.distance_to_feet(obj.pos) > _REACH_FT:
             return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
         # Дополнительные kind-specific проверки.
-        if params.kind is InteractKind.OPEN and obj.kind in (
-            ObjectKind.DOOR, ObjectKind.CHEST
-        ) and obj.state.get("locked"):
+        if (
+            params.kind is InteractKind.OPEN
+            and obj.kind in (ObjectKind.DOOR, ObjectKind.CHEST)
+            and obj.state.get("locked")
+        ):
             return Forbidden(
                 reason=ForbiddenReason.CUSTOM,
                 details=f"{obj.kind.value} is locked",
@@ -110,9 +111,7 @@ class InteractAction:
         ctx: TurnContext,
     ) -> ActionOutcome:
         if not isinstance(params, InteractParams):
-            raise TypeError(
-                f"InteractAction expects InteractParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"InteractAction expects InteractParams, got {type(params).__name__}")
         ctx.use_object_interaction()
         obj = ctx.battlefield.object_at(params.target_object_id)
 

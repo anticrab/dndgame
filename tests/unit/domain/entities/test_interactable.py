@@ -1,4 +1,5 @@
 """InteractableObject — двери/сундуки/бочки/окна с состояниями."""
+
 from __future__ import annotations
 
 import pytest

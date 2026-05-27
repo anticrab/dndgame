@@ -6,6 +6,7 @@
 ability оказалась бы привязана к двум клавишам (играющему это
 непонятно — какая клавиша «настоящая»).
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -28,9 +29,7 @@ def rebind_ability(actor: Creature, key: str, ability_id: AbilityId) -> None:
     Финальный ``{hotkey: Ability}`` собирает :func:`build_keymap`.
     """
     actor.keybindings = {
-        k: aid
-        for k, aid in actor.keybindings.items()
-        if k != key and aid != ability_id
+        k: aid for k, aid in actor.keybindings.items() if k != key and aid != ability_id
     }
     actor.keybindings[key] = ability_id
 

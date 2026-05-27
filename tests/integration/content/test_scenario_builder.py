@@ -76,9 +76,7 @@ def test_build_encounter_from_mvp_skirmish(repo: YamlContentRepository) -> None:
         battlefield=Battlefield(1, 1),  # будет заменён в build_encounter
         rolls=[],
     )
-    enc = build_encounter_from_scenario(
-        scenario, content=repo, deps=deps
-    )
+    enc = build_encounter_from_scenario(scenario, content=repo, deps=deps)
     # Участники расставлены и имеют правильные factions.
     assert len(enc.participants) == 2
     assert any(f is Faction.PARTY for f in enc.factions.values())
@@ -92,9 +90,7 @@ def test_party_creatures_use_death_saves(repo: YamlContentRepository) -> None:
     """Q-11: существа фракции PARTY получают uses_death_saves=True,
     MONSTERS — False (мгновенная смерть → CORPSE)."""
     scenario = repo.scenario_by_id("mvp_skirmish")
-    deps, _bus, _rng = build_scripted_dependencies(
-        battlefield=Battlefield(1, 1), rolls=[]
-    )
+    deps, _bus, _rng = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=[])
     enc = build_encounter_from_scenario(scenario, content=repo, deps=deps)
     for cid, faction in enc.factions.items():
         creature = enc.participants[cid]
@@ -109,16 +105,12 @@ def test_e2e_scenario_run_via_yaml(repo: YamlContentRepository) -> None:
     scenario = repo.scenario_by_id("mvp_skirmish")
     rolls = [
         18,  # warrior init: 18+1=19
-        8,   # goblin init: 8+2=10 → warrior первый
+        8,  # goblin init: 8+2=10 → warrior первый
         18,  # warrior atk: 18+5=23 vs 13 → попал
-        7,   # warrior damage 1d8=7; +3 STR = 10 → goblin 7-10 = 0
+        7,  # warrior damage 1d8=7; +3 STR = 10 → goblin 7-10 = 0
     ]
-    deps, bus, _rng = build_scripted_dependencies(
-        battlefield=Battlefield(1, 1), rolls=rolls
-    )
-    enc = build_encounter_from_scenario(
-        scenario, content=repo, deps=deps
-    )
+    deps, bus, _rng = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=rolls)
+    enc = build_encounter_from_scenario(scenario, content=repo, deps=deps)
     captured: list[EngineEvent] = []
     bus.subscribe(EngineEvent, captured.append)
 
@@ -135,9 +127,7 @@ def test_e2e_scenario_run_via_yaml(repo: YamlContentRepository) -> None:
         if enc.factions[actor_id] is Faction.PARTY:
             from dnd.application.dto.action import Allowed
 
-            target_id = next(
-                cid for cid, f in enc.factions.items() if f is Faction.MONSTERS
-            )
+            target_id = next(cid for cid, f in enc.factions.items() if f is Faction.MONSTERS)
             params = weapon_attack_params(actor, target_id)
             attack = AttackAction()
             if isinstance(attack.can_perform_against(actor, params, ctx), Allowed):
@@ -159,9 +149,7 @@ def test_e2e_scenario_run_via_yaml(repo: YamlContentRepository) -> None:
 def test_build_battlefield_validates_grid_height() -> None:
     from dnd.application.dto.templates import MapTemplate
 
-    bad = MapTemplate(
-        width=3, height=3, legend={".": "floor"}, grid=("...", "...")
-    )
+    bad = MapTemplate(width=3, height=3, legend={".": "floor"}, grid=("...", "..."))
     with pytest.raises(ValueError, match="rows"):
         build_battlefield_from_map(bad)
 
@@ -169,9 +157,7 @@ def test_build_battlefield_validates_grid_height() -> None:
 def test_build_battlefield_validates_row_width() -> None:
     from dnd.application.dto.templates import MapTemplate
 
-    bad = MapTemplate(
-        width=3, height=2, legend={".": "floor"}, grid=("...", "....")
-    )
+    bad = MapTemplate(width=3, height=2, legend={".": "floor"}, grid=("...", "...."))
     with pytest.raises(ValueError, match="length"):
         build_battlefield_from_map(bad)
 
@@ -179,9 +165,7 @@ def test_build_battlefield_validates_row_width() -> None:
 def test_build_battlefield_rejects_unknown_symbol() -> None:
     from dnd.application.dto.templates import MapTemplate
 
-    bad = MapTemplate(
-        width=3, height=1, legend={".": "floor"}, grid=("X..",)
-    )
+    bad = MapTemplate(width=3, height=1, legend={".": "floor"}, grid=("X..",))
     with pytest.raises(ValueError, match="unknown legend symbol"):
         build_battlefield_from_map(bad)
 
@@ -199,9 +183,7 @@ def test_build_battlefield_rejects_unknown_symbol() -> None:
         "forest_clearing",
     ],
 )
-def test_k8_scenarios_load_via_map_id(
-    repo: YamlContentRepository, scenario_id: str
-) -> None:
+def test_k8_scenarios_load_via_map_id(repo: YamlContentRepository, scenario_id: str) -> None:
     """Каждый K8-сценарий имеет map_id, без inline map, и загружается
     через MapRepository + SpriteRegistry."""
     from dnd.infrastructure.content.yaml_map_repository import YamlMapRepository
@@ -211,9 +193,7 @@ def test_k8_scenarios_load_via_map_id(
     assert scenario.map_id == scenario_id
     assert scenario.map is None
 
-    deps, _bus, _rng = build_scripted_dependencies(
-        battlefield=Battlefield(1, 1), rolls=[]
-    )
+    deps, _bus, _rng = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=[])
     map_repo = YamlMapRepository(_DEFAULT_CONTENT / "maps")
     sprites = YamlSpriteRegistry(_DEFAULT_CONTENT / "sprites")
     enc = build_encounter_from_scenario(
@@ -238,9 +218,7 @@ def test_warehouse_has_interactable_objects(
     from dnd.infrastructure.content.yaml_sprite_registry import YamlSpriteRegistry
 
     scenario = repo.scenario_by_id("warehouse")
-    deps, _bus, _rng = build_scripted_dependencies(
-        battlefield=Battlefield(1, 1), rolls=[]
-    )
+    deps, _bus, _rng = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=[])
     map_repo = YamlMapRepository(_DEFAULT_CONTENT / "maps")
     sprites = YamlSpriteRegistry(_DEFAULT_CONTENT / "sprites")
     enc = build_encounter_from_scenario(
@@ -267,7 +245,9 @@ def test_scenario_with_map_id_without_repo_raises() -> None:
 
     repo = YamlContentRepository(_DEFAULT_CONTENT)
     scenario = ScenarioTemplate(
-        id="virtual", name="virtual", map_id="warehouse",
+        id="virtual",
+        name="virtual",
+        map_id="warehouse",
         spawns=(
             SpawnTemplate(
                 template_id="warrior_lv1",
@@ -277,9 +257,7 @@ def test_scenario_with_map_id_without_repo_raises() -> None:
             ),
         ),
     )
-    deps, _bus, _rng = build_scripted_dependencies(
-        battlefield=Battlefield(1, 1), rolls=[]
-    )
+    deps, _bus, _rng = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=[])
     with pytest.raises(ValueError, match="map_repository"):
         build_encounter_from_scenario(scenario, content=repo, deps=deps)
 
@@ -293,13 +271,12 @@ def test_scenario_template_xor_map_and_map_id() -> None:
     )
 
     map_t = MapTemplate(
-        width=2, height=2, legend={".": "floor"}, grid=("..", ".."),
+        width=2,
+        height=2,
+        legend={".": "floor"},
+        grid=("..", ".."),
     )
-    sp = (
-        SpawnTemplate(
-            template_id="x", instance_id="i", at=(0, 0), faction=Faction.PARTY
-        ),
-    )
+    sp = (SpawnTemplate(template_id="x", instance_id="i", at=(0, 0), faction=Faction.PARTY),)
     # Оба заданы — ошибка.
     with pytest.raises(ValueError, match="exactly one"):
         ScenarioTemplate(id="a", name="a", map=map_t, map_id="x", spawns=sp)
@@ -331,9 +308,7 @@ def test_dnd_play_warehouse_via_cli_runner(
     from typer.testing import CliRunner
 
     runner = CliRunner()
-    result = runner.invoke(
-        app_module.app, ["play", "warehouse"]
-    )
+    result = runner.invoke(app_module.app, ["play", "warehouse"])
     # Главное — scenario найден, encounter собрался; код выхода 0 или
     # завершение по MAX_ROUNDS — оба ОК. Старый баг был
     # «Scenario not found», который exit_code=2 + stderr про not found.

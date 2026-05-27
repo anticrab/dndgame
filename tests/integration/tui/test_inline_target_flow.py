@@ -5,6 +5,7 @@
 подтверждает выбор и кладёт ``AttackIntent`` в очередь — экран
 возвращается в ``NORMAL``. Esc отменяет без удара.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -35,19 +36,31 @@ def _enc_adjacent() -> Encounter:
     либо не запускается, либо PC не получает ход в timeout.
     """
     pc = Creature.create(
-        id_=CreatureId("aelar"), name="Aelar",
+        id_=CreatureId("aelar"),
+        name="Aelar",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     g1 = Creature.create(
-        id_=CreatureId("g1"), name="G1",
+        id_=CreatureId("g1"),
+        name="G1",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     g2 = Creature.create(
-        id_=CreatureId("g2"), name="G2",
+        id_=CreatureId("g2"),
+        name="G2",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(10, 10)
     bf.place_creature(pc.id, Square(5, 5))

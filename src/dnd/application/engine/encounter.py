@@ -98,9 +98,7 @@ class EncounterNotStartedError(RuntimeError):
 ReactionPolicy = Callable[[OpportunityAttackProvoked, "Encounter"], None]
 
 
-def noop_reaction_policy(
-    _event: OpportunityAttackProvoked, _encounter: Encounter
-) -> None:
+def noop_reaction_policy(_event: OpportunityAttackProvoked, _encounter: Encounter) -> None:
     """Политика для UI-режима, где игрок сам решает.
 
     Дефолтом для production не подходит: в боевке без OA-реакций
@@ -163,14 +161,10 @@ class Encounter:
             raise ValueError("encounter must have at least one participant")
         missing = set(participants) - set(factions)
         if missing:
-            raise ValueError(
-                f"factions missing for participants: {sorted(missing)}"
-            )
+            raise ValueError(f"factions missing for participants: {sorted(missing)}")
         unknown = set(factions) - set(participants)
         if unknown:
-            raise ValueError(
-                f"factions has unknown creature_ids: {sorted(unknown)}"
-            )
+            raise ValueError(f"factions has unknown creature_ids: {sorted(unknown)}")
 
         # Делаем неглубокую копию: добавление participants после start()
         # в MVP не поддерживается — initiative_order фиксирован при start(),
@@ -225,17 +219,13 @@ class Encounter:
     @property
     def round_number(self) -> int:
         if not self._state.started:
-            raise EncounterNotStartedError(
-                "round_number is undefined until start() is called"
-            )
+            raise EncounterNotStartedError("round_number is undefined until start() is called")
         return self._state.round_number
 
     @property
     def initiative_order(self) -> tuple[InitiativeEntry, ...]:
         if not self._state.started:
-            raise EncounterNotStartedError(
-                "initiative_order is undefined until start() is called"
-            )
+            raise EncounterNotStartedError("initiative_order is undefined until start() is called")
         return self._state.initiative_order
 
     @property
@@ -249,9 +239,7 @@ class Encounter:
     @property
     def current_actor_id(self) -> CreatureId:
         if not self._state.started:
-            raise EncounterNotStartedError(
-                "current_actor_id is undefined until start() is called"
-            )
+            raise EncounterNotStartedError("current_actor_id is undefined until start() is called")
         return self._state.initiative_order[self._state.current_turn_index].creature_id
 
     # --- запуск ------------------------------------------------------
@@ -265,9 +253,7 @@ class Encounter:
         попадают — они и так не ходят (PHB-2024 стр. 22).
         """
         if self._state.started:
-            raise EncounterAlreadyStartedError(
-                "Encounter.start() may be called only once"
-            )
+            raise EncounterAlreadyStartedError("Encounter.start() may be called only once")
 
         entries: list[InitiativeEntry] = []
         for insertion_order, (cid, creature) in enumerate(self._participants.items()):
@@ -276,9 +262,7 @@ class Encounter:
             entries.append(self._roll_initiative_for(cid, creature, insertion_order))
 
         # Сортировка: total DESC, d20 DESC, dex DESC, insertion_order ASC.
-        entries.sort(
-            key=lambda e: (-e.total, -e.d20_raw, -e.dex_score, e.insertion_order)
-        )
+        entries.sort(key=lambda e: (-e.total, -e.d20_raw, -e.dex_score, e.insertion_order))
 
         order = tuple(entries)
         self._state.started = True
@@ -306,9 +290,7 @@ class Encounter:
         # Слушаем DamageDealt (а не AttackResolved): это единый сигнал урона
         # для оружия И заклинаний, поэтому downing/срыв концентрации работают
         # одинаково независимо от источника (P2b-audit M1).
-        self._unsubscribe_downed = self._deps.event_bus.subscribe(
-            DamageDealt, self._on_downed
-        )
+        self._unsubscribe_downed = self._deps.event_bus.subscribe(DamageDealt, self._on_downed)
 
     def _on_provoked(self, event: OpportunityAttackProvoked) -> None:
         """Делегирование политике. Бой может уже быть concluded — тогда
@@ -359,9 +341,7 @@ class Encounter:
         # MAJOR-1 (P1-audit): летальный урон авто-рвёт концентрацию
         # (Creature.take_damage обнулил target.concentration); снимаем и
         # модификатор-бафф этого кастера (иначе +AC «висел» бы вечно).
-        self._deps.modifier_applier.remove_by_source(
-            concentration_source(target.id)
-        )
+        self._deps.modifier_applier.remove_by_source(concentration_source(target.id))
         if target.uses_death_saves and target.is_at_zero_hp:
             became_dying = target.begin_dying()
             # REV-7: Unconscious подразумевает Prone и Incapacitated (PHB-2024
@@ -401,9 +381,12 @@ class Encounter:
         roll = self._deps.dice_roller.roll(
             DiceExpr.parse(f"d20{con_bonus + save_adj.numeric_bonus:+d}"),
             RollContext(
-                purpose=RollPurpose.SAVE, actor_id=target.id,
-                advantage=save_adj.advantage, disadvantage=save_adj.disadvantage,
-                extra_dice=save_adj.extra_dice, tags=("concentration",),
+                purpose=RollPurpose.SAVE,
+                actor_id=target.id,
+                advantage=save_adj.advantage,
+                disadvantage=save_adj.disadvantage,
+                extra_dice=save_adj.extra_dice,
+                tags=("concentration",),
             ),
         )
         if roll.total >= dc:
@@ -411,9 +394,14 @@ class Encounter:
         broken = target.concentration
         target.concentration = None
         self._deps.modifier_applier.remove_by_source(concentration_source(target.id))
-        self._deps.event_bus.publish(ConcentrationBroken(
-            actor_id=target.id, spell_id=str(broken), dc=dc, roll_total=roll.total,
-        ))
+        self._deps.event_bus.publish(
+            ConcentrationBroken(
+                actor_id=target.id,
+                spell_id=str(broken),
+                dc=dc,
+                roll_total=roll.total,
+            )
+        )
 
     def _spawn_corpse(self, dead: Creature) -> None:
         """Положить CORPSE-объект с инвентарём павшего NPC для лута (Q-8).
@@ -431,18 +419,20 @@ class Encounter:
         if not self._deps.battlefield.has_creature(dead.id):
             return  # нет позиции — нечего класть
         pos = self._deps.battlefield.position_of(dead.id)
-        self._deps.battlefield.place_object(InteractableObject(
-            id=corpse_id,
-            kind=ObjectKind.CORPSE,
-            pos=pos,
-            state={
-                "open": False,
-                "locked": False,
-                "hp": 1,
-                "ac": 5,
-                "contents": dump_loot_entries(dead.inventory.stacks),
-            },
-        ))
+        self._deps.battlefield.place_object(
+            InteractableObject(
+                id=corpse_id,
+                kind=ObjectKind.CORPSE,
+                pos=pos,
+                state={
+                    "open": False,
+                    "locked": False,
+                    "hp": 1,
+                    "ac": 5,
+                    "contents": dump_loot_entries(dead.inventory.stacks),
+                },
+            )
+        )
 
     def _roll_death_save_for(self, actor: Creature) -> None:
         """Бросить за лежачего PC спасбросок от смерти (PHB-2024 стр. 27).
@@ -632,9 +622,7 @@ class Encounter:
             "encounter forcefully ended: round limit %d reached",
             self.MAX_ROUNDS,
         )
-        survivors = tuple(
-            cid for cid, cr in self._participants.items() if cr.is_alive
-        )
+        survivors = tuple(cid for cid, cr in self._participants.items() if cr.is_alive)
         self._state.concluded = True
         if self._unsubscribe_provoked is not None:
             self._unsubscribe_provoked()
@@ -657,6 +645,7 @@ class Encounter:
         from dnd.application.engine.features.defaults import default_resource_registry
         from dnd.application.engine.progression.rest import RestService
         from dnd.domain.values.rest import RestKind
+
         rest = RestService(default_resource_registry())
         for cid, cr in self._participants.items():
             if self._factions.get(cid) is Faction.PARTY:
@@ -693,11 +682,7 @@ class Encounter:
         """
         if cr.is_alive:
             return True
-        return (
-            cr.uses_death_saves
-            and cr.death_saves is not None
-            and not cr.death_saves.is_dead
-        )
+        return cr.uses_death_saves and cr.death_saves is not None and not cr.death_saves.is_dead
 
     def _is_outcome_decided(self) -> bool:
         combatant_by_faction: dict[Faction, list[CreatureId]] = {}
@@ -705,9 +690,7 @@ class Encounter:
             if not self._is_combatant(cr):
                 continue
             combatant_by_faction.setdefault(self._factions[cid], []).append(cid)
-        combat_factions = [
-            f for f in combatant_by_faction if f is not Faction.NEUTRAL
-        ]
+        combat_factions = [f for f in combatant_by_faction if f is not Faction.NEUTRAL]
         return len(combat_factions) <= 1
 
     def _check_end_condition(self) -> bool:
@@ -727,9 +710,7 @@ class Encounter:
             combatant_by_faction.setdefault(self._factions[cid], []).append(cid)
 
         combat_factions = {
-            f: ids
-            for f, ids in combatant_by_faction.items()
-            if f is not Faction.NEUTRAL
+            f: ids for f, ids in combatant_by_faction.items() if f is not Faction.NEUTRAL
         }
 
         if len(combat_factions) > 1:

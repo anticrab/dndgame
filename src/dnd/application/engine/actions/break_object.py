@@ -8,6 +8,7 @@ Cost: ACTION. В отличие от AttackAction (creature target), BreakAction
 имеет ``target_object_id`` и не использует cover/LoS rules (объект
 статичен; cover irrelevant) — но reach 5ft melee всё же требуется.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -58,9 +59,7 @@ class BreakAction:
     def economy_cost(self) -> ActionEconomyCost:
         return self.economy_cost_value
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         if not ctx.can_spend(ActionEconomyCost.ACTION):
             return Forbidden(reason=ForbiddenReason.NO_ECONOMY_LEFT)
         return Allowed()
@@ -96,9 +95,7 @@ class BreakAction:
         ctx: TurnContext,
     ) -> ActionOutcome:
         if not isinstance(params, BreakParams):
-            raise TypeError(
-                f"BreakAction expects BreakParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"BreakAction expects BreakParams, got {type(params).__name__}")
         ctx.spend(ActionEconomyCost.ACTION)
         obj = ctx.battlefield.object_at(params.target_object_id)
         ac = int(obj.state.get("ac", 10))
@@ -116,10 +113,7 @@ class BreakAction:
             return ActionOutcome(
                 success=True,
                 consumed=ActionEconomyCost.ACTION,
-                notes=(
-                    f"break: miss vs {obj.kind.value} "
-                    f"(d20={atk.d20_raw or 0}, ac={ac})"
-                ),
+                notes=(f"break: miss vs {obj.kind.value} (d20={atk.d20_raw or 0}, ac={ac})"),
             )
 
         # Damage roll.
@@ -131,9 +125,7 @@ class BreakAction:
         dmg = ctx.dice_roller.roll(dmg_expr, dmg_ctx)
         raw = max(0, dmg.total)
 
-        result = obj.take_damage(
-            DamageInstance(amount=raw, type_=params.damage_type)
-        )
+        result = obj.take_damage(DamageInstance(amount=raw, type_=params.damage_type))
 
         ctx.event_bus.publish(
             ObjectDamaged(

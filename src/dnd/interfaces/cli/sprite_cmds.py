@@ -3,6 +3,7 @@
 Все команды работают через ``SpriteRegistry`` Port; default-реализация —
 ``YamlSpriteRegistry`` поверх ``data/content/sprites/``.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,24 +25,23 @@ def _registry(content_dir: Path) -> YamlSpriteRegistry:
 
 @sprite_app.command("list")
 def list_(
-    category: str = typer.Option(
-        None, "--category", help="terrain | feature | object | creature"
-    ),
+    category: str = typer.Option(None, "--category", help="terrain | feature | object | creature"),
     format_: str = typer.Option("table", "--format", help="table | json"),
     content_dir: Path = typer.Option(_DEFAULT_SPRITES, "--content-dir"),
 ) -> None:
     """Список загруженных sprites."""
     reg = _registry(content_dir)
-    categories = (
-        [SpriteCategory(category)] if category
-        else list(SpriteCategory)
-    )
+    categories = [SpriteCategory(category)] if category else list(SpriteCategory)
     items: list[dict[str, str]] = []
     for cat in categories:
         for sp in reg.list_by_category(cat):
-            items.append({
-                "id": sp.id, "name": sp.name, "category": cat.value,
-            })
+            items.append(
+                {
+                    "id": sp.id,
+                    "name": sp.name,
+                    "category": cat.value,
+                }
+            )
 
     if format_ == "json":
         typer.echo(json.dumps(items, ensure_ascii=False, indent=2))

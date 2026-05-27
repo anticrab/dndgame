@@ -1,4 +1,5 @@
 """P2-4/P2-5: AoE-резолвинг целей в CastSpellAction (круг/конус, friendly fire)."""
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -27,30 +28,49 @@ from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 
 _FIREBALL = Spell(
-    id=SpellId("fireball"), name="Fireball", level=1, school="evocation",
+    id=SpellId("fireball"),
+    name="Fireball",
+    level=1,
+    school="evocation",
     effect=SpellEffect.SAVE,
     targeting=TargetingSpec(
-        kind=TargetKind.AREA, origin=OriginMode.AT_POINT,
-        shape=AreaShape.CIRCLE, radius_ft=10,  # 2 клетки
+        kind=TargetKind.AREA,
+        origin=OriginMode.AT_POINT,
+        shape=AreaShape.CIRCLE,
+        radius_ft=10,  # 2 клетки
     ),
-    range_ft=150, description="", dice="1d6", damage_type=DamageType.FIRE,
-    save_ability=Ability.DEX, save_for_half=True,
+    range_ft=150,
+    description="",
+    dice="1d6",
+    damage_type=DamageType.FIRE,
+    save_ability=Ability.DEX,
+    save_for_half=True,
 )
 _BURNING_HANDS = Spell(
-    id=SpellId("burning_hands"), name="Burning Hands", level=1, school="evocation",
+    id=SpellId("burning_hands"),
+    name="Burning Hands",
+    level=1,
+    school="evocation",
     effect=SpellEffect.SAVE,
     targeting=TargetingSpec(
-        kind=TargetKind.AREA, origin=OriginMode.FROM_CASTER,
-        shape=AreaShape.CONE, length_ft=15,  # 3 клетки
+        kind=TargetKind.AREA,
+        origin=OriginMode.FROM_CASTER,
+        shape=AreaShape.CONE,
+        length_ft=15,  # 3 клетки
     ),
-    range_ft=15, description="", dice="1d6", damage_type=DamageType.FIRE,
-    save_ability=Ability.DEX, save_for_half=True,
+    range_ft=15,
+    description="",
+    dice="1d6",
+    damage_type=DamageType.FIRE,
+    save_ability=Ability.DEX,
+    save_for_half=True,
 )
 
 
 class _Repo:
     _m: ClassVar[dict[SpellId, Spell]] = {
-        _FIREBALL.id: _FIREBALL, _BURNING_HANDS.id: _BURNING_HANDS,
+        _FIREBALL.id: _FIREBALL,
+        _BURNING_HANDS.id: _BURNING_HANDS,
     }
 
     def list_ids(self) -> tuple[SpellId, ...]:
@@ -65,9 +85,12 @@ class _Repo:
 
 def _mage() -> Creature:
     c = Creature.create(
-        id_="mage", name="Mage",
+        id_="mage",
+        name="Mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=20, armor_class=12, speed_ft=30,
+        max_hp=20,
+        armor_class=12,
+        speed_ft=30,
     )
     c.spellcasting_ability = Ability.INT
     c.known_spells = (SpellId("fireball"), SpellId("burning_hands"))
@@ -79,14 +102,19 @@ def _mage() -> Creature:
 
 def _grunt(id_: str, faction_hp: int = 12) -> Creature:
     return Creature.create(
-        id_=id_, name=id_,
+        id_=id_,
+        name=id_,
         abilities=AbilityScores.of(str_=12, dex=10, con=12, int_=8, wis=8, cha=8),
-        max_hp=faction_hp, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=faction_hp,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
 
 
-def _setup(positions: dict[str, Square], factions: dict[str, Faction],
-           rolls: list[int]) -> tuple[Encounter, dict[str, Creature], object]:
+def _setup(
+    positions: dict[str, Square], factions: dict[str, Faction], rolls: list[int]
+) -> tuple[Encounter, dict[str, Creature], object]:
     creatures: dict[str, Creature] = {}
     bf = Battlefield(10, 10)
     for cid, pos in positions.items():
@@ -115,12 +143,16 @@ def test_fireball_at_point_hits_all_in_circle_incl_ally() -> None:
     # накрывает всех троих (friendly fire), мага — нет.
     enc, cr, ctx = _setup(
         positions={
-            "mage": Square(1, 1), "gobA": Square(4, 4),
-            "gobB": Square(5, 4), "ally": Square(4, 5),
+            "mage": Square(1, 1),
+            "gobA": Square(4, 4),
+            "gobB": Square(5, 4),
+            "ally": Square(4, 5),
         },
         factions={
-            "mage": Faction.PARTY, "ally": Faction.PARTY,
-            "gobA": Faction.MONSTERS, "gobB": Faction.MONSTERS,
+            "mage": Faction.PARTY,
+            "ally": Faction.PARTY,
+            "gobA": Faction.MONSTERS,
+            "gobB": Faction.MONSTERS,
         },
         rolls=[20, 19, 18, 17] + [3] * 40,  # инициативы + урон/сейвы (провал → урон)
     )
@@ -152,7 +184,7 @@ def test_fireball_hits_caster_in_own_blast() -> None:
         ctx,
     )
     hit_ids = {d.target_id for d in dmg}
-    assert cr["mage"].id in hit_ids   # сам себя задел
+    assert cr["mage"].id in hit_ids  # сам себя задел
     assert cr["gobA"].id in hit_ids
 
 
@@ -207,12 +239,16 @@ def test_burning_hands_cone_hits_creatures_in_direction() -> None:
     # маг(2,2), конус на E длиной 3: задевает (3,2),(4,1),(4,2),(4,3),(5,*)...
     enc, cr, ctx = _setup(
         positions={
-            "mage": Square(2, 2), "gobA": Square(3, 2), "gobB": Square(4, 3),
+            "mage": Square(2, 2),
+            "gobA": Square(3, 2),
+            "gobB": Square(4, 3),
             "behind": Square(1, 2),  # позади мага (W) — не в конусе
         },
         factions={
-            "mage": Faction.PARTY, "gobA": Faction.MONSTERS,
-            "gobB": Faction.MONSTERS, "behind": Faction.MONSTERS,
+            "mage": Faction.PARTY,
+            "gobA": Faction.MONSTERS,
+            "gobB": Faction.MONSTERS,
+            "behind": Faction.MONSTERS,
         },
         rolls=[20, 19, 18, 17] + [3] * 40,
     )
@@ -233,15 +269,19 @@ def test_yaml_fireball_smoke_hits_multiple() -> None:
     from pathlib import Path
 
     from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository
+
     spells = YamlSpellRepository(
         Path(__file__).resolve().parents[3] / "data" / "content" / "spells.yaml"
     )
     enc, cr, ctx = _setup(
         positions={
-            "mage": Square(0, 0), "gobA": Square(5, 5), "gobB": Square(6, 5),
+            "mage": Square(0, 0),
+            "gobA": Square(5, 5),
+            "gobB": Square(6, 5),
         },
         factions={
-            "mage": Faction.PARTY, "gobA": Faction.MONSTERS,
+            "mage": Faction.PARTY,
+            "gobA": Faction.MONSTERS,
             "gobB": Faction.MONSTERS,
         },
         rolls=[20, 19, 18] + [3] * 40,

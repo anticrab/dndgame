@@ -44,9 +44,7 @@ def format_status(actor: Creature, ctx: TurnContext | None = None) -> str:
     # Q-10: пипсы спасбросков от смерти (PHB-2024 стр. 27) — только когда
     # существо в dying (death_saves is not None).
     if actor.death_saves is not None:
-        bits.append(_death_save_markup(
-            actor.death_saves.successes, actor.death_saves.failures
-        ))
+        bits.append(_death_save_markup(actor.death_saves.successes, actor.death_saves.failures))
     return "  ".join(bits)
 
 
@@ -89,9 +87,7 @@ class StatusWidget(Static):
         kwargs.setdefault("markup", True)
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
 
-    def refresh_from(
-        self, actor: Creature, ctx: TurnContext | None = None
-    ) -> None:
+    def refresh_from(self, actor: Creature, ctx: TurnContext | None = None) -> None:
         self.update(format_status(actor, ctx))
 
 

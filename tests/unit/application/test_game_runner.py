@@ -113,9 +113,7 @@ def _make_isolated_encounter(
 
 
 def test_scripted_provider_returns_intents_in_order() -> None:
-    provider = ScriptedIntentProvider(
-        [AttackIntent(target_id=CreatureId("a")), EndTurnIntent()]
-    )
+    provider = ScriptedIntentProvider([AttackIntent(target_id=CreatureId("a")), EndTurnIntent()])
     from unittest.mock import MagicMock
 
     actor = MagicMock()
@@ -143,14 +141,12 @@ def test_runner_attack_intent_kills_goblin_in_one_turn() -> None:
     enc, _w, goblin = _make_encounter(
         rolls=[
             18,  # warrior init: 19
-            8,   # goblin init: 10 → warrior первый
+            8,  # goblin init: 10 → warrior первый
             18,  # warrior atk: 23 vs 13 → попал
-            7,   # warrior damage: 7+3 = 10 → goblin 7-10
+            7,  # warrior damage: 7+3 = 10 → goblin 7-10
         ]
     )
-    provider = ScriptedIntentProvider(
-        [AttackIntent(target_id=goblin.id), EndTurnIntent()]
-    )
+    provider = ScriptedIntentProvider([AttackIntent(target_id=goblin.id), EndTurnIntent()])
 
     captured: list[EngineEvent] = []
     enc.deps.event_bus.subscribe(EngineEvent, captured.append)
@@ -195,9 +191,9 @@ def test_runner_move_then_attack_in_same_turn() -> None:
         battlefield=bf,
         rolls=[
             18,  # warrior init
-            8,   # goblin init
+            8,  # goblin init
             18,  # warrior atk after move
-            7,   # damage 7+3
+            7,  # damage 7+3
         ],
     )
     enc = Encounter(
@@ -286,17 +282,13 @@ def test_runner_attack_intent_without_weapon_is_noop() -> None:
     # Стена между — изолируем goblin AI от RNG-броска.
     for y in range(5):
         bf.set_terrain(Square(5, y), WALL)
-    deps, _bus, _rng = build_scripted_dependencies(
-        battlefield=bf, rolls=[18, 8]
-    )
+    deps, _bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=[18, 8])
     enc = Encounter(
         participants={naked.id: naked, goblin.id: goblin},
         factions={naked.id: Faction.PARTY, goblin.id: Faction.MONSTERS},
         deps=deps,
     )
-    provider = ScriptedIntentProvider(
-        [AttackIntent(target_id=goblin.id), EndTurnIntent()]
-    )
+    provider = ScriptedIntentProvider([AttackIntent(target_id=goblin.id), EndTurnIntent()])
     # Не падать — runner проглатывает «нет оружия» (логгирует, идёт дальше).
     GameRunner(intent_provider=provider).run(enc)
     assert enc.is_concluded is True

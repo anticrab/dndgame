@@ -5,6 +5,7 @@
 :class:`SpellEffectRegistry` (open/closed — новый тип воздействия добавляется
 хендлером, не правкой этого класса). Заклинания — data-driven (YAML).
 """
+
 from __future__ import annotations
 
 from dnd.application.dto.action import (
@@ -61,7 +62,10 @@ class CastSpellAction:
     # --- helpers -------------------------------------------------------
 
     def _resolve_targets(
-        self, spell: Spell, caster: Creature, params: CastSpellParams,
+        self,
+        spell: Spell,
+        caster: Creature,
+        params: CastSpellParams,
         ctx: TurnContext,
     ) -> tuple[Creature, ...]:
         spec = spell.targeting
@@ -93,8 +97,7 @@ class CastSpellAction:
             if FeatureId("subclass_evoker") in caster.features:
                 caster_faction = ctx.factions.get(caster.id)
                 in_area = [
-                    (cid, cr) for cid, cr in in_area
-                    if ctx.factions.get(cid) != caster_faction
+                    (cid, cr) for cid, cr in in_area if ctx.factions.get(cid) != caster_faction
                 ]
             return tuple(cr for _cid, cr in in_area)
         # MULTI (P2b): мультимножество выборов — дубли = повторные «попадания».
@@ -108,9 +111,7 @@ class CastSpellAction:
         self, actor: Creature, params: CastSpellParams, ctx: TurnContext
     ) -> ActionAvailability:
         if actor.spellcasting_ability is None:
-            return Forbidden(
-                reason=ForbiddenReason.CUSTOM, details="not a spellcaster"
-            )
+            return Forbidden(reason=ForbiddenReason.CUSTOM, details="not a spellcaster")
         if params.spell_id not in actor.known_spells:
             return Forbidden(
                 reason=ForbiddenReason.CUSTOM,
@@ -140,9 +141,7 @@ class CastSpellAction:
             # Урон-заклинания (ATTACK/SAVE/AUTO) — только по живой цели
             # (нельзя бить труп). Heal/buff — по живой ИЛИ умирающей (dying),
             # но не по окончательно мёртвой.
-            offensive = spell.effect in (
-                SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
-            )
+            offensive = spell.effect in (SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO)
             if offensive:
                 if not target.is_alive:
                     return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
@@ -185,9 +184,7 @@ class CastSpellAction:
                     details="repeat targets not allowed",
                 )
             actor_pos = ctx.battlefield.position_of(actor.id)
-            offensive = spell.effect in (
-                SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
-            )
+            offensive = spell.effect in (SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO)
             for cid in unique:
                 if cid not in ctx.participants:
                     return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
@@ -199,21 +196,15 @@ class CastSpellAction:
                     target.death_saves is not None and not target.death_saves.is_dead
                 ):
                     return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
-                if actor_pos.distance_to_feet(
-                    ctx.battlefield.position_of(cid)
-                ) > spell.range_ft:
+                if actor_pos.distance_to_feet(ctx.battlefield.position_of(cid)) > spell.range_ft:
                     return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
         return Allowed()
 
     # --- execution -----------------------------------------------------
 
-    def execute(
-        self, actor: Creature, params: ActionParams, ctx: TurnContext
-    ) -> ActionOutcome:
+    def execute(self, actor: Creature, params: ActionParams, ctx: TurnContext) -> ActionOutcome:
         if not isinstance(params, CastSpellParams):
-            raise TypeError(
-                f"CastSpellAction expects CastSpellParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"CastSpellAction expects CastSpellParams, got {type(params).__name__}")
         avail = self.can_perform_against(actor, params, ctx)
         if isinstance(avail, Forbidden):
             return ActionOutcome(success=False, consumed=ActionEconomyCost.FREE)

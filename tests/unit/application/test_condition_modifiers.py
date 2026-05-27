@@ -1,4 +1,5 @@
 """ConditionService.collect_modifiers — self-модификаторы активных состояний (T3)."""
+
 from __future__ import annotations
 
 from dnd.application.engine.condition_service import ConditionService
@@ -18,9 +19,12 @@ def _svc() -> ConditionService:
 
 def _creature() -> Creature:
     return Creature.create(
-        id_=CreatureId("c"), name="c",
+        id_=CreatureId("c"),
+        name="c",
         abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=10, speed_ft=30,
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
     )
 
 

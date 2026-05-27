@@ -1,4 +1,5 @@
 """Viewport на MapWidget: camera/pan/center_on/visible_rect (pure logic)."""
+
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.widgets.map_widget import MapWidget
 
@@ -52,6 +53,7 @@ def test_visible_rect_returns_camera_plus_viewport() -> None:
 
 def test_set_viewport_size_rejects_non_positive() -> None:
     import pytest
+
     mw = MapWidget()
     with pytest.raises(ValueError):
         mw.set_viewport_size(0, 10)

@@ -5,6 +5,7 @@
 При `__init__` создаёт каталог если его нет (для удобства использования
 в тестах с tmp_path и в CLI `dnd map new`).
 """
+
 from __future__ import annotations
 
 from pathlib import Path

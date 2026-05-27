@@ -18,6 +18,7 @@
 Не входит сюда: сами Pickup/Drop intents (O-8) — они работают уже
 с распарсенным tuple[ItemStack, ...], а не с YAML-сырьём.
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -28,9 +29,7 @@ from dnd.domain.values.item import ItemId
 from dnd.domain.values.item_stack import ItemStack
 
 
-def parse_loot(
-    raw: Any, repo: ItemRepository
-) -> tuple[ItemStack, ...]:
+def parse_loot(raw: Any, repo: ItemRepository) -> tuple[ItemStack, ...]:
     """Распарсить ``state["contents"]`` в ``tuple[ItemStack, ...]``.
 
     Принимает:
@@ -48,9 +47,7 @@ def parse_loot(
     if raw is None:
         return ()
     if not isinstance(raw, list):
-        raise ValueError(
-            f"chest contents must be a list, got {type(raw).__name__}"
-        )
+        raise ValueError(f"chest contents must be a list, got {type(raw).__name__}")
     if not raw:
         return ()
 
@@ -71,9 +68,7 @@ def parse_loot(
     out2: list[ItemStack] = []
     for entry in raw:
         if not isinstance(entry, dict):
-            raise ValueError(
-                f"chest contents: expected dict entry, got {type(entry).__name__}"
-            )
+            raise ValueError(f"chest contents: expected dict entry, got {type(entry).__name__}")
         item_id = ItemId(entry["item_id"])
         qty = int(entry.get("qty", 1))
         item = repo.load(item_id)
@@ -89,10 +84,7 @@ def dump_loot_entries(
     Возвращает canonical-формат (list[dict]) — никаких list[str]
     мы больше не пишем (legacy только читаем).
     """
-    return [
-        {"item_id": s.item.id, "qty": s.qty}
-        for s in stacks
-    ]
+    return [{"item_id": s.item.id, "qty": s.qty} for s in stacks]
 
 
 __all__ = ["dump_loot_entries", "parse_loot"]

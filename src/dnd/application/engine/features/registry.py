@@ -7,6 +7,7 @@
 ``ResourceRegistry`` хранит спеки ограниченных ресурсов (max + recharge_on),
 чтобы RestService знал, что и когда восстанавливать, не зная про конкретные фичи.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

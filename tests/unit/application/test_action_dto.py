@@ -94,9 +94,7 @@ def test_availability_discriminator_picks_allowed() -> None:
 
 def test_availability_discriminator_picks_forbidden() -> None:
     adapter: TypeAdapter[ActionAvailability] = TypeAdapter(ActionAvailability)
-    parsed = adapter.validate_python(
-        {"kind": "forbidden", "reason": "no_economy_left"}
-    )
+    parsed = adapter.validate_python({"kind": "forbidden", "reason": "no_economy_left"})
     assert isinstance(parsed, Forbidden)
     assert parsed.reason is ForbiddenReason.NO_ECONOMY_LEFT
 

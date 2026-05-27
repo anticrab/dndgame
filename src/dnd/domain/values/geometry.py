@@ -13,6 +13,7 @@
   по оси направления берётся клетка ± (k-1) по перпендикуляру (ширина 2k-1).
   Детерминирован для всех 8 направлений (вкл. диагонали); origin не включается.
 """
+
 from __future__ import annotations
 
 from dnd.domain.values.direction import Direction
@@ -42,20 +43,13 @@ def circle_squares(center: Square, radius_sq: int) -> frozenset[Square]:
     return frozenset(center.chebyshev_disk(radius_sq))
 
 
-def line_squares(
-    origin: Square, direction: Direction, length_sq: int
-) -> frozenset[Square]:
+def line_squares(origin: Square, direction: Direction, length_sq: int) -> frozenset[Square]:
     """Луч от ``origin`` в ``direction`` на ``length_sq`` клеток (origin не входит)."""
     dx, dy = direction_delta(direction)
-    return frozenset(
-        Square(origin.x + dx * k, origin.y + dy * k)
-        for k in range(1, length_sq + 1)
-    )
+    return frozenset(Square(origin.x + dx * k, origin.y + dy * k) for k in range(1, length_sq + 1))
 
 
-def cone_squares(
-    origin: Square, direction: Direction, length_sq: int
-) -> frozenset[Square]:
+def cone_squares(origin: Square, direction: Direction, length_sq: int) -> frozenset[Square]:
     """Конус от ``origin`` в ``direction``, длина ``length_sq`` (origin не входит).
 
     На шаге k вдоль оси берётся клетка и ±(k-1) по перпендикуляру → ширина 2k-1.

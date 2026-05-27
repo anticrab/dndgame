@@ -11,6 +11,7 @@
 Это смок-тест сборки, а не доказательство правил каста — конкретика
 покрыта юнит-тестами заклинаний.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -47,9 +48,7 @@ def _build_mage_scene() -> Encounter:
 @pytest.mark.e2e
 def test_mage_built_as_wizard_with_save_profs_and_slots() -> None:
     enc = _build_mage_scene()
-    mage = next(
-        enc.participants[cid] for cid, f in enc.factions.items() if f is Faction.PARTY
-    )
+    mage = next(enc.participants[cid] for cid, f in enc.factions.items() if f is Faction.PARTY)
     assert mage.character_class == "wizard"
     assert mage.level == 1
     assert mage.saving_throw_proficiencies == frozenset({Ability.INT, Ability.WIS})
@@ -87,8 +86,11 @@ def test_mage_magic_missile_resolves_combat() -> None:
 
         if enc.factions[actor_id] is Faction.PARTY and actor.spell_slots.get(1, 0) > 0:
             target = next(
-                (gid for gid in goblin_ids if enc.participants[gid].is_alive
-                 and not enc.participants[gid].is_at_zero_hp),
+                (
+                    gid
+                    for gid in goblin_ids
+                    if enc.participants[gid].is_alive and not enc.participants[gid].is_at_zero_hp
+                ),
                 None,
             )
             if target is not None:

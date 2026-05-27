@@ -1,4 +1,5 @@
 """AbilityRegistry — register/get/all + дубликаты."""
+
 from __future__ import annotations
 
 import pytest
@@ -15,9 +16,13 @@ def _dodge() -> PlayerIntent:
 
 def _make(id_: str, hotkey: str = "x") -> Ability:
     return Ability(
-        id=AbilityId(id_), name=id_, icon=id_[0], default_hotkey=hotkey,
+        id=AbilityId(id_),
+        name=id_,
+        icon=id_[0],
+        default_hotkey=hotkey,
         economy_cost=ActionEconomyCost.ACTION,
-        requires_target=False, requires_path=False,
+        requires_target=False,
+        requires_path=False,
         intent_factory=_dodge,
     )
 

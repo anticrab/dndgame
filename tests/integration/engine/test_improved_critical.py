@@ -1,4 +1,5 @@
 """R1-8: Improved Critical меняет порог крита в AttackAction."""
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import AttackRolled
@@ -16,14 +17,22 @@ from dnd.domain.values.weapon import LONGSWORD
 
 def _setup(rolls: list[int]) -> tuple[Creature, Creature, object]:
     a = Creature.create(
-        id_="f", name="F",
+        id_="f",
+        name="F",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     b = Creature.create(
-        id_="g", name="G",
+        id_="g",
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=10, con=10, int_=8, wis=8, cha=8),
-        max_hp=30, armor_class=5, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=30,
+        armor_class=5,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(6, 6)
     bf.place_creature(a.id, Square(2, 2))
@@ -31,7 +40,8 @@ def _setup(rolls: list[int]) -> tuple[Creature, Creature, object]:
     deps, _, _ = build_scripted_dependencies(battlefield=bf, rolls=rolls)
     enc = Encounter(
         participants={a.id: a, b.id: b},
-        factions={a.id: Faction.PARTY, b.id: Faction.MONSTERS}, deps=deps,
+        factions={a.id: Faction.PARTY, b.id: Faction.MONSTERS},
+        deps=deps,
     )
     enc.start()
     for _ in range(12):
@@ -58,4 +68,4 @@ def test_d20_19_not_crit_by_default() -> None:
     rolled: list[AttackRolled] = []
     ctx.event_bus.subscribe(AttackRolled, rolled.append)
     AttackAction().execute(a, weapon_attack_params(a, b.id), ctx)
-    assert rolled and rolled[0].is_critical_hit is False   # порог по умолчанию 20
+    assert rolled and rolled[0].is_critical_hit is False  # порог по умолчанию 20

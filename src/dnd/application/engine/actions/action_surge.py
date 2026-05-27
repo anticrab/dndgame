@@ -4,6 +4,7 @@ PHB-2024: активация Action Surge не стоит действия (FREE
 возможность взять ещё одно Action в текущем ходу. Ресурс ``action_surge``
 (1/short rest).
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -54,17 +55,13 @@ class ActionSurgeAction:
             return Forbidden(reason=ForbiddenReason.CUSTOM, details="action surge used")
         return Allowed()
 
-    def execute(
-        self, actor: Creature, params: ActionParams, ctx: TurnContext
-    ) -> ActionOutcome:
+    def execute(self, actor: Creature, params: ActionParams, ctx: TurnContext) -> ActionOutcome:
         if isinstance(self.can_perform_against(actor, params, ctx), Forbidden):
             return ActionOutcome(success=False, consumed=ActionEconomyCost.FREE)
         actor.resource_uses[_RESOURCE] -= 1
         # Доп. действие: освобождаем слот ACTION на этот ход (PHB-2024).
         ctx.action_used = False
-        return ActionOutcome(
-            success=True, consumed=ActionEconomyCost.FREE, notes="action surge"
-        )
+        return ActionOutcome(success=True, consumed=ActionEconomyCost.FREE, notes="action surge")
 
 
 __all__ = ["ActionSurgeAction", "ActionSurgeParams"]

@@ -16,6 +16,7 @@ action-bar и роутить нажатия клавиш через :class:`Abil
    не domain. Domain про правила игры, application — про оркестровку
    игрока и движка.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

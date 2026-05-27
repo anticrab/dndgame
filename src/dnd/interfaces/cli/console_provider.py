@@ -102,14 +102,10 @@ class ConsoleIntentProvider:
         if depth >= _MAX_REPROMPTS:
             # Защита от циклической ошибки: «Attack без целей» снова и
             # снова. Завершаем ход, не теряем сессию.
-            self._notify_user(
-                "Too many invalid attempts — ending turn."
-            )
+            self._notify_user("Too many invalid attempts — ending turn.")
             return EndTurnIntent()
 
-        choice = self._select(
-            f"[{actor.name}] choose action:", _ACTION_CHOICES
-        )
+        choice = self._select(f"[{actor.name}] choose action:", _ACTION_CHOICES)
         match choice:
             case "End turn":
                 return EndTurnIntent()
@@ -124,13 +120,9 @@ class ConsoleIntentProvider:
             case "Move":
                 return self._build_move_intent(actor, ctx, encounter, depth)
             case "Interact":
-                return self._build_object_intent(
-                    actor, ctx, encounter, depth, kind="interact"
-                )
+                return self._build_object_intent(actor, ctx, encounter, depth, kind="interact")
             case "Break":
-                return self._build_object_intent(
-                    actor, ctx, encounter, depth, kind="break"
-                )
+                return self._build_object_intent(actor, ctx, encounter, depth, kind="break")
             case "Pickup":
                 return self._build_pickup_intent(actor, ctx, encounter, depth)
         return EndTurnIntent()
@@ -206,9 +198,7 @@ class ConsoleIntentProvider:
             target = Square(int(x_str.strip()), int(y_str.strip()))
         except (ValueError, AttributeError):
             # Аудит 15 CL-UX001: невалидный ввод — re-prompt, не end turn.
-            self._notify_user(
-                f"Cannot parse coordinates from {raw!r}. Use format: x,y"
-            )
+            self._notify_user(f"Cannot parse coordinates from {raw!r}. Use format: x,y")
             return self._next_intent(actor, ctx, encounter, depth + 1)
         if not ctx.battlefield.in_bounds(target):
             self._notify_user(
@@ -217,19 +207,17 @@ class ConsoleIntentProvider:
             )
             return self._next_intent(actor, ctx, encounter, depth + 1)
         start = ctx.battlefield.position_of(actor.id)
+
         # Тот же helper, что и TUI: A* с учётом стен и difficult terrain.
         # Чтобы CLI и TUI выбирали одну клетку и шли одинаковым путём,
         # — единый источник правды. is_alive пропускает трупы.
         def _alive(cid: CreatureId) -> bool:
             cr = encounter.participants.get(cid)
             return True if cr is None else cr.is_alive
-        path = find_walkable_path(
-            ctx.battlefield, start, target, is_alive=_alive
-        )
+
+        path = find_walkable_path(ctx.battlefield, start, target, is_alive=_alive)
         if path is None:
-            self._notify_user(
-                f"{target} is unreachable (стена / занято / отрезано)."
-            )
+            self._notify_user(f"{target} is unreachable (стена / занято / отрезано).")
             return self._next_intent(actor, ctx, encounter, depth + 1)
         if not path:
             self._notify_user("Already at the target square.")
@@ -268,9 +256,7 @@ class ConsoleIntentProvider:
             self._notify_user(f"No {verb} objects in reach.")
             return self._next_intent(actor, ctx, encounter, depth + 1)
         labels = [label for _, label in candidates]
-        picked = self._select_choice(
-            f"{kind.title()} target:", labels
-        )
+        picked = self._select_choice(f"{kind.title()} target:", labels)
         idx = labels.index(picked)
         obj_id, _ = candidates[idx]
         if kind == "interact":
@@ -305,9 +291,7 @@ class ConsoleIntentProvider:
                     and obj.state.get("open")
                     and not obj.state.get("locked")
                 ):
-                    chests.append(
-                        (ObjectId(str(obj.id)), f"{obj.id} at ({sq.x},{sq.y})")
-                    )
+                    chests.append((ObjectId(str(obj.id)), f"{obj.id} at ({sq.x},{sq.y})"))
         if not chests:
             self._notify_user("No open chests in reach.")
             return self._next_intent(actor, ctx, encounter, depth + 1)
@@ -326,17 +310,13 @@ class ConsoleIntentProvider:
         if self.item_repository is not None:
             for stack in parse_loot(raw_contents, self.item_repository):
                 item_ids.append(stack.item.id)
-                item_labels.append(
-                    f"{stack.item.name} ×{stack.qty} ({stack.item.id})"
-                )
+                item_labels.append(f"{stack.item.name} ×{stack.qty} ({stack.item.id})")
         else:
             # Fallback: только сырой id, без resolved-имени.
             for entry in raw_contents or []:
                 if isinstance(entry, dict):
                     item_ids.append(ItemId(str(entry["item_id"])))
-                    item_labels.append(
-                        f"{entry['item_id']} ×{entry.get('qty', 1)}"
-                    )
+                    item_labels.append(f"{entry['item_id']} ×{entry.get('qty', 1)}")
                 elif isinstance(entry, str):
                     item_ids.append(ItemId(entry))
                     item_labels.append(entry)
@@ -348,9 +328,7 @@ class ConsoleIntentProvider:
         item_id = item_ids[item_labels.index(picked_item)]
 
         # Шаг 3: qty (None = всё). Промт текст, если пусто/'all' → None.
-        raw_qty = self._ask_text(
-            f"Pickup how many of {item_id}? (empty / 'all' = all):"
-        )
+        raw_qty = self._ask_text(f"Pickup how many of {item_id}? (empty / 'all' = all):")
         qty: int | None
         if not raw_qty or raw_qty.strip().lower() == "all":
             qty = None
@@ -358,13 +336,13 @@ class ConsoleIntentProvider:
             try:
                 qty = int(raw_qty.strip())
             except ValueError:
-                self._notify_user(
-                    f"Cannot parse qty {raw_qty!r}, picking up all."
-                )
+                self._notify_user(f"Cannot parse qty {raw_qty!r}, picking up all.")
                 qty = None
 
         return PickupIntent(
-            target_object_id=chest_id, item_id=item_id, qty=qty,
+            target_object_id=chest_id,
+            item_id=item_id,
+            qty=qty,
         )
 
 

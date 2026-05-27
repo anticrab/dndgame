@@ -2,6 +2,7 @@
 
 Формат: { id, name, width, height, tiles[], objects[] }
 """
+
 from __future__ import annotations
 
 import pytest
@@ -49,7 +50,10 @@ def test_negative_dim_rejected() -> None:
 def test_tile_out_of_bounds_rejected() -> None:
     with pytest.raises(ValueError, match="out of bounds"):
         MapDocument(
-            id="x", name="x", width=3, height=3,
+            id="x",
+            name="x",
+            width=3,
+            height=3,
             tiles=(MapTileDoc(x=5, y=0, base="floor"),),
             objects=(),
         )
@@ -58,7 +62,10 @@ def test_tile_out_of_bounds_rejected() -> None:
 def test_object_pos_out_of_bounds_rejected() -> None:
     with pytest.raises(ValueError, match="out of bounds"):
         MapDocument(
-            id="x", name="x", width=3, height=3,
+            id="x",
+            name="x",
+            width=3,
+            height=3,
             tiles=(),
             objects=(MapObjectDoc(id="d", kind="door", x=10, y=0, state={}),),
         )

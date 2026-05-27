@@ -5,6 +5,7 @@
 увидеть понятное сообщение; sprites соседних столов не сливаются
 в одну линию через всю карту).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -74,6 +75,7 @@ def _build_solo_encounter_with_pc(spent_action: bool = False) -> Encounter:
     bf.place_creature(warrior.id, Square(1, 1))
     bf.place_creature(goblin.id, Square(8, 8))  # далеко
     from dnd.composition import build_scripted_dependencies
+
     deps, _bus, _ = build_scripted_dependencies(battlefield=bf, rolls=[20, 5, 20, 5])
     enc = Encounter(
         participants={warrior.id: warrior, goblin.id: goblin},
@@ -105,6 +107,7 @@ def test_attack_with_no_action_left_shows_proper_message() -> None:
                 pytest.skip("PC did not get a turn within timeout")
             # Симулируем «action used» на ctx
             from dnd.application.dto.action import ActionEconomyCost
+
             _actor, ctx, _enc = screen._current
             ctx.spend(ActionEconomyCost.ACTION)
             # Теперь нажимаем `a`
@@ -167,8 +170,7 @@ def test_warehouse_render_tables_dont_merge_into_line() -> None:
                     else:
                         consecutive = 0
                 assert max_consecutive < 10, (
-                    f"Tables merged into line: {max_consecutive} '═' "
-                    f"in row: {line!r}"
+                    f"Tables merged into line: {max_consecutive} '═' in row: {line!r}"
                 )
 
     asyncio.run(_go())

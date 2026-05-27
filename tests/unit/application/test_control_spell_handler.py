@@ -1,4 +1,5 @@
 """ControlSpellHandler (T2): пул Sleep + спасбросок Hold Person."""
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import ConditionApplied
@@ -15,9 +16,12 @@ from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKin
 
 def _mage() -> Creature:
     m = Creature.create(
-        id_=CreatureId("mage"), name="mage",
+        id_=CreatureId("mage"),
+        name="mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=14, armor_class=12, speed_ft=30,
+        max_hp=14,
+        armor_class=12,
+        speed_ft=30,
     )
     m.spellcasting_ability = Ability.INT
     m.spell_slots = {1: 2, 2: 2}
@@ -26,9 +30,12 @@ def _mage() -> Creature:
 
 def _weak(id_: str, hp: int) -> Creature:
     return Creature.create(
-        id_=CreatureId(id_), name=id_,
+        id_=CreatureId(id_),
+        name=id_,
         abilities=AbilityScores.of(str_=8, dex=10, con=10, int_=8, wis=8, cha=8),
-        max_hp=hp, armor_class=12, speed_ft=30,
+        max_hp=hp,
+        armor_class=12,
+        speed_ft=30,
     )
 
 
@@ -51,11 +58,17 @@ def _ctx(rolls: list[int], creatures: list[Creature]) -> tuple[TurnContext, obje
 
 def _sleep() -> Spell:
     return Spell(
-        id=SpellId("sleep"), name="Sleep", level=1, school="enchantment",
+        id=SpellId("sleep"),
+        name="Sleep",
+        level=1,
+        school="enchantment",
         effect=SpellEffect.CONTROL,
         targeting=TargetingSpec(kind=TargetKind.SINGLE),  # цели уже отрезолвлены
-        range_ft=90, description="", condition=UNCONSCIOUS,
-        hp_pool_dice="5d8", condition_ends_on_damage=True,
+        range_ft=90,
+        description="",
+        condition=UNCONSCIOUS,
+        hp_pool_dice="5d8",
+        condition_ends_on_damage=True,
     )
 
 
@@ -75,11 +88,18 @@ def test_sleep_pool_orders_by_hp_and_stops() -> None:
 
 def _hold() -> Spell:
     return Spell(
-        id=SpellId("hold_person"), name="Hold Person", level=2,
-        school="enchantment", effect=SpellEffect.CONTROL,
-        targeting=TargetingSpec(kind=TargetKind.SINGLE), range_ft=60,
-        description="", condition=PARALYZED, save_ability=Ability.WIS,
-        concentration=True, condition_repeat_save=True,
+        id=SpellId("hold_person"),
+        name="Hold Person",
+        level=2,
+        school="enchantment",
+        effect=SpellEffect.CONTROL,
+        targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=60,
+        description="",
+        condition=PARALYZED,
+        save_ability=Ability.WIS,
+        concentration=True,
+        condition_repeat_save=True,
     )
 
 

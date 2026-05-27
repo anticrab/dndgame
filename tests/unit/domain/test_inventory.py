@@ -1,4 +1,5 @@
 """Inventory — add/remove/find + slot- и weight-лимиты."""
+
 from __future__ import annotations
 
 import pytest
@@ -7,12 +8,18 @@ from dnd.domain.entities.inventory import Inventory
 from dnd.domain.values.item import Item, ItemId, ItemKind
 
 _GOLD = Item(
-    id=ItemId("gold"), name="Gold piece",
-    kind=ItemKind.MISC, weight_lb=0.02, stackable=True,
+    id=ItemId("gold"),
+    name="Gold piece",
+    kind=ItemKind.MISC,
+    weight_lb=0.02,
+    stackable=True,
 )
 _POTION = Item(
-    id=ItemId("potion"), name="Healing Potion",
-    kind=ItemKind.CONSUMABLE, weight_lb=0.5, stackable=True,
+    id=ItemId("potion"),
+    name="Healing Potion",
+    kind=ItemKind.CONSUMABLE,
+    weight_lb=0.5,
+    stackable=True,
 )
 _SWORD = Item(id=ItemId("sword"), name="Sword", kind=ItemKind.WEAPON, weight_lb=3)
 

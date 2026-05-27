@@ -2,6 +2,7 @@
 
 Берёт Tile + SpriteRegistry → возвращает 3 строки по 5 ASCII-символов.
 """
+
 from __future__ import annotations
 
 from dnd.domain.values.direction import Direction
@@ -11,19 +12,35 @@ from dnd.domain.values.tile import Tile
 from dnd.interfaces.tui.widgets.tile_renderer import render_tile_5x3
 
 FLOOR = TerrainBase(
-    id="floor", name="F", passable=True, difficult=False,
-    glyph_5x3=("     ", "     ", "     "), glyph_1x1=".", color_token="floor",
+    id="floor",
+    name="F",
+    passable=True,
+    difficult=False,
+    glyph_5x3=("     ", "     ", "     "),
+    glyph_1x1=".",
+    color_token="floor",
 )
 WALL_V = FeatureKind(
-    id="wall_v", name="V", blocks_los=True, cover=CoverLevel.TOTAL,
+    id="wall_v",
+    name="V",
+    blocks_los=True,
+    cover=CoverLevel.TOTAL,
     blocks_passage_dirs=frozenset({Direction.E, Direction.W}),
-    passable_cost_ft=0, glyph_5x3=("  │  ", "  │  ", "  │  "),
-    glyph_1x1="│", color_token="wall",
+    passable_cost_ft=0,
+    glyph_5x3=("  │  ", "  │  ", "  │  "),
+    glyph_1x1="│",
+    color_token="wall",
 )
 COLUMN = FeatureKind(
-    id="col", name="C", blocks_los=False, cover=CoverLevel.THREE_QUARTERS,
-    blocks_passage_dirs=frozenset(), passable_cost_ft=5,
-    glyph_5x3=("     ", "  ▙  ", "     "), glyph_1x1="▙", color_token="wall",
+    id="col",
+    name="C",
+    blocks_los=False,
+    cover=CoverLevel.THREE_QUARTERS,
+    blocks_passage_dirs=frozenset(),
+    passable_cost_ft=5,
+    glyph_5x3=("     ", "  ▙  ", "     "),
+    glyph_1x1="▙",
+    color_token="wall",
 )
 
 

@@ -131,11 +131,7 @@ def _entry(cid: str, total: int, order: int) -> InitiativeEntry:
 
 def test_initiative_event_refreshes_initiative_widget() -> None:
     screen, _, bus, _ = _setup()
-    bus.publish(
-        InitiativeRolled(
-            order=(_entry("warrior", 18, 0), _entry("goblin", 12, 1))
-        )
-    )
+    bus.publish(InitiativeRolled(order=(_entry("warrior", 18, 0), _entry("goblin", 12, 1))))
     assert len(screen.initiative_widget.refresh_calls) >= 1
 
 
@@ -232,9 +228,7 @@ def test_leveled_up_refreshes_status_and_initiative() -> None:
     bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
     s_pre = len(screen.status_widget.refresh_calls)
     i_pre = len(screen.initiative_widget.refresh_calls)
-    bus.publish(
-        LeveledUp(actor_id=CreatureId("warrior"), new_level=2, hp_gained=6)
-    )
+    bus.publish(LeveledUp(actor_id=CreatureId("warrior"), new_level=2, hp_gained=6))
     assert len(screen.status_widget.refresh_calls) > s_pre
     assert len(screen.initiative_widget.refresh_calls) > i_pre
 
@@ -248,8 +242,11 @@ def test_death_save_rolled_refreshes_status_and_initiative() -> None:
     i_pre = len(screen.initiative_widget.refresh_calls)
     bus.publish(
         DeathSaveRolled(
-            actor_id=CreatureId("warrior"), d20_raw=20, result="recovered",
-            successes=0, failures=0,
+            actor_id=CreatureId("warrior"),
+            d20_raw=20,
+            result="recovered",
+            successes=0,
+            failures=0,
         )
     )
     assert len(screen.status_widget.refresh_calls) > s_pre
@@ -261,9 +258,7 @@ def test_stabilized_and_died_refresh_initiative() -> None:
     screen, _enc, bus, _ = _setup()
     bus.publish(TurnStarted(actor_id=CreatureId("warrior"), round_number=1))
     i_pre = len(screen.initiative_widget.refresh_calls)
-    bus.publish(
-        CreatureStabilized(actor_id=CreatureId("warrior"), by=CreatureId("warrior"))
-    )
+    bus.publish(CreatureStabilized(actor_id=CreatureId("warrior"), by=CreatureId("warrior")))
     bus.publish(CreatureDied(actor_id=CreatureId("goblin")))
     assert len(screen.initiative_widget.refresh_calls) >= i_pre + 2
 

@@ -58,9 +58,7 @@ def _build_encounter() -> tuple[Encounter, Creature, Creature]:
     )
     bf.place_creature(warrior.id, Square(1, 2))
     bf.place_creature(goblin.id, Square(2, 2))
-    deps, _bus, _rng = build_scripted_dependencies(
-        battlefield=bf, rolls=[18, 8]
-    )
+    deps, _bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=[18, 8])
     enc = Encounter(
         participants={warrior.id: warrior, goblin.id: goblin},
         factions={warrior.id: Faction.PARTY, goblin.id: Faction.MONSTERS},
@@ -242,26 +240,40 @@ def _build_with_chest_and_locked_door() -> tuple[Encounter, Creature]:
         id_=CreatureId("warrior"),
         name="Warrior",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     goblin = Creature.create(
         id_=CreatureId("goblin"),
         name="Goblin",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=SCIMITAR,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=SCIMITAR,
     )
     bf.place_creature(warrior.id, Square(2, 2))
     bf.place_creature(goblin.id, Square(4, 4))
     # Сундук смежно — для Interact.
-    bf.place_object(InteractableObject(
-        id=ObjectId("chest-1"), kind=ObjectKind.CHEST, pos=Square(3, 2),
-        state={"open": False, "locked": False, "hp": 8, "ac": 14},
-    ))
+    bf.place_object(
+        InteractableObject(
+            id=ObjectId("chest-1"),
+            kind=ObjectKind.CHEST,
+            pos=Square(3, 2),
+            state={"open": False, "locked": False, "hp": 8, "ac": 14},
+        )
+    )
     # Запертая дверь — Interact + Break (hp есть → попадёт и в break menu).
-    bf.place_object(InteractableObject(
-        id=ObjectId("door-1"), kind=ObjectKind.DOOR, pos=Square(2, 1),
-        state={"open": False, "locked": True, "hp": 10, "ac": 13},
-    ))
+    bf.place_object(
+        InteractableObject(
+            id=ObjectId("door-1"),
+            kind=ObjectKind.DOOR,
+            pos=Square(2, 1),
+            state={"open": False, "locked": True, "hp": 10, "ac": 13},
+        )
+    )
     deps, _, _ = build_scripted_dependencies(battlefield=bf, rolls=[20] * 10)
     enc = Encounter(
         participants={warrior.id: warrior, goblin.id: goblin},
@@ -328,8 +340,16 @@ def test_move_unreachable_target_reprompts() -> None:
     bf = enc.battlefield
     # Стенами огораживаем (3,3) полностью (включая 8 соседей кроме
     # тех, что заняты creature'ами — pathfinder и так их учтёт).
-    for sq in (Square(2, 3), Square(3, 2), Square(2, 2), Square(4, 3),
-               Square(3, 4), Square(4, 4), Square(4, 2), Square(2, 4)):
+    for sq in (
+        Square(2, 3),
+        Square(3, 2),
+        Square(2, 2),
+        Square(4, 3),
+        Square(3, 4),
+        Square(4, 4),
+        Square(4, 2),
+        Square(2, 4),
+    ):
         if not bf.creatures_at(sq):
             bf.set_terrain(sq, WALL)
     ctx = enc.start_turn()
@@ -353,12 +373,17 @@ class _MiniItemRepo:
     def __init__(self) -> None:
         self._items = {
             _ItemId("gold"): _Item(
-                id=_ItemId("gold"), name="Gold piece",
-                kind=_ItemKind.MISC, weight_lb=0.02, stackable=True,
+                id=_ItemId("gold"),
+                name="Gold piece",
+                kind=_ItemKind.MISC,
+                weight_lb=0.02,
+                stackable=True,
             ),
             _ItemId("sword"): _Item(
-                id=_ItemId("sword"), name="Longsword",
-                kind=_ItemKind.WEAPON, weight_lb=3.0,
+                id=_ItemId("sword"),
+                name="Longsword",
+                kind=_ItemKind.WEAPON,
+                weight_lb=3.0,
             ),
         }
 
@@ -376,29 +401,45 @@ def _build_with_chest_loot() -> tuple[Encounter, Creature]:
     """PC + сундук с лутом в reach."""
     bf = Battlefield(5, 5)
     warrior = Creature.create(
-        id_=CreatureId("warrior"), name="Warrior",
+        id_=CreatureId("warrior"),
+        name="Warrior",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     goblin = Creature.create(
-        id_=CreatureId("goblin"), name="Goblin",
+        id_=CreatureId("goblin"),
+        name="Goblin",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=SCIMITAR,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=SCIMITAR,
     )
     bf.place_creature(warrior.id, Square(2, 2))
     bf.place_creature(goblin.id, Square(4, 4))
-    bf.place_object(InteractableObject(
-        id=ObjectId("chest-loot"), kind=ObjectKind.CHEST,
-        pos=Square(3, 2),
-        # open=True — Pickup-меню (audit MAJOR-1) показывает только
-        # открытые сундуки. Для тестов: предполагаем, что игрок уже
-        # сделал Interact.OPEN в предыдущем ходу.
-        state={"open": True, "locked": False, "hp": 8, "ac": 14,
-               "contents": [
-                   {"item_id": "gold", "qty": 25},
-                   {"item_id": "sword", "qty": 1},
-               ]},
-    ))
+    bf.place_object(
+        InteractableObject(
+            id=ObjectId("chest-loot"),
+            kind=ObjectKind.CHEST,
+            pos=Square(3, 2),
+            # open=True — Pickup-меню (audit MAJOR-1) показывает только
+            # открытые сундуки. Для тестов: предполагаем, что игрок уже
+            # сделал Interact.OPEN в предыдущем ходу.
+            state={
+                "open": True,
+                "locked": False,
+                "hp": 8,
+                "ac": 14,
+                "contents": [
+                    {"item_id": "gold", "qty": 25},
+                    {"item_id": "sword", "qty": 1},
+                ],
+            },
+        )
+    )
     deps, _, _ = build_scripted_dependencies(battlefield=bf, rolls=[20] * 10)
     enc = Encounter(
         participants={warrior.id: warrior, goblin.id: goblin},
@@ -416,10 +457,12 @@ def test_pickup_menu_builds_intent_with_named_items() -> None:
     ctx = enc.start_turn()
     action_seq = iter(["Pickup"])
     # 1) выбор сундука  2) выбор item — берём gold  3) qty=10
-    choice_seq = iter([
-        "chest-loot at (3,2)",  # шаг 1
-        "Gold piece ×25 (gold)",  # шаг 2
-    ])
+    choice_seq = iter(
+        [
+            "chest-loot at (3,2)",  # шаг 1
+            "Gold piece ×25 (gold)",  # шаг 2
+        ]
+    )
     text_seq = iter(["10"])  # qty
     provider = ConsoleIntentProvider(
         prompt_action=lambda _m, _c: next(action_seq),
@@ -438,10 +481,12 @@ def test_pickup_qty_all_means_none() -> None:
     enc, warrior = _build_with_chest_loot()
     ctx = enc.start_turn()
     action_seq = iter(["Pickup"])
-    choice_seq = iter([
-        "chest-loot at (3,2)",
-        "Longsword ×1 (sword)",
-    ])
+    choice_seq = iter(
+        [
+            "chest-loot at (3,2)",
+            "Longsword ×1 (sword)",
+        ]
+    )
     text_seq = iter(["all"])  # → None
     provider = ConsoleIntentProvider(
         prompt_action=lambda _m, _c: next(action_seq),

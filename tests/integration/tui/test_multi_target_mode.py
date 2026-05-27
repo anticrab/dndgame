@@ -1,4 +1,5 @@
 """P2b-7: MultiTargetModeHandler — выбор мультимножества целей с клавиатуры."""
+
 from __future__ import annotations
 
 from dnd.domain.values.ids import CreatureId, SpellId
@@ -26,10 +27,10 @@ def test_pick_three_distinct_no_repeat() -> None:
     h = MultiTargetModeHandler()
     screen = _Screen(max_targets=2, allow_repeat=False)
     h.on_enter(screen)
-    h.on_key(screen, "space")          # add A (cursor at idx0)
-    h.on_key(screen, "tab")            # cursor → B
-    h.on_key(screen, "space")          # add B
-    h.on_key(screen, "enter")          # confirm
+    h.on_key(screen, "space")  # add A (cursor at idx0)
+    h.on_key(screen, "tab")  # cursor → B
+    h.on_key(screen, "space")  # add B
+    h.on_key(screen, "enter")  # confirm
     assert h.confirmed_picks == (CreatureId("A"), CreatureId("B"))
 
 
@@ -37,8 +38,8 @@ def test_no_repeat_ignores_duplicate() -> None:
     h = MultiTargetModeHandler()
     screen = _Screen(max_targets=3, allow_repeat=False)
     h.on_enter(screen)
-    h.on_key(screen, "space")          # add A
-    h.on_key(screen, "space")          # повтор A игнорируется (no-repeat)
+    h.on_key(screen, "space")  # add A
+    h.on_key(screen, "space")  # повтор A игнорируется (no-repeat)
     h.on_key(screen, "enter")
     assert h.confirmed_picks == (CreatureId("A"),)
 
@@ -47,10 +48,10 @@ def test_repeat_allows_same_target_twice() -> None:
     h = MultiTargetModeHandler()
     screen = _Screen(max_targets=3, allow_repeat=True)
     h.on_enter(screen)
-    h.on_key(screen, "space")          # A
-    h.on_key(screen, "space")          # A снова (repeat ok)
+    h.on_key(screen, "space")  # A
+    h.on_key(screen, "space")  # A снова (repeat ok)
     h.on_key(screen, "tab")
-    h.on_key(screen, "space")          # B
+    h.on_key(screen, "space")  # B
     h.on_key(screen, "enter")
     assert h.confirmed_picks == (CreatureId("A"), CreatureId("A"), CreatureId("B"))
 
@@ -59,9 +60,9 @@ def test_max_targets_caps_picks() -> None:
     h = MultiTargetModeHandler()
     screen = _Screen(max_targets=2, allow_repeat=True)
     h.on_enter(screen)
-    h.on_key(screen, "space")          # A
-    h.on_key(screen, "space")          # A
-    h.on_key(screen, "space")          # сверх лимита → игнор
+    h.on_key(screen, "space")  # A
+    h.on_key(screen, "space")  # A
+    h.on_key(screen, "space")  # сверх лимита → игнор
     h.on_key(screen, "enter")
     assert h.confirmed_picks == (CreatureId("A"), CreatureId("A"))
 
@@ -70,9 +71,9 @@ def test_backspace_removes_last_pick() -> None:
     h = MultiTargetModeHandler()
     screen = _Screen(max_targets=3, allow_repeat=True)
     h.on_enter(screen)
-    h.on_key(screen, "space")          # A
-    h.on_key(screen, "space")          # A
-    h.on_key(screen, "backspace")      # снять последнее A
+    h.on_key(screen, "space")  # A
+    h.on_key(screen, "space")  # A
+    h.on_key(screen, "backspace")  # снять последнее A
     h.on_key(screen, "enter")
     assert h.confirmed_picks == (CreatureId("A"),)
 
@@ -97,8 +98,8 @@ def test_overlay_shows_counts() -> None:
     h = MultiTargetModeHandler()
     screen = _Screen(max_targets=3, allow_repeat=True)
     h.on_enter(screen)
-    h.on_key(screen, "space")          # A
-    h.on_key(screen, "space")          # A
+    h.on_key(screen, "space")  # A
+    h.on_key(screen, "space")  # A
     data = h.overlay()
     assert "осталось" in data.hint.lower() or "выбери" in data.hint.lower()
     # выбранная клетка A подсвечена
@@ -112,6 +113,7 @@ def test_pilot_magic_missile_multi_target_flow() -> None:
     from pathlib import Path
 
     import pytest
+
     pytest.importorskip("textual")
 
     from dnd.application.dto.player_intent import CastSpellIntent
@@ -132,22 +134,34 @@ def test_pilot_magic_missile_multi_target_flow() -> None:
         Path(__file__).resolve().parents[3] / "data" / "content" / "spells.yaml"
     )
     mage = Creature.create(
-        id_="aelar", name="Aelar",
+        id_="aelar",
+        name="Aelar",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=20, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     mage.spellcasting_ability = Ability.INT
     mage.known_spells = (SpellId("magic_missile"),)
     mage.spell_slots = {1: 3}
     g1 = Creature.create(
-        id_="g1", name="G1",
+        id_="g1",
+        name="G1",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=12, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=12,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     g2 = Creature.create(
-        id_="g2", name="G2",
+        id_="g2",
+        name="G2",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=12, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=12,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(10, 10)
     for y in range(10):
@@ -160,7 +174,9 @@ def test_pilot_magic_missile_multi_target_flow() -> None:
     enc = Encounter(
         participants={mage.id: mage, g1.id: g1, g2.id: g2},
         factions={
-            mage.id: Faction.PARTY, g1.id: Faction.MONSTERS, g2.id: Faction.MONSTERS,
+            mage.id: Faction.PARTY,
+            g1.id: Faction.MONSTERS,
+            g2.id: Faction.MONSTERS,
         },
         deps=deps,
     )
@@ -187,13 +203,13 @@ def test_pilot_magic_missile_multi_target_flow() -> None:
                 orig_put(intent)
 
             screen._put_intent = _capture  # type: ignore[method-assign]
-            await pilot.press("1")          # Magic Missile → MULTI_TARGET
+            await pilot.press("1")  # Magic Missile → MULTI_TARGET
             await pilot.pause(0.2)
             assert screen._mode is BattleMode.MULTI_TARGET
-            await pilot.press("space")      # выбрать g1
-            await pilot.press("tab")        # курсор → g2
-            await pilot.press("space")      # выбрать g2
-            await pilot.press("enter")      # подтвердить
+            await pilot.press("space")  # выбрать g1
+            await pilot.press("tab")  # курсор → g2
+            await pilot.press("space")  # выбрать g2
+            await pilot.press("enter")  # подтвердить
             await pilot.pause(0.3)
             assert screen._mode is BattleMode.NORMAL
 

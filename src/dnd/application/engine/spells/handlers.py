@@ -4,6 +4,7 @@
 ``defaults.default_spell_effect_registry``. Добавление нового типа воздействия —
 новый класс здесь (или в плагине) + регистрация, без касания CastSpellAction.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -138,18 +139,20 @@ class SaveSpellHandler:
             )
             # T1: единый бросок спасброска (учитывает prof класса цели).
             saved = roll_saving_throw(
-                target, spell.save_ability, dc=dc, ctx=ctx, tags=("spell_save",),
+                target,
+                spell.save_ability,
+                dc=dc,
+                ctx=ctx,
+                tags=("spell_save",),
             )
             full = max(0, dmg_roll.total)
             if not saved:
-                amount = full              # провал — полный урон
+                amount = full  # провал — полный урон
             elif spell.save_for_half:
-                amount = full // 2         # успех + save_for_half — половина
+                amount = full // 2  # успех + save_for_half — половина
             else:
-                amount = 0                 # успех без save_for_half — ноль
-            result = target.take_damage(
-                DamageInstance(amount=amount, type_=spell.damage_type)
-            )
+                amount = 0  # успех без save_for_half — ноль
+            result = target.take_damage(DamageInstance(amount=amount, type_=spell.damage_type))
             ctx.event_bus.publish(
                 DamageDealt(
                     attacker_id=caster.id,
@@ -187,9 +190,7 @@ class AutoSpellHandler:
                 ),
             )
             raw = max(0, dmg_roll.total)
-            result = target.take_damage(
-                DamageInstance(amount=raw, type_=spell.damage_type)
-            )
+            result = target.take_damage(DamageInstance(amount=raw, type_=spell.damage_type))
             ctx.event_bus.publish(
                 DamageDealt(
                     attacker_id=caster.id,
@@ -316,8 +317,11 @@ class ControlSpellHandler:
             caster.concentration = spell.id
 
     def _apply_pool(
-        self, caster: Creature, targets: tuple[Creature, ...],
-        spell: Spell, ctx: TurnContext,
+        self,
+        caster: Creature,
+        targets: tuple[Creature, ...],
+        spell: Spell,
+        ctx: TurnContext,
     ) -> list[Creature]:
         assert spell.hp_pool_dice is not None
         pool_roll = ctx.dice_roller.roll(
@@ -340,8 +344,11 @@ class ControlSpellHandler:
         return affected
 
     def _apply_save(
-        self, caster: Creature, targets: tuple[Creature, ...],
-        spell: Spell, ctx: TurnContext,
+        self,
+        caster: Creature,
+        targets: tuple[Creature, ...],
+        spell: Spell,
+        ctx: TurnContext,
     ) -> list[Creature]:
         assert spell.save_ability is not None
         dc = caster.spell_save_dc()
@@ -350,30 +357,40 @@ class ControlSpellHandler:
             if not target.is_alive or target.is_at_zero_hp:
                 continue
             saved = roll_saving_throw(
-                target, spell.save_ability, dc=dc, ctx=ctx, tags=("spell_save",),
+                target,
+                spell.save_ability,
+                dc=dc,
+                ctx=ctx,
+                tags=("spell_save",),
             )
             if not saved and self._apply_condition(caster, target, spell, ctx):
                 affected.append(target)
         return affected
 
     def _apply_condition(
-        self, caster: Creature, target: Creature, spell: Spell, ctx: TurnContext,
+        self,
+        caster: Creature,
+        target: Creature,
+        spell: Spell,
+        ctx: TurnContext,
     ) -> bool:
         assert spell.condition is not None
         result = ctx.condition_service.apply_with_implies(target, spell.condition)
         if not result.applied:
             return False
         dc = caster.spell_save_dc() if spell.save_ability is not None else None
-        ctx.event_bus.publish(ConditionApplied(
-            caster_id=caster.id, target_id=target.id, spell_id=spell.id,
-            conditions=result.applied,
-            ends_on_damage=spell.condition_ends_on_damage,
-            repeat_save_ability=(
-                spell.save_ability if spell.condition_repeat_save else None
-            ),
-            save_dc=dc if spell.condition_repeat_save else None,
-            concentration=spell.concentration,
-        ))
+        ctx.event_bus.publish(
+            ConditionApplied(
+                caster_id=caster.id,
+                target_id=target.id,
+                spell_id=spell.id,
+                conditions=result.applied,
+                ends_on_damage=spell.condition_ends_on_damage,
+                repeat_save_ability=(spell.save_ability if spell.condition_repeat_save else None),
+                save_dc=dc if spell.condition_repeat_save else None,
+                concentration=spell.concentration,
+            )
+        )
         return True
 
 

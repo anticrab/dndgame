@@ -1,5 +1,6 @@
 """Aliases: старые Terrain-константы (FLOOR/WALL/...) воспроизводятся
 как готовые Tile. Это нужно для backwards compat до миграции тестов."""
+
 from __future__ import annotations
 
 from dnd.domain.values.direction import Direction

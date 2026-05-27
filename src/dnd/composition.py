@@ -119,9 +119,9 @@ def build_default_dependencies(
     используйте :func:`build_default_runtime_services` +
     ``services.with_battlefield(bf)``.
     """
-    return build_default_runtime_services(
-        rng=rng, event_bus=event_bus
-    ).with_battlefield(battlefield)
+    return build_default_runtime_services(rng=rng, event_bus=event_bus).with_battlefield(
+        battlefield
+    )
 
 
 def build_scripted_dependencies(

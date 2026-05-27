@@ -1,4 +1,5 @@
 """TargetModeHandler: Tab-cycle по достижимым врагам, highlights, Enter."""
+
 from unittest.mock import MagicMock
 
 from dnd.domain.entities.creature import Creature
@@ -11,9 +12,13 @@ from dnd.interfaces.tui.screens.battle_modes.target_mode import TargetModeHandle
 
 def _make_goblin(cid: str, max_hp: int = 7, ac: int = 13) -> Creature:
     return Creature.create(
-        id_=CreatureId(cid), name=cid,
+        id_=CreatureId(cid),
+        name=cid,
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=max_hp, armor_class=ac, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=max_hp,
+        armor_class=ac,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
 
 
@@ -108,9 +113,7 @@ def test_hint_includes_hp_ac_and_distance_when_known() -> None:
     g2 = _make_goblin("g2", max_hp=20, ac=18)
     targets = [(g1.id, Square(3, 3)), (g2.id, Square(8, 0))]
     h = TargetModeHandler()
-    h.on_enter(_screen(
-        targets, actor_pos=Square(2, 3), participants={g1.id: g1, g2.id: g2}
-    ))
+    h.on_enter(_screen(targets, actor_pos=Square(2, 3), participants={g1.id: g1, g2.id: g2}))
     hint = h.overlay().hint
     assert "HP 7/7" in hint
     assert "AC 13" in hint

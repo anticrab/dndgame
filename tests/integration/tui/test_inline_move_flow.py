@@ -5,6 +5,7 @@ BattleScreen в `BattleMode.MOVE`. Стрелки двигают cursor по к�
 Enter подтверждает chebyshev-путь, Esc отменяет и возвращает в
 NORMAL — без выполнения хода.
 """
+
 from __future__ import annotations
 
 import asyncio

@@ -1,4 +1,5 @@
 """Все реальные YAML карты из data/content/maps/ валидно загружаются."""
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -3,6 +3,7 @@
 Реализация MapRepository Port через JSON. Используется для CLI
 import/export + скриптовая интеграция (JSON = канонический interchange).
 """
+
 from __future__ import annotations
 
 import json

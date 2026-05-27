@@ -6,6 +6,7 @@
 кортеж, а не итератор — итератор сжигается после первого прохода и
 ловит пользователя на «почему второй цикл пустой» (нам это не нужно).
 """
+
 from __future__ import annotations
 
 from dnd.application.abilities.ability import Ability, AbilityId

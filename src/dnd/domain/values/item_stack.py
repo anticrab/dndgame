@@ -10,6 +10,7 @@ Mutable qty специально: операции пополнения/расх
 делать каждый раз новый frozen-instance дорого и приводит к гонке
 ссылок. Сам Item внутри — frozen, поэтому identity сохраняется.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

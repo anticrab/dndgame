@@ -14,6 +14,7 @@ cost=25/30 ft» — мгновенный feedback во время arrow-keys.
 Красная подсветка на курсоре (M-4) — когда путь недостижим
 (path == ()) для непустого смещения от старта.
 """
+
 from __future__ import annotations
 
 from dnd.application.engine.actions.move_path import (
@@ -73,7 +74,9 @@ class MoveModeHandler:
                 # пройти. Без фильтра pathfinder уходил бы вокруг трупа
                 # как от обычного существа.
                 walkable = find_walkable_path(
-                    bf, self._start, self._cursor,
+                    bf,
+                    self._start,
+                    self._cursor,
                     is_alive=screen._is_alive_lookup,
                 )
                 self._path = walkable if walkable is not None else ()
@@ -139,10 +142,7 @@ class MoveModeHandler:
             tag = f"[yellow]нужен Dash (+{cost - budget} ft)[/]"
         else:
             tag = "[red]за пределами Dash[/]"
-        return (
-            f"MOVE: ({self._cursor.x},{self._cursor.y}) "
-            f"cost={cost}/{budget} ft {tag}"
-        )
+        return f"MOVE: ({self._cursor.x},{self._cursor.y}) cost={cost}/{budget} ft {tag}"
 
 
 __all__ = ["MoveModeHandler"]

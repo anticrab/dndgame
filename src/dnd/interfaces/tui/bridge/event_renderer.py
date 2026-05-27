@@ -227,9 +227,7 @@ class EventRenderer:
             self._pending_level_ups.append(event)
 
         try:
-            self._screen.app.push_screen(
-                LevelUpScreen(event, on_now=_now, on_later=_later)
-            )
+            self._screen.app.push_screen(LevelUpScreen(event, on_now=_now, on_later=_later))
         except NoMatches:
             return
 

@@ -1,4 +1,5 @@
 """Item value-object — frozen + минимальная валидация."""
+
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
@@ -17,15 +18,21 @@ def test_item_is_frozen() -> None:
 def test_item_kinds_cover_expected_set() -> None:
     """5 базовых категорий — все use-case'ы Inventory сводятся к ним."""
     assert {k.value for k in ItemKind} == {
-        "weapon", "armor", "consumable", "quest", "misc",
+        "weapon",
+        "armor",
+        "consumable",
+        "quest",
+        "misc",
     }
 
 
 def test_negative_weight_rejected() -> None:
     with pytest.raises(ValueError, match="weight_lb"):
         Item(
-            id=ItemId("ghost"), name="Ghost",
-            kind=ItemKind.MISC, weight_lb=-1.0,
+            id=ItemId("ghost"),
+            name="Ghost",
+            kind=ItemKind.MISC,
+            weight_lb=-1.0,
         )
 
 
@@ -47,8 +54,11 @@ def test_stackable_defaults_to_false() -> None:
 
 def test_consumable_with_stackable_true_ok() -> None:
     potion = Item(
-        id=ItemId("healing_potion"), name="Healing Potion",
-        kind=ItemKind.CONSUMABLE, weight_lb=0.5, stackable=True,
+        id=ItemId("healing_potion"),
+        name="Healing Potion",
+        kind=ItemKind.CONSUMABLE,
+        weight_lb=0.5,
+        stackable=True,
     )
     assert potion.stackable is True
     assert potion.weight_lb == 0.5

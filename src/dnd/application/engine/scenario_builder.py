@@ -66,35 +66,25 @@ def build_battlefield_from_map(template: MapTemplate) -> Battlefield:
     * все ``legend.values()`` — известные ID террейна.
     """
     if len(template.grid) != template.height:
-        raise ValueError(
-            f"grid has {len(template.grid)} rows, expected {template.height}"
-        )
+        raise ValueError(f"grid has {len(template.grid)} rows, expected {template.height}")
 
     bf = Battlefield(template.width, template.height)
     for y, row in enumerate(template.grid):
         if len(row) != template.width:
-            raise ValueError(
-                f"row {y} has length {len(row)}, expected {template.width}"
-            )
+            raise ValueError(f"row {y} has length {len(row)}, expected {template.width}")
         for x, ch in enumerate(row):
             terrain_id = template.legend.get(ch)
             if terrain_id is None:
-                raise ValueError(
-                    f"unknown legend symbol {ch!r} at ({x},{y})"
-                )
+                raise ValueError(f"unknown legend symbol {ch!r} at ({x},{y})")
             terrain = _TERRAIN_BY_ID.get(terrain_id)
             if terrain is None:
-                raise ValueError(
-                    f"unknown terrain id {terrain_id!r} in legend"
-                )
+                raise ValueError(f"unknown terrain id {terrain_id!r} in legend")
             if terrain is not FLOOR:
                 bf.set_terrain(Square(x, y), terrain)
     return bf
 
 
-def build_battlefield_from_document(
-    doc: MapDocument, *, sprites: SpriteRegistry
-) -> Battlefield:
+def build_battlefield_from_document(doc: MapDocument, *, sprites: SpriteRegistry) -> Battlefield:
     """``MapDocument`` → ``Battlefield`` через Tile API + объекты.
 
     Tile-слой (новый, K1-T6) используется для каждой клетки с не-пустыми
@@ -119,18 +109,14 @@ def build_battlefield_from_document(
         # пока проверяют passability через ``terrain_at``. Маппим
         # «непроходимое или непрозрачное» в ``WALL``, иначе оставляем
         # FLOOR (default).
-        if not tile.base.passable or any(
-            f.passable_cost_ft == 0 for f in features
-        ):
+        if not tile.base.passable or any(f.passable_cost_ft == 0 for f in features):
             bf.set_terrain(sq, WALL)
 
     for obj_doc in doc.objects:
         try:
             kind = ObjectKind(obj_doc.kind)
         except ValueError as exc:
-            raise ValueError(
-                f"unknown object kind {obj_doc.kind!r} for {obj_doc.id}"
-            ) from exc
+            raise ValueError(f"unknown object kind {obj_doc.kind!r} for {obj_doc.id}") from exc
         bf.place_object(
             InteractableObject(
                 id=ObjectId(obj_doc.id),
@@ -174,15 +160,13 @@ def build_encounter_from_scenario(
     """
     if (services is None) == (deps is None):
         raise ValueError(
-            "build_encounter_from_scenario requires exactly one of "
-            "`services` or `deps`"
+            "build_encounter_from_scenario requires exactly one of `services` or `deps`"
         )
 
     if scenario.map_id is not None:
         if map_repository is None or sprite_registry is None:
             raise ValueError(
-                "scenario uses map_id; map_repository and sprite_registry "
-                "are required"
+                "scenario uses map_id; map_repository and sprite_registry are required"
             )
         doc = map_repository.load(scenario.map_id)
         bf = build_battlefield_from_document(doc, sprites=sprite_registry)
@@ -211,7 +195,9 @@ def build_encounter_from_scenario(
         instance_id = CreatureId(spawn.instance_id)
         template = content.monster_by_id(spawn.template_id)
         creature = build_creature_from_template(
-            template, instance_id=instance_id, content=content,
+            template,
+            instance_id=instance_id,
+            content=content,
             class_repository=class_repository,
         )
         # Q-11: существа фракции PARTY используют спасброски от смерти

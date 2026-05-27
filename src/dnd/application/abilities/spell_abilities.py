@@ -6,6 +6,7 @@ hotkey'ями ``1..9``. Ability несёт ``intent_factory`` → :class:`CastSp
 заклинания от базовых умений и выбирал правильный набор целей (враги для урона,
 союзники для heal/buff).
 """
+
 from __future__ import annotations
 
 from dnd.application.abilities.ability import Ability, AbilityId

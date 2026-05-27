@@ -9,6 +9,7 @@ advantage/disadvantage/numeric от состояний. Так prof-логика
 ``roll_saving_throw`` — полный бросок (нужен ``TurnContext``). Concentration-save
 в Encounter (нет ctx) использует ``saving_throw_bonus`` напрямую.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -56,13 +57,11 @@ def roll_saving_throw_raw(
     if condition_service is not None and condition_service.auto_fails_save(actor, ability):
         return False
     bonus = saving_throw_bonus(actor, ability)
-    mods = list(modifier_applier.collect(
-        owner_id=actor.id, target_kind=ModifierTargetKind.SAVING_THROW
-    ))
+    mods = list(
+        modifier_applier.collect(owner_id=actor.id, target_kind=ModifierTargetKind.SAVING_THROW)
+    )
     if condition_service is not None:
-        mods += condition_service.collect_modifiers(
-            actor, ModifierTargetKind.SAVING_THROW
-        )
+        mods += condition_service.collect_modifiers(actor, ModifierTargetKind.SAVING_THROW)
     adj = modifier_applier.to_roll_adjustments(mods)
     # T3: Dodge даёт преимущество на спасброски Ловкости (PHB-2024 стр. 22).
     # Сюда попадает только дееспособный dodger — авто-провал DEX (Paralyzed/
@@ -71,10 +70,12 @@ def roll_saving_throw_raw(
     roll = dice_roller.roll(
         DiceExpr.parse(f"d20{bonus + adj.numeric_bonus:+d}"),
         RollContext(
-            purpose=RollPurpose.SAVE, actor_id=actor.id,
+            purpose=RollPurpose.SAVE,
+            actor_id=actor.id,
             advantage=adj.advantage or dodge_dex_adv,
             disadvantage=adj.disadvantage,
-            extra_dice=adj.extra_dice, tags=tags,
+            extra_dice=adj.extra_dice,
+            tags=tags,
         ),
     )
     return roll.total >= dc
@@ -90,9 +91,13 @@ def roll_saving_throw(
 ) -> bool:
     """Бросок спасброска в контексте хода — делегирует в raw."""
     return roll_saving_throw_raw(
-        actor, ability, dc=dc,
-        dice_roller=ctx.dice_roller, modifier_applier=ctx.modifier_applier,
-        condition_service=ctx.condition_service, tags=tags,
+        actor,
+        ability,
+        dc=dc,
+        dice_roller=ctx.dice_roller,
+        modifier_applier=ctx.modifier_applier,
+        condition_service=ctx.condition_service,
+        tags=tags,
     )
 
 

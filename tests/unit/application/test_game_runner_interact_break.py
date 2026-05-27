@@ -7,6 +7,7 @@ Solo-encounter сценарий для этих intent'ов неудобен: ``
 вызов ``GameRunner._apply_intent`` с вручную собранным TurnContext'ом.
 Это и есть единица, которую мы покрываем (трансляция intent → action).
 """
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import (
@@ -40,9 +41,7 @@ def _make_warrior() -> Creature:
     return Creature.create(
         id_=CreatureId("aelar"),
         name="Aelar",
-        abilities=AbilityScores.of(
-            str_=16, dex=12, con=14, int_=10, wis=10, cha=10
-        ),
+        abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
         max_hp=20,
         armor_class=16,
         speed_ft=30,
@@ -145,9 +144,7 @@ def test_break_intent_without_weapon_is_noop() -> None:
     unarmed = Creature.create(
         id_=CreatureId("monk"),
         name="Monk",
-        abilities=AbilityScores.of(
-            str_=12, dex=14, con=12, int_=10, wis=14, cha=10
-        ),
+        abilities=AbilityScores.of(str_=12, dex=14, con=12, int_=10, wis=14, cha=10),
         max_hp=10,
         armor_class=12,
         speed_ft=30,

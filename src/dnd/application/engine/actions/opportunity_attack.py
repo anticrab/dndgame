@@ -91,9 +91,7 @@ class OpportunityAttack(AttackAction):
             )
         return super().execute(actor, params, ctx)
 
-    def _check_economy(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def _check_economy(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         """Reaction-бюджет: per-creature per-round (PHB-2024 стр. 22).
 
         Игнорируем ``ctx.reaction_used`` — он принадлежит хозяину

@@ -8,6 +8,7 @@
 Драматический эффект: +HP при низком HP может «воскресить» PC посреди боя.
 Применение уровня — снаружи (LevelUpService), экран лишь UI-выбор.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

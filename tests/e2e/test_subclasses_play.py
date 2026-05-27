@@ -1,5 +1,6 @@
 """E2E T4: воин L1→L3 получает боевой стиль (Defense +1 AC) и подкласс
 (Чемпион → крит 19), плут получает Cunning Action на L2."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -29,9 +30,12 @@ def _svc() -> LevelUpService:
 @pytest.mark.e2e
 def test_fighter_l1_to_l3_gains_style_and_champion() -> None:
     fighter = Creature.create(
-        id_=CreatureId("f"), name="f",
+        id_=CreatureId("f"),
+        name="f",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=12, armor_class=16, speed_ft=30,
+        max_hp=12,
+        armor_class=16,
+        speed_ft=30,
     )
     fighter.character_class = "fighter"
     fighter.level = 0  # рамп с нуля, чтобы применился и L1 (Fighting Style)
@@ -46,9 +50,12 @@ def test_fighter_l1_to_l3_gains_style_and_champion() -> None:
 @pytest.mark.e2e
 def test_rogue_l2_gains_cunning_action() -> None:
     rogue = Creature.create(
-        id_=CreatureId("r"), name="r",
+        id_=CreatureId("r"),
+        name="r",
         abilities=AbilityScores.of(str_=10, dex=16, con=12, int_=12, wis=10, cha=10),
-        max_hp=10, armor_class=14, speed_ft=30,
+        max_hp=10,
+        armor_class=14,
+        speed_ft=30,
     )
     rogue.character_class = "rogue"
     rogue.level = 0

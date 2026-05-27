@@ -114,6 +114,7 @@ def play(
     spell_repo = YamlSpellRepository(Path(content_dir) / "spells.yaml")
     # ClassRepository — для прогрессии (R1): XP + level-up в TUI.
     from dnd.infrastructure.content.yaml_class_repository import YamlClassRepository
+
     class_repo = YamlClassRepository(Path(content_dir) / "classes.yaml")
     enc = build_encounter_from_scenario(
         scenario,
@@ -129,9 +130,12 @@ def play(
     from dnd.application.engine.effects.ongoing_effect_tracker import (
         OngoingEffectTracker,
     )
+
     OngoingEffectTracker(
-        participants=enc.participants, event_bus=enc.event_bus,
-        dice_roller=services.dice_roller, modifier_applier=services.modifier_applier,
+        participants=enc.participants,
+        event_bus=enc.event_bus,
+        dice_roller=services.dice_roller,
+        modifier_applier=services.modifier_applier,
         condition_service=services.condition_service,
     ).subscribe()
 
@@ -145,7 +149,13 @@ def play(
                 err=True,
             )
             raise typer.Exit(code=2)
-        run_tui(encounter=enc, theme=theme, item_repository=item_repo, spell_repository=spell_repo, class_repository=class_repo)  # type: ignore[arg-type]  # theme: str vs ThemeName Literal
+        run_tui(
+            encounter=enc,
+            theme=theme,  # type: ignore[arg-type]  # str vs ThemeName Literal
+            item_repository=item_repo,
+            spell_repository=spell_repo,
+            class_repository=class_repo,
+        )
         return
 
     from dnd.application.engine.game_runner import GameRunner
@@ -164,8 +174,10 @@ def play(
     from dnd.application.engine.progression.xp_curve import FastXpCurve
 
     XpAwardService(
-        event_bus=enc.event_bus, curve=FastXpCurve(),
-        participants=enc.participants, factions=enc.factions,
+        event_bus=enc.event_bus,
+        curve=FastXpCurve(),
+        participants=enc.participants,
+        factions=enc.factions,
         class_repository=class_repo,  # REV-6: не спамить выше макс. уровня класса
     ).subscribe()
     _level_up = LevelUpService(

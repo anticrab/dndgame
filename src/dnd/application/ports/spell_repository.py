@@ -5,6 +5,7 @@
 * :class:`YamlSpellRepository` (читает data/content/spells.yaml);
 * in-memory для тестов.
 """
+
 from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
@@ -23,8 +24,7 @@ class SpellRepository(Protocol):
         """Полное описание. KeyError если неизвестный id."""
         ...
 
-    def contains(self, spell_id: SpellId) -> bool:
-        ...
+    def contains(self, spell_id: SpellId) -> bool: ...
 
 
 __all__ = ["SpellRepository"]

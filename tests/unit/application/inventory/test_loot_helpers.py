@@ -1,4 +1,5 @@
 """parse_loot / dump_loot_entries — canonical vs legacy формат chest contents."""
+
 from __future__ import annotations
 
 import pytest
@@ -25,12 +26,11 @@ class _FakeRepo:
         return item_id in self._by_id
 
 
-_GOLD = Item(id=ItemId("gold"), name="Gold", kind=ItemKind.MISC,
-             weight_lb=0.02, stackable=True)
-_SWORD = Item(id=ItemId("sword"), name="Sword", kind=ItemKind.WEAPON,
-              weight_lb=3.0)
-_POTION = Item(id=ItemId("potion"), name="Potion", kind=ItemKind.CONSUMABLE,
-               weight_lb=0.5, stackable=True)
+_GOLD = Item(id=ItemId("gold"), name="Gold", kind=ItemKind.MISC, weight_lb=0.02, stackable=True)
+_SWORD = Item(id=ItemId("sword"), name="Sword", kind=ItemKind.WEAPON, weight_lb=3.0)
+_POTION = Item(
+    id=ItemId("potion"), name="Potion", kind=ItemKind.CONSUMABLE, weight_lb=0.5, stackable=True
+)
 
 
 def _repo() -> ItemRepository:

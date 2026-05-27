@@ -98,9 +98,7 @@ def test_log_attack_shows_d20_and_target_hp() -> None:
     console, buf = _printer_buffer()
     EventPrinter(console).subscribe(enc.event_bus)
 
-    intents = ScriptedIntentProvider(
-        [AttackIntent(target_id=goblin.id), EndTurnIntent()]
-    )
+    intents = ScriptedIntentProvider([AttackIntent(target_id=goblin.id), EndTurnIntent()])
     GameRunner(intent_provider=intents).run(enc)
 
     out = buf.getvalue()
@@ -157,9 +155,7 @@ def test_log_encounter_ended_lists_survivors() -> None:
     console, buf = _printer_buffer()
     EventPrinter(console).subscribe(enc.event_bus)
 
-    intents = ScriptedIntentProvider(
-        [AttackIntent(target_id=goblin.id), EndTurnIntent()]
-    )
+    intents = ScriptedIntentProvider([AttackIntent(target_id=goblin.id), EndTurnIntent()])
     GameRunner(intent_provider=intents).run(enc)
 
     out = buf.getvalue()

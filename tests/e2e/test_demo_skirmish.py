@@ -4,6 +4,7 @@
 один воин-PC (fighter L1, со спасбросками от смерти) против пяти гоблинов,
 и что суммарного XP за гоблинов заведомо хватает на level-up до 2.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -30,9 +31,7 @@ def _build_demo() -> tuple[ScenarioTemplate, Encounter]:
     repo = YamlContentRepository(_CONTENT)
     scenario = repo.scenario_by_id("demo_skirmish")
     services = build_default_runtime_services()
-    return scenario, build_encounter_from_scenario(
-        scenario, content=repo, services=services
-    )
+    return scenario, build_encounter_from_scenario(scenario, content=repo, services=services)
 
 
 @pytest.mark.e2e
@@ -55,9 +54,7 @@ def test_demo_skirmish_loads_with_veteran_vs_two_goblins() -> None:
 def test_demo_skirmish_first_kill_crosses_level_threshold() -> None:
     """Старт 90 XP + одно добивание (CR0.25×100=25) = 115 ≥ порога 2 уровня."""
     _scenario, enc = _build_demo()
-    warrior = next(
-        enc.participants[cid] for cid, f in enc.factions.items() if f is Faction.PARTY
-    )
+    warrior = next(enc.participants[cid] for cid, f in enc.factions.items() if f is Faction.PARTY)
     assert warrior.xp + 25 >= FastXpCurve().threshold(2), (
         "первого добивания должно хватать на level-up в бою"
     )
@@ -76,8 +73,10 @@ def test_demo_skirmish_first_kill_triggers_levelup_to_two() -> None:
     warrior = enc.participants[warrior_id]
 
     XpAwardService(
-        event_bus=enc.event_bus, curve=FastXpCurve(),
-        participants=enc.participants, factions=enc.factions,
+        event_bus=enc.event_bus,
+        curve=FastXpCurve(),
+        participants=enc.participants,
+        factions=enc.factions,
     ).subscribe()
     level_up = LevelUpService(
         class_repository=YamlClassRepository(_CONTENT / "classes.yaml"),

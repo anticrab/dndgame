@@ -4,6 +4,7 @@
 cost=25/30 ft», в TARGET — «TARGET: g1 (1/3) — Tab next · Enter ok».
 BattleScreen вызывает :meth:`set_text` после смены mode/курсора.
 """
+
 from __future__ import annotations
 
 from textual.widgets import Static

@@ -1,4 +1,5 @@
 """Q-1: Creature — спасброски от смерти, dying state (PHB-2024 стр. 27)."""
+
 from __future__ import annotations
 
 from dnd.domain.conditions.builtin import UNCONSCIOUS
@@ -9,9 +10,12 @@ from dnd.domain.values.damage import DamageInstance, DamageType
 
 def _pc(max_hp: int = 10, *, uses_death_saves: bool = True) -> Creature:
     c = Creature.create(
-        id_="hero", name="Hero",
+        id_="hero",
+        name="Hero",
         abilities=AbilityScores.of(str_=14, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=max_hp, armor_class=12, speed_ft=30,
+        max_hp=max_hp,
+        armor_class=12,
+        speed_ft=30,
     )
     c.uses_death_saves = uses_death_saves
     return c

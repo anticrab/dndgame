@@ -10,6 +10,7 @@
 Сценарий с двумя goblin'ами в дальнем углу 40×24 карты воспроизводит
 условия `crypt_of_black_candle` без загрузки content-pipeline'а.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -46,14 +47,22 @@ def test_attack_on_big_map_target_follows_cursor() -> None:
     физически содержит вообще всю карту, поэтому центрирование
     проверяем косвенно — через успешный enter→normal."""
     pc = Creature.create(
-        id_=CreatureId("aelar"), name="Aelar",
+        id_=CreatureId("aelar"),
+        name="Aelar",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     g = Creature.create(
-        id_=CreatureId("g1"), name="G1",
+        id_=CreatureId("g1"),
+        name="G1",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = _big_open_bf()
     bf.place_creature(pc.id, Square(35, 20))

@@ -2,6 +2,7 @@
 
 Pilot-харнесс через ``asyncio.run`` (как в test_app_smoke — без pytest-asyncio).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -115,14 +116,22 @@ def test_tab_opens_ability_menu_in_battle() -> None:
     register_default_abilities(reg)
     bf = Battlefield(5, 5)
     warrior = Creature.create(
-        id_=CreatureId("hero"), name="hero",
+        id_=CreatureId("hero"),
+        name="hero",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     gob = Creature.create(
-        id_=CreatureId("g"), name="g",
+        id_=CreatureId("g"),
+        name="g",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=SCIMITAR,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=SCIMITAR,
     )
     bf.place_creature(warrior.id, Square(1, 2))
     bf.place_creature(gob.id, Square(3, 2))
@@ -175,14 +184,22 @@ def test_esc_from_target_mode_clears_pending_ability() -> None:
     register_default_abilities(reg)
     bf = Battlefield(5, 5)
     warrior = Creature.create(
-        id_=CreatureId("hero"), name="hero",
+        id_=CreatureId("hero"),
+        name="hero",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     gob = Creature.create(
-        id_=CreatureId("g"), name="g",
+        id_=CreatureId("g"),
+        name="g",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=SCIMITAR,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=SCIMITAR,
     )
     bf.place_creature(warrior.id, Square(1, 2))
     bf.place_creature(gob.id, Square(2, 2))  # смежно — reach есть
@@ -242,17 +259,23 @@ def test_mage_spells_appear_in_menu_and_aoe_enters_area() -> None:
     spell_repo = YamlSpellRepository(Path("data/content/spells.yaml"))
     bf = Battlefield(8, 8)
     mage = Creature.create(
-        id_=CreatureId("mage"), name="mage",
+        id_=CreatureId("mage"),
+        name="mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=14, armor_class=12, speed_ft=30,
+        max_hp=14,
+        armor_class=12,
+        speed_ft=30,
     )
     mage.spellcasting_ability = Abil.INT
     mage.known_spells = (SpellId("fire_bolt"), SpellId("fireball"))
     mage.spell_slots = {1: 2}
     gob = Creature.create(
-        id_=CreatureId("g"), name="g",
+        id_=CreatureId("g"),
+        name="g",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
     )
     bf.place_creature(mage.id, Square(1, 1))
     bf.place_creature(gob.id, Square(4, 4))
@@ -284,10 +307,7 @@ def test_mage_spells_appear_in_menu_and_aoe_enters_area() -> None:
             spell_rows = [r for r in menu._rows if is_spell_ability(r.ability)]
             assert spell_rows, "в меню должны быть заклинания мага"
             # AoE-заклинание (fireball) → AREA-режим при применении.
-            fireball = next(
-                ab for ab in host._scr._keymap.values()
-                if ab.name == "Fireball"
-            )
+            fireball = next(ab for ab in host._scr._keymap.values() if ab.name == "Fireball")
             host._scr._trigger_ability(fireball)
             await pilot.pause(0.05)
             assert host._scr._mode is BattleMode.AREA

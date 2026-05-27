@@ -28,9 +28,7 @@ if TYPE_CHECKING:
 _log = logging.getLogger(__name__)
 
 
-def auto_melee_oa_policy(
-    event: OpportunityAttackProvoked, encounter: Encounter
-) -> None:
+def auto_melee_oa_policy(event: OpportunityAttackProvoked, encounter: Encounter) -> None:
     """Простая default-политика: каждый OA-trigger превращается в
     реальную melee-атаку threatener'а по двигающемуся, если threatener
     держит melee-оружие и реакция ещё свободна.

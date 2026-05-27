@@ -1,4 +1,5 @@
 """P1-4: CastSpellAction ATTACK (Fire Bolt) через реестр эффект-хендлеров."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -27,23 +28,33 @@ def _repo() -> YamlSpellRepository:
 
 def _mage() -> Creature:
     c = Creature.create(
-        id_="mage", name="Mage",
+        id_="mage",
+        name="Mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=10, armor_class=12, speed_ft=30,
+        max_hp=10,
+        armor_class=12,
+        speed_ft=30,
     )
-    c.spellcasting_ability = Ability.INT       # +3, prof +2 → attack +5, DC 13
+    c.spellcasting_ability = Ability.INT  # +3, prof +2 → attack +5, DC 13
     c.known_spells = (
-        SpellId("fire_bolt"), SpellId("magic_missile"), SpellId("sacred_flame"),
-        SpellId("cure_wounds"), SpellId("shield_of_faith"),
+        SpellId("fire_bolt"),
+        SpellId("magic_missile"),
+        SpellId("sacred_flame"),
+        SpellId("cure_wounds"),
+        SpellId("shield_of_faith"),
     )
     return c
 
 
 def _goblin(ac: int = 13) -> Creature:
     return Creature.create(
-        id_="gob", name="Goblin",
+        id_="gob",
+        name="Goblin",
         abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
-        max_hp=12, armor_class=ac, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=12,
+        armor_class=ac,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
 
 
@@ -95,8 +106,8 @@ def test_fire_bolt_miss_no_damage() -> None:
     out = action.execute(
         mage, CastSpellParams(spell_id=SpellId("fire_bolt"), target_id=gob.id), ctx
     )
-    assert out.success           # каст состоялся (заговор брошен)
-    assert not dmg               # но промах → урона нет
+    assert out.success  # каст состоялся (заговор брошен)
+    assert not dmg  # но промах → урона нет
     assert gob.hit_points.current == 12
 
 
@@ -104,9 +115,7 @@ def test_cantrip_does_not_consume_slot() -> None:
     _enc, mage, gob, ctx = _setup([20, 19, 10, 7])
     mage.spell_slots = {1: 1}
     action = CastSpellAction(_repo())
-    action.execute(
-        mage, CastSpellParams(spell_id=SpellId("fire_bolt"), target_id=gob.id), ctx
-    )
+    action.execute(mage, CastSpellParams(spell_id=SpellId("fire_bolt"), target_id=gob.id), ctx)
     assert mage.spell_slots == {1: 1}  # заговор слот не тратит
 
 
@@ -130,6 +139,7 @@ def test_unknown_spell_forbidden() -> None:
 
 
 # --- P1-5: SAVE (Sacred Flame) -------------------------------------------
+
 
 def test_sacred_flame_save_fail_full_damage() -> None:
     # init x2, урон d8=5, спасбросок d20=5 (+2 DEX=7 < DC13 → провал) → 5.
@@ -170,9 +180,9 @@ def test_magic_missile_auto_damage_consumes_slot() -> None:
         ctx,
     )
     assert out.success
-    assert len(dmg) == 3                          # три отдельных дротика
-    assert sum(d.raw_amount for d in dmg) == 15   # 3 × (d4=4 +1)
-    assert mage.spell_slots == {1: 0}             # слот потрачен
+    assert len(dmg) == 3  # три отдельных дротика
+    assert sum(d.raw_amount for d in dmg) == 15  # 3 × (d4=4 +1)
+    assert mage.spell_slots == {1: 0}  # слот потрачен
 
 
 def test_magic_missile_no_slot_forbidden() -> None:
@@ -188,12 +198,14 @@ def test_magic_missile_no_slot_forbidden() -> None:
 
 # --- P1-7: HEAL (Cure Wounds) --------------------------------------------
 
+
 def test_cure_wounds_heals_self() -> None:
     # init x2, лечение d8=4 (+3 INT) = 7. Маг ранен до 2 → 9.
     enc, mage, _gob, ctx = _setup([20, 19, 4])
     mage.spell_slots = {1: 1}
     mage.hit_points = mage.hit_points.take_damage(8)  # 10 → 2
     from dnd.application.dto.engine_event import HealingApplied
+
     heals: list[HealingApplied] = []
     enc.event_bus.subscribe(HealingApplied, heals.append)
     out = CastSpellAction(_repo()).execute(
@@ -218,6 +230,7 @@ def test_heal_raises_ally_from_dying() -> None:
     """Прямой юнит HealSpellHandler: лечение поднимает PC из dying (Q-логика)."""
     from dnd.application.engine.spells.handlers import HealSpellHandler
     from dnd.domain.conditions.builtin import UNCONSCIOUS
+
     _enc, mage, _gob, ctx = _setup([20, 19, 4])
     ally = _mage()
     ally.id = type(ally.id)("ally")  # отдельный id
@@ -233,6 +246,7 @@ def test_heal_raises_ally_from_dying() -> None:
 
 
 # --- P1-8: BUFF + concentration (Shield of Faith) ------------------------
+
 
 def _ac_bonus(ctx: object, target: Creature) -> int:
     mods = ctx.modifier_applier.collect(  # type: ignore[attr-defined]
@@ -256,6 +270,7 @@ def test_recasting_concentration_does_not_stack() -> None:
     # Два каста в один ход невозможны (action economy) → проверяем хендлер
     # напрямую: повторное наложение снимает прежний бафф, не стэкается.
     from dnd.application.engine.spells.handlers import BuffSpellHandler
+
     _enc, mage, _gob, ctx = _setup([20, 19])
     spell = _repo().load(SpellId("shield_of_faith"))
     handler = BuffSpellHandler()
@@ -275,21 +290,25 @@ def test_buff_handler_applies_dice_bonus_to_attack_and_save() -> None:
         TargetingSpec,
         TargetKind,
     )
+
     _enc, mage, _gob, ctx = _setup([20, 19])
     spell = Spell(
-        id=SpellId("bless_like"), name="Bless", level=1, school="enchantment",
+        id=SpellId("bless_like"),
+        name="Bless",
+        level=1,
+        school="enchantment",
         effect=SpellEffect.BUFF,
         targeting=TargetingSpec(kind=TargetKind.MULTI, max_targets=3),
-        range_ft=30, description="", concentration=True,
+        range_ft=30,
+        description="",
+        concentration=True,
         buffs=(
             BuffSpec(target=ModifierTargetKind.ATTACK_ROLL, dice_bonus="1d4"),
             BuffSpec(target=ModifierTargetKind.SAVING_THROW, dice_bonus="1d4"),
         ),
     )
     BuffSpellHandler().apply(mage, (mage,), spell, ctx)
-    atk = ctx.modifier_applier.collect(
-        owner_id=mage.id, target_kind=ModifierTargetKind.ATTACK_ROLL
-    )
+    atk = ctx.modifier_applier.collect(owner_id=mage.id, target_kind=ModifierTargetKind.ATTACK_ROLL)
     save = ctx.modifier_applier.collect(
         owner_id=mage.id, target_kind=ModifierTargetKind.SAVING_THROW
     )
@@ -299,6 +318,7 @@ def test_buff_handler_applies_dice_bonus_to_attack_and_save() -> None:
 
 def test_concentration_moves_buff_to_new_target() -> None:
     from dnd.application.engine.spells.handlers import BuffSpellHandler
+
     _enc, mage, gob, ctx = _setup([20, 19])
     spell = _repo().load(SpellId("shield_of_faith"))
     handler = BuffSpellHandler()
@@ -311,9 +331,11 @@ def test_concentration_moves_buff_to_new_target() -> None:
 
 # --- P1-audit регрессии -------------------------------------------------
 
+
 def test_offensive_spell_on_dead_target_forbidden() -> None:
     """MAJOR-2: Fire Bolt по мёртвой цели → Forbidden (не только UI-фильтр)."""
     from dnd.domain.values.damage import DamageInstance, DamageType
+
     _enc, mage, gob, ctx = _setup([20, 19, 10, 7])
     gob.take_damage(DamageInstance(amount=99, type_=DamageType.SLASHING))  # труп
     avail = CastSpellAction(_repo()).can_perform_against(
@@ -325,6 +347,7 @@ def test_offensive_spell_on_dead_target_forbidden() -> None:
 def test_heal_on_dying_ally_allowed() -> None:
     """MAJOR-2: Cure Wounds по умирающему (0 HP, dying) союзнику — разрешено."""
     from dnd.domain.values.damage import DamageInstance, DamageType
+
     _enc, mage, _gob, ctx = _setup([20, 19, 4])
     mage.spell_slots = {1: 1}
     mage.uses_death_saves = True
@@ -342,6 +365,7 @@ def test_concentration_buff_removed_when_caster_downed() -> None:
     """MAJOR-1: при падении кастера в 0 HP его concentration-бафф (+AC) снимается."""
     from dnd.application.dto.engine_event import DamageDealt
     from dnd.domain.values.damage import DamageInstance, DamageType
+
     enc, mage, _gob, ctx = _setup([20, 19])
     mage.spell_slots = {1: 1}
     CastSpellAction(_repo()).execute(
@@ -351,13 +375,20 @@ def test_concentration_buff_removed_when_caster_downed() -> None:
     # Маг получает летальный урон → концентрация рвётся, бафф снимается.
     # Сигнал падения — DamageDealt(was_lethal), как для оружия и заклинаний.
     mage.take_damage(DamageInstance(amount=99, type_=DamageType.SLASHING))
-    enc.event_bus.publish(DamageDealt(
-        attacker_id=_gob.id, target_id=mage.id,
-        damage_roll_id="00000000-0000-0000-0000-000000000000",
-        damage_type=DamageType.SLASHING, raw_amount=99, final_amount=99,
-        is_critical=False, hp_after=mage.hit_points.current,
-        hp_max=mage.hit_points.maximum, was_lethal=True,
-    ))
+    enc.event_bus.publish(
+        DamageDealt(
+            attacker_id=_gob.id,
+            target_id=mage.id,
+            damage_roll_id="00000000-0000-0000-0000-000000000000",
+            damage_type=DamageType.SLASHING,
+            raw_amount=99,
+            final_amount=99,
+            is_critical=False,
+            hp_after=mage.hit_points.current,
+            hp_max=mage.hit_points.maximum,
+            was_lethal=True,
+        )
+    )
     assert _ac_bonus(ctx, mage) == 0
     assert mage.concentration is None
 
@@ -367,12 +398,21 @@ def test_save_for_half_yields_half_damage() -> None:
     from dnd.application.engine.spells.handlers import SaveSpellHandler
     from dnd.domain.values.damage import DamageType
     from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
+
     _enc, mage, gob, ctx = _setup([20, 19, 6, 18])  # урон 6, save success
     spell = Spell(
-        id=SpellId("fireball_like"), name="Half", level=1, school="evocation",
-        effect=SpellEffect.SAVE, targeting=TargetingSpec(kind=TargetKind.SINGLE),
-        range_ft=60, description="", dice="1d8", damage_type=DamageType.FIRE,
-        save_ability=Ability.DEX, save_for_half=True,
+        id=SpellId("fireball_like"),
+        name="Half",
+        level=1,
+        school="evocation",
+        effect=SpellEffect.SAVE,
+        targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=60,
+        description="",
+        dice="1d8",
+        damage_type=DamageType.FIRE,
+        save_ability=Ability.DEX,
+        save_for_half=True,
     )
     SaveSpellHandler().apply(mage, (gob,), spell, ctx)
     assert gob.hit_points.current == 9  # 12 - (6//2=3)

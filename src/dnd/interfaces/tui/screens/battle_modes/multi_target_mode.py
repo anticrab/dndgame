@@ -6,6 +6,7 @@
 Enter подтверждает набор, Esc отменяет. Никакого ввода чисел — повторы
 задаются повторным выбором; на экране счётчик попаданий ✦×N и остаток.
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -93,9 +94,7 @@ class MultiTargetModeHandler:
             else:
                 highlights[sq] = "bold"
         _cur_id, cur_sq = self._targets[self._idx]
-        picked_str = ", ".join(
-            f"{cid} {'✦' * counts[cid]}" for cid in counts
-        ) or "—"
+        picked_str = ", ".join(f"{cid} {'✦' * counts[cid]}" for cid in counts) or "—"
         remaining = self._max - len(self._picks)
         hint = (
             f"MULTI: [{picked_str}] — осталось {remaining} из {self._max} · "

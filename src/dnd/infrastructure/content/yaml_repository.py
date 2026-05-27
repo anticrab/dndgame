@@ -51,22 +51,13 @@ class YamlContentRepository:
             )
 
         self._weapons: dict[str, WeaponTemplate] = {
-            w.id: w
-            for w in _load_yaml_list(
-                content_dir / "weapons.yaml", _WEAPONS_ADAPTER
-            )
+            w.id: w for w in _load_yaml_list(content_dir / "weapons.yaml", _WEAPONS_ADAPTER)
         }
         self._monsters: dict[str, MonsterTemplate] = {
-            m.id: m
-            for m in _load_yaml_list(
-                content_dir / "monsters.yaml", _MONSTERS_ADAPTER
-            )
+            m.id: m for m in _load_yaml_list(content_dir / "monsters.yaml", _MONSTERS_ADAPTER)
         }
         self._scenarios: dict[str, ScenarioTemplate] = {
-            s.id: s
-            for s in _load_yaml_list(
-                content_dir / "scenarios.yaml", _SCENARIOS_ADAPTER
-            )
+            s.id: s for s in _load_yaml_list(content_dir / "scenarios.yaml", _SCENARIOS_ADAPTER)
         }
 
     # --- weapons ------------------------------------------------------
@@ -114,9 +105,7 @@ def _load_yaml_list(path: Path, adapter: TypeAdapter[list[T]]) -> list[T]:
     if raw is None:
         return []
     if not isinstance(raw, list):
-        raise ValueError(
-            f"{path}: expected YAML top-level list, got {type(raw).__name__}"
-        )
+        raise ValueError(f"{path}: expected YAML top-level list, got {type(raw).__name__}")
     return adapter.validate_python(raw)
 
 

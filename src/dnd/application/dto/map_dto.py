@@ -7,6 +7,7 @@ sprite_id и object_id, не сами объекты.
 Содержит метаданные карты + список tiles (только не-default; default
 floor подразумевается для пустых клеток) + список объектов.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -21,7 +22,7 @@ class MapTileDoc(BaseModel):
 
     x: int = Field(ge=0)
     y: int = Field(ge=0)
-    base: str               # terrain_id (см. SpriteRegistry)
+    base: str  # terrain_id (см. SpriteRegistry)
     features: tuple[str, ...] = ()
 
 
@@ -31,7 +32,7 @@ class MapObjectDoc(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
-    kind: str              # "door" / "chest" / "barrel" / "window"
+    kind: str  # "door" / "chest" / "barrel" / "window"
     x: int = Field(ge=0)
     y: int = Field(ge=0)
     state: dict[str, Any] = Field(default_factory=dict)
@@ -53,14 +54,10 @@ class MapDocument(BaseModel):
     def _validate_bounds(self) -> MapDocument:
         for t in self.tiles:
             if t.x >= self.width or t.y >= self.height:
-                raise ValueError(
-                    f"tile ({t.x},{t.y}) out of bounds {self.width}x{self.height}"
-                )
+                raise ValueError(f"tile ({t.x},{t.y}) out of bounds {self.width}x{self.height}")
         for o in self.objects:
             if o.x >= self.width or o.y >= self.height:
-                raise ValueError(
-                    f"object {o.id} pos ({o.x},{o.y}) out of bounds"
-                )
+                raise ValueError(f"object {o.id} pos ({o.x},{o.y}) out of bounds")
         return self
 
 

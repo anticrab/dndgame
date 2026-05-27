@@ -1,4 +1,5 @@
 """YamlSpriteRegistry — загружает sprite-YAMLs из каталога."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -57,6 +58,7 @@ def test_loads_feature_with_dirs(tmp_path: Path) -> None:
     wall = reg.get_feature("wall_v")
     assert wall.blocks_los is True
     from dnd.domain.values.direction import Direction
+
     assert Direction.E in wall.blocks_passage_dirs
 
 

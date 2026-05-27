@@ -30,9 +30,7 @@ def _ability_for_attack(creature: Creature) -> Ability:
     return Ability.STR if str_mod >= dex_mod else Ability.DEX
 
 
-def weapon_attack_params(
-    creature: Creature, target_id: CreatureId
-) -> AttackParams:
+def weapon_attack_params(creature: Creature, target_id: CreatureId) -> AttackParams:
     """Собрать ``AttackParams`` для атаки экипированным оружием.
 
     Складывает:
@@ -46,8 +44,7 @@ def weapon_attack_params(
     weapon = creature.equipped_weapon
     if weapon is None:
         raise ValueError(
-            f"creature {creature.id!r} has no equipped_weapon; "
-            f"cannot build weapon_attack_params"
+            f"creature {creature.id!r} has no equipped_weapon; cannot build weapon_attack_params"
         )
 
     ability = _ability_for_attack(creature)

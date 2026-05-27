@@ -1,4 +1,5 @@
 """R1-2: YamlClassRepository грузит классы из classes.yaml."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,7 +25,8 @@ def test_fighter_levels() -> None:
     assert f.hit_die == "1d10"
     # T4: L1 += fighting_style; L3 — подкласс (Чемпион даёт Improved Critical).
     assert f.levels[1].features == (
-        FeatureId("second_wind"), FeatureId("fighting_style"),
+        FeatureId("second_wind"),
+        FeatureId("fighting_style"),
     )
     assert f.levels[3].features == (FeatureId("subclass"),)
 

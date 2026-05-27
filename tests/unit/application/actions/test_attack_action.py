@@ -171,9 +171,7 @@ def test_can_perform_blocked_by_condition(condition_id: str) -> None:
 
 def test_against_no_target_in_participants() -> None:
     attacker, _target, ctx, _ = _setup(rng_rolls=[])
-    av = AttackAction().can_perform_against(
-        attacker, _params("ghost"), ctx
-    )
+    av = AttackAction().can_perform_against(attacker, _params("ghost"), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.NO_VALID_TARGETS
 
@@ -182,9 +180,7 @@ def test_against_no_target_in_participants() -> None:
 def test_against_self_target_forbidden() -> None:
     """Аудит 16 AT-R-NEW-003: атака на самого себя — Forbidden."""
     attacker, _target, ctx, _ = _setup(rng_rolls=[])
-    av = AttackAction().can_perform_against(
-        attacker, _params(attacker.id), ctx
-    )
+    av = AttackAction().can_perform_against(attacker, _params(attacker.id), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.SELF_TARGET
 
@@ -197,9 +193,7 @@ def test_against_dead_target_forbidden() -> None:
     attacker, target, ctx, _ = _setup(rng_rolls=[])
     target.take_damage(DamageInstance(amount=999, type_=DamageType.SLASHING))
     assert target.is_at_zero_hp
-    av = AttackAction().can_perform_against(
-        attacker, _params(target.id), ctx
-    )
+    av = AttackAction().can_perform_against(attacker, _params(target.id), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.TARGET_DOWN
 
@@ -269,9 +263,7 @@ def test_against_out_of_range_melee() -> None:
         attacker_pos=Square(0, 0),
         target_pos=Square(2, 0),
     )
-    av = AttackAction().can_perform_against(
-        attacker, _params(target.id, range_ft=5), ctx
-    )
+    av = AttackAction().can_perform_against(attacker, _params(target.id, range_ft=5), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.OUT_OF_RANGE
 
@@ -301,9 +293,7 @@ def test_against_out_of_long_range_ranged() -> None:
 
 def test_against_allowed_when_all_conditions_met() -> None:
     attacker, target, ctx, _ = _setup(rng_rolls=[])
-    av = AttackAction().can_perform_against(
-        attacker, _params(target.id), ctx
-    )
+    av = AttackAction().can_perform_against(attacker, _params(target.id), ctx)
     assert isinstance(av, Allowed)
 
 
@@ -313,9 +303,7 @@ def test_against_allowed_when_all_conditions_met() -> None:
 def test_execute_hit_publishes_three_events_in_order() -> None:
     """d20=14 + bonus=5 = 19 vs AC 14 → попадание. Урон d8+3 → 5+3=8."""
     target = _make_goblin(hp=20)  # достаточно HP, чтобы не упал от 8
-    attacker, target, ctx, bus = _setup(
-        rng_rolls=[14, 5], target=target
-    )
+    attacker, target, ctx, bus = _setup(rng_rolls=[14, 5], target=target)
     captured = _capture(bus)
 
     outcome = AttackAction().execute(attacker, _params(target.id), ctx)
@@ -331,9 +319,9 @@ def test_execute_hit_publishes_three_events_in_order() -> None:
 
     # Шина: RollIssued/Applied×2 (atk+dmg) + 3 наших события.
     # Проверяем именно ПОРЯДОК и ТИПЫ ключевых событий.
-    main_events = [e for e in captured if isinstance(
-        e, (AttackRolled, DamageDealt, AttackResolved)
-    )]
+    main_events = [
+        e for e in captured if isinstance(e, (AttackRolled, DamageDealt, AttackResolved))
+    ]
     assert [type(e).__name__ for e in main_events] == [
         "AttackRolled",
         "DamageDealt",
@@ -367,9 +355,9 @@ def test_execute_miss_publishes_no_damage_event() -> None:
     outcome = AttackAction().execute(attacker, _params(target.id), ctx)
 
     assert outcome.events_published == ("attack.rolled", "attack.resolved")
-    main_events = [e for e in captured if isinstance(
-        e, (AttackRolled, DamageDealt, AttackResolved)
-    )]
+    main_events = [
+        e for e in captured if isinstance(e, (AttackRolled, DamageDealt, AttackResolved))
+    ]
     assert [type(e).__name__ for e in main_events] == [
         "AttackRolled",
         "AttackResolved",
@@ -393,9 +381,7 @@ def test_execute_natural_20_is_critical_hit() -> None:
 
     AttackAction().execute(attacker, _params(target.id), ctx)
 
-    main = [e for e in captured if isinstance(
-        e, (AttackRolled, DamageDealt, AttackResolved)
-    )]
+    main = [e for e in captured if isinstance(e, (AttackRolled, DamageDealt, AttackResolved))]
     atk = main[0]
     assert isinstance(atk, AttackRolled)
     assert atk.is_critical_hit is True
@@ -420,9 +406,7 @@ def test_execute_natural_1_is_automatic_miss() -> None:
 
     AttackAction().execute(attacker, _params(target.id), ctx)
 
-    main = [e for e in captured if isinstance(
-        e, (AttackRolled, DamageDealt, AttackResolved)
-    )]
+    main = [e for e in captured if isinstance(e, (AttackRolled, DamageDealt, AttackResolved))]
     atk = main[0]
     assert isinstance(atk, AttackRolled)
     assert atk.is_critical_miss is True
@@ -603,12 +587,8 @@ def test_execute_magic_weapon_plus_1_damage_does_not_crash() -> None:
     """
     target = _make_goblin(hp=20)
     attacker = _make_fighter()
-    _, _, ctx, bus = _setup(
-        rng_rolls=[18, 5], attacker=attacker, target=target
-    )
-    ctx.modifier_applier = ModifierApplier(
-        _modifier_bag_with_damage_bonus(numeric=1)
-    )
+    _, _, ctx, bus = _setup(rng_rolls=[18, 5], attacker=attacker, target=target)
+    ctx.modifier_applier = ModifierApplier(_modifier_bag_with_damage_bonus(numeric=1))
     captured = _capture(bus)
 
     AttackAction().execute(attacker, _params(target.id), ctx)
@@ -634,12 +614,8 @@ def test_critical_hit_doubles_extra_dice() -> None:
     """
     target = _make_goblin(hp=50, ac=50)  # AC 50 — без крита не попали бы
     attacker = _make_fighter()
-    _, _, ctx, bus = _setup(
-        rng_rolls=[20, 4, 5, 2, 6], attacker=attacker, target=target
-    )
-    ctx.modifier_applier = ModifierApplier(
-        _modifier_bag_with_damage_bonus(extra_dice="1d6")
-    )
+    _, _, ctx, bus = _setup(rng_rolls=[20, 4, 5, 2, 6], attacker=attacker, target=target)
+    ctx.modifier_applier = ModifierApplier(_modifier_bag_with_damage_bonus(extra_dice="1d6"))
     captured = _capture(bus)
 
     AttackAction().execute(attacker, _params(target.id), ctx)
@@ -692,9 +668,7 @@ def test_concentration_save_dc_propagated_when_hit() -> None:
 
     target.concentration = SpellId("bless")
     attacker = _make_fighter()
-    _, _, ctx, bus = _setup(
-        rng_rolls=[18, 5], attacker=attacker, target=target
-    )
+    _, _, ctx, bus = _setup(rng_rolls=[18, 5], attacker=attacker, target=target)
     captured = _capture(bus)
 
     AttackAction().execute(attacker, _params(target.id), ctx)
@@ -769,9 +743,7 @@ def test_full_event_fifo_order_on_hit() -> None:
     from dnd.application.dto.engine_event import RollApplied, RollIssued
 
     target = _make_goblin(hp=20)
-    attacker, _, ctx, bus = _setup(
-        rng_rolls=[14, 5], target=target
-    )
+    attacker, _, ctx, bus = _setup(rng_rolls=[14, 5], target=target)
     captured = _capture(bus)
 
     AttackAction().execute(attacker, _params(target.id), ctx)
@@ -804,9 +776,7 @@ def test_target_resistance_halves_damage() -> None:
     # Resistance хранится как множество строковых значений DamageType.value.
     object.__setattr__(target, "resistances", frozenset({DamageType.SLASHING.value}))
     attacker = _make_fighter()
-    _, _, ctx, bus = _setup(
-        rng_rolls=[18, 5], attacker=attacker, target=target
-    )
+    _, _, ctx, bus = _setup(rng_rolls=[18, 5], attacker=attacker, target=target)
     captured = _capture(bus)
 
     AttackAction().execute(attacker, _params(target.id), ctx)
@@ -821,9 +791,7 @@ def test_target_immunity_zeroes_damage() -> None:
     target = _make_goblin(hp=30)
     object.__setattr__(target, "immunities", frozenset({DamageType.SLASHING.value}))
     attacker = _make_fighter()
-    _, _, ctx, bus = _setup(
-        rng_rolls=[18, 5], attacker=attacker, target=target
-    )
+    _, _, ctx, bus = _setup(rng_rolls=[18, 5], attacker=attacker, target=target)
     captured = _capture(bus)
 
     AttackAction().execute(attacker, _params(target.id), ctx)
@@ -845,7 +813,8 @@ def test_negative_damage_modifier_clamped_to_zero() -> None:
     attacker = _make_fighter()
     _, _, ctx, bus = _setup(
         rng_rolls=[18, 1],  # atk=18 → попал; damage=1
-        attacker=attacker, target=target,
+        attacker=attacker,
+        target=target,
     )
     # Делаем разбойного «слабого» с STR=6 (mod=-2), используем 1d4-2
     weak_params = AttackParams(

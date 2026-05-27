@@ -1,4 +1,5 @@
 """P1-12: сценарий выдаёт PC-кастеру заклинания, ячейки и характеристику."""
+
 from __future__ import annotations
 
 from pathlib import Path

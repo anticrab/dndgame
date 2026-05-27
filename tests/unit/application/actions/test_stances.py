@@ -88,18 +88,14 @@ def _make_ctx(actor: Creature, *, movement_ft: int = 30) -> TurnContext:
 # -- can_perform для всех трёх -----------------------------------------
 
 
-@pytest.mark.parametrize(
-    "action_cls", [DodgeAction, DashAction, DisengageAction]
-)
+@pytest.mark.parametrize("action_cls", [DodgeAction, DashAction, DisengageAction])
 def test_can_perform_allowed_fresh_turn(action_cls: type) -> None:
     actor = _make_creature()
     ctx = _make_ctx(actor)
     assert isinstance(action_cls().can_perform(actor, ctx), Allowed)
 
 
-@pytest.mark.parametrize(
-    "action_cls", [DodgeAction, DashAction, DisengageAction]
-)
+@pytest.mark.parametrize("action_cls", [DodgeAction, DashAction, DisengageAction])
 def test_can_perform_no_economy_left(action_cls: type) -> None:
     actor = _make_creature()
     ctx = _make_ctx(actor)
@@ -110,15 +106,9 @@ def test_can_perform_no_economy_left(action_cls: type) -> None:
 
 
 @pytest.mark.rules
-@pytest.mark.parametrize(
-    "action_cls", [DodgeAction, DashAction, DisengageAction]
-)
-@pytest.mark.parametrize(
-    "condition_id", ["incapacitated", "stunned", "paralyzed", "unconscious"]
-)
-def test_can_perform_blocked_by_condition(
-    action_cls: type, condition_id: str
-) -> None:
+@pytest.mark.parametrize("action_cls", [DodgeAction, DashAction, DisengageAction])
+@pytest.mark.parametrize("condition_id", ["incapacitated", "stunned", "paralyzed", "unconscious"])
+def test_can_perform_blocked_by_condition(action_cls: type, condition_id: str) -> None:
     """PHB-2024 стр. 367: Incapacitated блокирует actions."""
     actor = _make_creature()
     ctx = _make_ctx(actor)

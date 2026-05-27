@@ -153,8 +153,7 @@ class TurnContext:
         """
         if not self.can_move(feet):
             raise ValueError(
-                f"not enough movement: requested {feet} ft, "
-                f"have {self.movement_remaining_ft} ft"
+                f"not enough movement: requested {feet} ft, have {self.movement_remaining_ft} ft"
             )
         self.movement_remaining_ft -= feet
 

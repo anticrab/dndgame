@@ -124,17 +124,20 @@ def test_no_trailing_newline_at_end() -> None:
 def _dummy_console_fixture() -> object:
     """rich.Text.get_style_at_offset требует Console для разрешения тем."""
     from rich.console import Console
+
     return Console()
 
 
 def _dummy_console() -> object:
     from rich.console import Console
+
     return Console()
 
 
 def test_render_medium_uses_tile_when_set() -> None:
     """Medium-zoom: 5×3 ячеек на клетку через Tile."""
     from dnd.domain.values.tile_aliases import WALL_TILE
+
     bf = Battlefield(3, 1)
     bf.set_tile(Square(1, 0), WALL_TILE)
     text = render_battlefield(bf, {}, zoom="medium")
@@ -182,11 +185,14 @@ def test_dead_creature_renders_as_corpse_glyph() -> None:
     from dnd.domain.values.faction import Faction
     from dnd.domain.values.ids import CreatureId
     from dnd.domain.values.square import Square
+
     bf = Battlefield(3, 1)
     bf.place_creature(CreatureId("corpse"), Square(1, 0))
     factions = {CreatureId("corpse"): Faction.MONSTERS}
     text = render_battlefield(
-        bf, factions, with_color=False,
+        bf,
+        factions,
+        with_color=False,
         is_alive=lambda cid: False,
     )
     plain = text.plain
@@ -200,6 +206,7 @@ def test_living_overrides_dead_on_same_square() -> None:
     from dnd.domain.values.faction import Faction
     from dnd.domain.values.ids import CreatureId
     from dnd.domain.values.square import Square
+
     bf = Battlefield(3, 1)
     bf.place_creature(CreatureId("corpse"), Square(1, 0))
     bf.place_creature(CreatureId("alive"), Square(1, 0))
@@ -208,7 +215,9 @@ def test_living_overrides_dead_on_same_square() -> None:
         CreatureId("alive"): Faction.PARTY,
     }
     text = render_battlefield(
-        bf, factions, with_color=False,
+        bf,
+        factions,
+        with_color=False,
         is_alive=lambda cid: cid == CreatureId("alive"),
     )
     # Должны увидеть PC-глиф `@`, не `%`.

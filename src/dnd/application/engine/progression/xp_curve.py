@@ -3,6 +3,7 @@
 См. docs/PROGRESSION.md §1. Быстрая кривая (fast) — дефолт MVP: короткая партия
 даёт 1-й level-up через 1–2 встречи.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar, Protocol

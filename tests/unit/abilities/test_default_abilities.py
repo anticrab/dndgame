@@ -1,4 +1,5 @@
 """6 базовых ability'ев регистрируются без коллизий hotkey'ев."""
+
 from __future__ import annotations
 
 from dnd.application.abilities.ability import AbilityId

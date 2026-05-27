@@ -6,6 +6,7 @@ HP (фикс. среднее кости хитов + mod ТЕЛ), proficiency_bo
 to_level — no-op (level уже там). HP — детерминированно (без броска), удобно
 для тестов и драмы level-up в бою.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -43,9 +44,7 @@ class LevelUpService:
         self._features = feature_registry
         self._bus = event_bus
 
-    def apply(
-        self, creature: Creature, *, to_level: int, ctx: TurnContext | None
-    ) -> LevelUpResult:
+    def apply(self, creature: Creature, *, to_level: int, ctx: TurnContext | None) -> LevelUpResult:
         assert creature.character_class is not None, "level-up requires a class"
         progression = self._classes.load(creature.character_class)
         # T1: держим профициентные спасброски в синхроне с таблицей класса.
@@ -74,15 +73,20 @@ class LevelUpService:
             creature.hit_points = creature.hit_points.gain_max(total_hp)
 
         result = LevelUpResult(
-            new_level=creature.level, hp_gained=total_hp,
+            new_level=creature.level,
+            hp_gained=total_hp,
             features_gained=tuple(gained),
             new_proficiency_bonus=creature.proficiency_bonus,
         )
         if total_hp or gained:
-            self._bus.publish(LeveledUp(
-                actor_id=creature.id, new_level=creature.level,
-                hp_gained=total_hp, features_gained=tuple(str(f) for f in gained),
-            ))
+            self._bus.publish(
+                LeveledUp(
+                    actor_id=creature.id,
+                    new_level=creature.level,
+                    hp_gained=total_hp,
+                    features_gained=tuple(str(f) for f in gained),
+                )
+            )
         return result
 
 

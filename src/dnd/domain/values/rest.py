@@ -5,6 +5,7 @@
 encounter), но абстракция полная — будущие внебоевые short/long rest подключатся
 к той же ``RestService`` без переделок.
 """
+
 from __future__ import annotations
 
 from enum import StrEnum

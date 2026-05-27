@@ -44,10 +44,7 @@ def format_initiative(
         name = creature.name
         if not creature.is_alive:
             lines.append(
-                f"{idx} [red]✗[/] "
-                f"[dim strike]{name:<12}[/] "
-                f"[red bold]DEAD[/] "
-                f"{entry.total:>3}"
+                f"{idx} [red]✗[/] [dim strike]{name:<12}[/] [red bold]DEAD[/] {entry.total:>3}"
             )
             continue
         marker = "▶" if entry.creature_id == active_id else "-"

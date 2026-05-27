@@ -4,6 +4,7 @@
 или клетка кастера для FROM_CASTER) в направлении (для конуса/линии). Реестр —
 open/closed, как :class:`SpellEffectRegistry`.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable

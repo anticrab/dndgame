@@ -144,9 +144,7 @@ def test_can_perform_blocked_by_condition(condition_id: str) -> None:
 
 def test_empty_path_is_invalid() -> None:
     actor, ctx, _ = _setup()
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=()), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=()), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.INVALID_PATH
 
@@ -155,18 +153,14 @@ def test_non_adjacent_step_invalid() -> None:
     """Шаг должен быть соседним."""
     actor, ctx, _ = _setup()
     # Прыжок через клетку
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=(Square(4, 2),)), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=(Square(4, 2),)), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.INVALID_PATH
 
 
 def test_path_out_of_bounds_invalid() -> None:
     actor, ctx, _ = _setup(start=Square(0, 0))
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=(Square(-1, 0),)), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=(Square(-1, 0),)), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.INVALID_PATH
 
@@ -174,9 +168,7 @@ def test_path_out_of_bounds_invalid() -> None:
 def test_path_through_wall_impassable() -> None:
     actor, ctx, _ = _setup()
     ctx.battlefield.set_terrain(Square(3, 2), WALL)
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=(Square(3, 2),)), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=(Square(3, 2),)), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.IMPASSABLE_TERRAIN
 
@@ -191,9 +183,7 @@ def test_difficult_terrain_doubles_cost_in_validation() -> None:
         sq = Square(2 + i, 2)
         bf.set_terrain(sq, DIFFICULT)
         path.append(sq)
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=tuple(path)), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=tuple(path)), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.NOT_ENOUGH_MOVEMENT
 
@@ -213,9 +203,7 @@ def test_cannot_end_path_on_occupied_square() -> None:
     """PHB-2024 стр. 24: нельзя добровольно завершить ход в клетке,
     занятой другим существом."""
     actor, ctx, _ = _setup(others=((_make_creature("ally"), Square(3, 2)),))
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=(Square(3, 2),)), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=(Square(3, 2),)), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.SQUARE_OCCUPIED
 
@@ -308,9 +296,7 @@ def test_execute_moves_step_by_step_and_publishes() -> None:
     assert ctx.movement_remaining_ft == 20
 
     # Конкретные события
-    step1, step2, done = (
-        e for e in captured if isinstance(e, (MoveStepTaken, MoveCompleted))
-    )
+    step1, step2, done = (e for e in captured if isinstance(e, (MoveStepTaken, MoveCompleted)))
     assert isinstance(step1, MoveStepTaken)
     assert step1.frm == _START and step1.to == Square(3, 2)
     assert step1.cost_ft == 5
@@ -329,9 +315,7 @@ def test_execute_difficult_terrain_costs_10ft() -> None:
     ctx.battlefield.set_terrain(Square(3, 2), DIFFICULT)
     captured = _capture(bus)
 
-    MoveAction().execute(
-        actor, MoveParams(path=(Square(3, 2),)), ctx
-    )
+    MoveAction().execute(actor, MoveParams(path=(Square(3, 2),)), ctx)
 
     step = next(e for e in captured if isinstance(e, MoveStepTaken))
     assert step.cost_ft == 10
@@ -352,9 +336,7 @@ def test_execute_diagonal_step_costs_5ft() -> None:
     actor, ctx, bus = _setup(speed_ft=30)
     captured = _capture(bus)
 
-    MoveAction().execute(
-        actor, MoveParams(path=(Square(3, 3),)), ctx
-    )
+    MoveAction().execute(actor, MoveParams(path=(Square(3, 3),)), ctx)
     step = next(e for e in captured if isinstance(e, MoveStepTaken))
     assert step.cost_ft == 5
     assert ctx.movement_remaining_ft == 25
@@ -409,9 +391,7 @@ def test_opportunity_provoked_once_per_threatener_in_one_move() -> None:
 
     MoveAction().execute(
         actor,
-        MoveParams(
-            path=(Square(2, 4), Square(3, 4), Square(2, 4))
-        ),
+        MoveParams(path=(Square(2, 4), Square(3, 4), Square(2, 4))),
         ctx,
     )
     aops = [e for e in captured if isinstance(e, OpportunityAttackProvoked)]
@@ -594,10 +574,7 @@ def test_opportunity_provoked_event_published_before_step_taken() -> None:
 
     MoveAction().execute(actor, MoveParams(path=(Square(1, 2),)), ctx)
 
-    events = [
-        e for e in captured
-        if isinstance(e, (OpportunityAttackProvoked, MoveStepTaken))
-    ]
+    events = [e for e in captured if isinstance(e, (OpportunityAttackProvoked, MoveStepTaken))]
     # Должен быть: [Provoked, StepTaken]
     assert isinstance(events[0], OpportunityAttackProvoked)
     assert isinstance(events[1], MoveStepTaken)

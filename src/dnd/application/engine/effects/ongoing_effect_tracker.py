@@ -11,6 +11,7 @@
 Связь только через шину — трекер не знает про хендлеры, хендлеры не знают про
 трекер. Это фундамент длительностей для этапа T3.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -78,13 +79,18 @@ class OngoingEffectTracker:
 
     # --- запись ---------------------------------------------------------
     def _on_applied(self, event: ConditionApplied) -> None:
-        self._effects.append(OngoingConditionEffect(
-            caster_id=event.caster_id, target_id=event.target_id,
-            spell_id=event.spell_id, conditions=event.conditions,
-            ends_on_damage=event.ends_on_damage,
-            repeat_save_ability=event.repeat_save_ability,
-            save_dc=event.save_dc, concentration=event.concentration,
-        ))
+        self._effects.append(
+            OngoingConditionEffect(
+                caster_id=event.caster_id,
+                target_id=event.target_id,
+                spell_id=event.spell_id,
+                conditions=event.conditions,
+                ends_on_damage=event.ends_on_damage,
+                repeat_save_ability=event.repeat_save_ability,
+                save_dc=event.save_dc,
+                concentration=event.concentration,
+            )
+        )
 
     # --- триггеры снятия ------------------------------------------------
     def _on_turn_ended(self, event: TurnEnded) -> None:
@@ -97,9 +103,13 @@ class OngoingEffectTracker:
             if effect.repeat_save_ability is None or effect.save_dc is None:
                 continue
             saved = roll_saving_throw_raw(
-                actor, effect.repeat_save_ability, dc=effect.save_dc,
-                dice_roller=self._dice, modifier_applier=self._mods,
-                condition_service=self._conds, tags=("repeat_save",),
+                actor,
+                effect.repeat_save_ability,
+                dc=effect.save_dc,
+                dice_roller=self._dice,
+                modifier_applier=self._mods,
+                condition_service=self._conds,
+                tags=("repeat_save",),
             )
             if saved:
                 self._remove(effect, reason="save")
@@ -129,9 +139,13 @@ class OngoingEffectTracker:
                 target.remove_condition(cond)
         if effect in self._effects:
             self._effects.remove(effect)
-        self._bus.publish(ConditionRemoved(
-            target_id=effect.target_id, conditions=effect.conditions, reason=reason,
-        ))
+        self._bus.publish(
+            ConditionRemoved(
+                target_id=effect.target_id,
+                conditions=effect.conditions,
+                reason=reason,
+            )
+        )
 
 
 __all__ = ["OngoingConditionEffect", "OngoingEffectTracker"]

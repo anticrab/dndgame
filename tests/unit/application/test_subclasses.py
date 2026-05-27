@@ -1,4 +1,5 @@
 """Подклассы L3 (T4-b): автовыбор по классу + эффект."""
+
 from __future__ import annotations
 
 from dnd.application.engine.features.defaults import default_feature_registry
@@ -9,9 +10,12 @@ from dnd.domain.values.ids import CreatureId, FeatureId
 
 def _c(cls: str) -> Creature:
     c = Creature.create(
-        id_=CreatureId("c"), name="c",
+        id_=CreatureId("c"),
+        name="c",
         abilities=AbilityScores.of(str_=12, dex=12, con=12, int_=12, wis=10, cha=10),
-        max_hp=20, armor_class=14, speed_ft=30,
+        max_hp=20,
+        armor_class=14,
+        speed_ft=30,
     )
     c.character_class = cls
     return c

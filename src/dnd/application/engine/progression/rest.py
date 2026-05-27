@@ -5,6 +5,7 @@ ResourceRegistry), не про конкретные фичи. В R1 единст
 «отдых между боями» (SHORT на старте encounter), но short/long rest как
 внебоевые действия позже зовут ту же ``apply``.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

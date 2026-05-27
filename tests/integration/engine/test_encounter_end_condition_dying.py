@@ -1,4 +1,5 @@
 """Q-5: end-condition с учётом dying (downed PC ≠ поражение)."""
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import EncounterEnded
@@ -15,9 +16,13 @@ from dnd.domain.values.weapon import LONGSWORD
 
 def _mk(id_: str, hp: int, *, dsave: bool) -> Creature:
     c = Creature.create(
-        id_=id_, name=id_,
+        id_=id_,
+        name=id_,
         abilities=AbilityScores.of(str_=12, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=hp, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=hp,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     c.uses_death_saves = dsave
     return c

@@ -86,16 +86,16 @@ def test_playthrough_1v2_warrior_vs_two_goblins() -> None:
     rolls = [
         20,  # warrior init: 21 → первый
         14,  # g1 init: 16
-        8,   # g2 init: 10
+        8,  # g2 init: 10
         # warrior R1: attack g1
         18,  # warrior atk g1: 23 vs 13 → попал
-        7,   # damage 7+3=10 → g1 falls
+        7,  # damage 7+3=10 → g1 falls
         # g1 falls, AI не ходит. g2 — atk warrior.
         15,  # g2 atk: 15+4=19 vs 16 → попал
-        4,   # g2 damage 1d6=4+2=6 → warrior 20-6=14
+        4,  # g2 damage 1d6=4+2=6 → warrior 20-6=14
         # warrior R2: attack g2 (не nat-20 чтобы не было крита)
         19,  # warrior atk g2: 19+5=24 vs 13 → попал
-        7,   # damage 7+3=10 → g2 falls
+        7,  # damage 7+3=10 → g2 falls
     ]
     deps, bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=rolls)
     enc = Encounter(
@@ -172,10 +172,11 @@ def test_playthrough_warrior_uses_dodge_when_low_hp() -> None:
         10,  # goblin init
         # warrior R1: Dodge
         # goblin R1: attack warrior с disadvantage (Dodge активен).
-        18, 5,  # disadv → min(18, 5) = 5; 5+4=9 vs 16 → промах
+        18,
+        5,  # disadv → min(18, 5) = 5; 5+4=9 vs 16 → промах
         # warrior R2: attack goblin
         18,  # 23 vs 13 → попал
-        7,   # damage 10 → goblin falls
+        7,  # damage 10 → goblin falls
     ]
     deps, bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=rolls)
     enc = Encounter(
@@ -226,14 +227,14 @@ def test_playthrough_warrior_dashes_to_ranged_position() -> None:
 
     rolls = [
         20,  # archer init
-        8,   # goblin init
+        8,  # goblin init
         # archer R1: Disengage + Move 6 клеток (без бросков)
         # goblin R1: AI Move 5 шагов + Attack на archer
         15,  # goblin atk d20: 15+4=19 vs 14 → попал
-        4,   # goblin damage 1d6=4+2=6 → archer 15-6=9
+        4,  # goblin damage 1d6=4+2=6 → archer 15-6=9
         # archer R2: ranged Attack
         18,  # atk 18 + 5 = 23 vs 13 → попал
-        5,   # damage 5+3=8 → goblin falls
+        5,  # damage 5+3=8 → goblin falls
     ]
     deps, bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=rolls)
     enc = Encounter(
@@ -266,9 +267,7 @@ def test_playthrough_warrior_dashes_to_ranged_position() -> None:
     # Goblin не получил OA (Disengage сработал) — захвачено через события.
     from dnd.application.dto.engine_event import OpportunityAttackProvoked
 
-    assert not any(
-        isinstance(e, OpportunityAttackProvoked) for e in captured
-    )
+    assert not any(isinstance(e, OpportunityAttackProvoked) for e in captured)
 
 
 # -- Сценарий 4: бой сходится за разумное число ходов ------------------
@@ -300,9 +299,7 @@ def test_playthrough_combat_concludes_within_few_turns() -> None:
     captured: list[EngineEvent] = []
     enc.deps.event_bus.subscribe(EngineEvent, captured.append)
 
-    GameRunner(
-        intent_provider=_smart_attack_intents(warrior, enc, captured)
-    ).run(enc)
+    GameRunner(intent_provider=_smart_attack_intents(warrior, enc, captured)).run(enc)
 
     assert enc.is_concluded is True
     turn_count = sum(1 for e in captured if isinstance(e, TurnStarted))

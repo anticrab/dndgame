@@ -141,9 +141,7 @@ class ScenarioTemplate(BaseModel):
     @model_validator(mode="after")
     def _check_map_xor(self) -> ScenarioTemplate:
         if (self.map is None) == (self.map_id is None):
-            raise ValueError(
-                "ScenarioTemplate requires exactly one of `map` or `map_id`"
-            )
+            raise ValueError("ScenarioTemplate requires exactly one of `map` or `map_id`")
         return self
 
 

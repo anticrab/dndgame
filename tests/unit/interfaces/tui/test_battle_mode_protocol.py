@@ -1,4 +1,5 @@
 """BattleMode enum + ModeHandler Protocol — каркас state machine."""
+
 from dnd.interfaces.tui.screens.battle_modes.protocol import (
     BattleMode,
     ModeHandler,
@@ -19,6 +20,7 @@ def test_mode_handler_is_protocol() -> None:
         def on_exit(self, screen: object) -> None: ...
         def on_key(self, screen: object, key: str) -> bool:
             return False
+
         def overlay(self) -> OverlayData:
             return OverlayData()
 

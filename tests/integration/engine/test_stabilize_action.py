@@ -1,4 +1,5 @@
 """Q-7: StabilizeAction — стабилизация союзника Медициной DC10."""
+
 from __future__ import annotations
 
 from dnd.application.dto.action import Allowed, Forbidden
@@ -17,9 +18,13 @@ from dnd.domain.values.weapon import LONGSWORD
 
 def _ally(id_: str, wis: int = 14) -> Creature:
     c = Creature.create(
-        id_=id_, name=id_,
+        id_=id_,
+        name=id_,
         abilities=AbilityScores.of(str_=12, dex=12, con=12, int_=10, wis=wis, cha=10),
-        max_hp=12, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=12,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     c.uses_death_saves = True
     return c
@@ -28,9 +33,13 @@ def _ally(id_: str, wis: int = 14) -> Creature:
 def _setup(rolls: list[int]) -> tuple[Encounter, Creature, Creature, object]:
     healer, downed = _ally("healer"), _ally("downed")
     enemy = Creature.create(
-        id_="enemy", name="enemy",
+        id_="enemy",
+        name="enemy",
         abilities=AbilityScores.of(str_=12, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=7, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(8, 8)
     bf.place_creature(healer.id, Square(2, 2))
@@ -39,8 +48,7 @@ def _setup(rolls: list[int]) -> tuple[Encounter, Creature, Creature, object]:
     deps, _, _ = build_scripted_dependencies(battlefield=bf, rolls=rolls)
     enc = Encounter(
         participants={healer.id: healer, downed.id: downed, enemy.id: enemy},
-        factions={healer.id: Faction.PARTY, downed.id: Faction.PARTY,
-                  enemy.id: Faction.MONSTERS},
+        factions={healer.id: Faction.PARTY, downed.id: Faction.PARTY, enemy.id: Faction.MONSTERS},
         deps=deps,
     )
     enc.start()

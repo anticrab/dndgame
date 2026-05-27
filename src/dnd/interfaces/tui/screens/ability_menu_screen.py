@@ -4,6 +4,7 @@
 ``rows`` (способность + текущий хоткей + доступность) и колбэки apply/rebind.
 ↑↓ — выбор, Enter — применить, b — назначить клавишу, Esc — закрыть.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

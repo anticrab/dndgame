@@ -3,6 +3,7 @@
 Без Textual — только данные → ASCII. Тестируется без поднятия app.
 Используется в MapWidget (K5-T2) и CLI `dnd map show --zoom=medium`.
 """
+
 from __future__ import annotations
 
 from dnd.domain.values.tile import Tile

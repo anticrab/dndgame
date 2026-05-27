@@ -1,4 +1,5 @@
 """PickupAction — забрать предмет из сундука в инвентарь."""
+
 from __future__ import annotations
 
 from dnd.application.dto.action import Allowed, Forbidden, ForbiddenReason
@@ -35,8 +36,11 @@ class _FakeItemRepo:
 
 
 _GOLD = Item(
-    id=ItemId("gold"), name="Gold", kind=ItemKind.MISC,
-    weight_lb=0.02, stackable=True,
+    id=ItemId("gold"),
+    name="Gold",
+    kind=ItemKind.MISC,
+    weight_lb=0.02,
+    stackable=True,
 )
 _SWORD = Item(id=ItemId("sword"), name="Sword", kind=ItemKind.WEAPON, weight_lb=3)
 
@@ -53,9 +57,13 @@ def _setup(
     actor_inv_weight_limit: float | None = None,
 ) -> tuple[Encounter, Creature, TurnContext, InteractableObject]:
     pc = Creature.create(
-        id_=CreatureId("aelar"), name="Aelar",
+        id_=CreatureId("aelar"),
+        name="Aelar",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     if actor_inv_weight_limit is not None:
         pc.inventory.weight_limit_lb = actor_inv_weight_limit
@@ -63,18 +71,28 @@ def _setup(
     # как «PARTY won» (нет ни одного MONSTERS) и start_turn() кинет
     # RuntimeError ('encounter is concluded; no more turns').
     goblin = Creature.create(
-        id_=CreatureId("g_dummy"), name="G",
+        id_=CreatureId("g_dummy"),
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(8, 8)
     bf.place_creature(pc.id, Square(2, 2))
     bf.place_creature(goblin.id, Square(7, 7))
     chest = InteractableObject(
-        id=ObjectId("chest-1"), kind=ObjectKind.CHEST,
+        id=ObjectId("chest-1"),
+        kind=ObjectKind.CHEST,
         pos=Square(3, 2),
-        state={"open": chest_open, "locked": chest_locked, "hp": 8, "ac": 14,
-               "contents": chest_contents or []},
+        state={
+            "open": chest_open,
+            "locked": chest_locked,
+            "hp": 8,
+            "ac": 14,
+            "contents": chest_contents or [],
+        },
     )
     bf.place_object(chest)
     # rolls=[20]*30 — initiative и checks гарантированно выкатываются.
@@ -100,15 +118,11 @@ def _setup(
 
 
 def test_pickup_partial_qty_from_stackable() -> None:
-    enc, pc, ctx, chest = _setup(
-        chest_contents=[{"item_id": "gold", "qty": 50}]
-    )
+    enc, pc, ctx, chest = _setup(chest_contents=[{"item_id": "gold", "qty": 50}])
     captured: list[ItemPickedUp] = []
     enc.event_bus.subscribe(ItemPickedUp, captured.append)
     action = PickupAction(_repo())
-    params = PickupParams(
-        target_object_id=chest.id, item_id=ItemId("gold"), qty=20
-    )
+    params = PickupParams(target_object_id=chest.id, item_id=ItemId("gold"), qty=20)
     assert isinstance(action.can_perform_against(pc, params, ctx), Allowed)
     out = action.execute(pc, params, ctx)
     assert out.success
@@ -122,13 +136,9 @@ def test_pickup_partial_qty_from_stackable() -> None:
 
 def test_pickup_all_consumes_stack() -> None:
     """qty=None → весь стак; сундук становится пустым."""
-    _enc, pc, ctx, chest = _setup(
-        chest_contents=[{"item_id": "gold", "qty": 10}]
-    )
+    _enc, pc, ctx, chest = _setup(chest_contents=[{"item_id": "gold", "qty": 10}])
     action = PickupAction(_repo())
-    params = PickupParams(
-        target_object_id=chest.id, item_id=ItemId("gold"), qty=None
-    )
+    params = PickupParams(target_object_id=chest.id, item_id=ItemId("gold"), qty=None)
     out = action.execute(pc, params, ctx)
     assert out.success
     assert pc.inventory.find_by_id(ItemId("gold")).qty == 10  # type: ignore[union-attr]
@@ -136,12 +146,11 @@ def test_pickup_all_consumes_stack() -> None:
 
 
 def test_pickup_non_stackable_removes_one_stack() -> None:
-    _enc, pc, ctx, chest = _setup(
-        chest_contents=[{"item_id": "sword", "qty": 1}]
-    )
+    _enc, pc, ctx, chest = _setup(chest_contents=[{"item_id": "sword", "qty": 1}])
     action = PickupAction(_repo())
     params = PickupParams(
-        target_object_id=chest.id, item_id=ItemId("sword"),
+        target_object_id=chest.id,
+        item_id=ItemId("sword"),
     )
     action.execute(pc, params, ctx)
     assert pc.inventory.contains(ItemId("sword"))
@@ -152,9 +161,7 @@ def test_pickup_legacy_string_contents_works() -> None:
     """Старый формат list[str] тоже должен поддерживаться."""
     _enc, pc, ctx, chest = _setup(chest_contents=["gold", "gold", "gold"])
     action = PickupAction(_repo())
-    out = action.execute(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")), ctx
-    )
+    out = action.execute(pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")), ctx)
     assert out.success
     assert pc.inventory.find_by_id(ItemId("gold")).qty == 3  # type: ignore[union-attr]
 
@@ -169,7 +176,8 @@ def test_pickup_locked_chest_forbidden() -> None:
     )
     action = PickupAction(_repo())
     avail = action.can_perform_against(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
+        pc,
+        PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
         ctx,
     )
     assert isinstance(avail, Forbidden)
@@ -180,7 +188,8 @@ def test_pickup_missing_item_forbidden() -> None:
     _enc, pc, ctx, chest = _setup(chest_contents=[{"item_id": "gold", "qty": 5}])
     action = PickupAction(_repo())
     avail = action.can_perform_against(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("sword")),
+        pc,
+        PickupParams(target_object_id=chest.id, item_id=ItemId("sword")),
         ctx,
     )
     assert isinstance(avail, Forbidden)
@@ -193,7 +202,8 @@ def test_pickup_out_of_reach_forbidden() -> None:
     chest.pos = Square(4, 4)  # type: ignore[misc]
     action = PickupAction(_repo())
     avail = action.can_perform_against(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
+        pc,
+        PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
         ctx,
     )
     assert isinstance(avail, Forbidden)
@@ -205,7 +215,8 @@ def test_pickup_no_object_interaction_left() -> None:
     ctx.use_object_interaction()
     action = PickupAction(_repo())
     avail = action.can_perform_against(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
+        pc,
+        PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
         ctx,
     )
     assert isinstance(avail, Forbidden)
@@ -223,7 +234,8 @@ def test_pickup_inventory_full_returns_failure_without_consuming() -> None:
     assert ctx.can_use_object_interaction(), "стартово free interaction есть"
     action = PickupAction(_repo())
     out = action.execute(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("sword")),
+        pc,
+        PickupParams(target_object_id=chest.id, item_id=ItemId("sword")),
         ctx,
     )
     assert not out.success
@@ -244,7 +256,8 @@ def test_pickup_from_closed_chest_forbidden() -> None:
     )
     action = PickupAction(_repo())
     avail = action.can_perform_against(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
+        pc,
+        PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
         ctx,
     )
     assert isinstance(avail, Forbidden)
@@ -253,14 +266,13 @@ def test_pickup_from_closed_chest_forbidden() -> None:
 
 def test_pickup_emits_item_picked_up_event() -> None:
     """Audit MAJOR-2 regression: ItemPickedUp реально публикуется."""
-    enc, pc, ctx, chest = _setup(
-        chest_contents=[{"item_id": "gold", "qty": 7}]
-    )
+    enc, pc, ctx, chest = _setup(chest_contents=[{"item_id": "gold", "qty": 7}])
     captured: list[ItemPickedUp] = []
     enc.event_bus.subscribe(ItemPickedUp, captured.append)
     action = PickupAction(_repo())
     action.execute(
-        pc, PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
+        pc,
+        PickupParams(target_object_id=chest.id, item_id=ItemId("gold")),
         ctx,
     )
     assert len(captured) == 1

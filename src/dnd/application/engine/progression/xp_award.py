@@ -5,6 +5,7 @@ PC (PARTY) по формуле CR*100 (PROGRESSION.md §2). Если XP пере
 публикует LevelUpReady. Применяет повышение НЕ здесь, а LevelUpService (по выбору
 игрока: сейчас/после боя).
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -63,9 +64,13 @@ class XpAwardService:
             if max_level is not None:
                 target_level = min(target_level, max_level)
             if target_level > cr.level:
-                self._bus.publish(LevelUpReady(
-                    actor_id=cid, from_level=cr.level, to_level=target_level,
-                ))
+                self._bus.publish(
+                    LevelUpReady(
+                        actor_id=cid,
+                        from_level=cr.level,
+                        to_level=target_level,
+                    )
+                )
 
     def _max_class_level(self, cr: Creature) -> int | None:
         """Максимальный уровень в таблице класса существа (None — нет данных)."""

@@ -347,7 +347,9 @@ from dnd.application.dto.engine_event import (  # noqa: E402
 )
 
 
-def _make_two_party_enc(rng_rolls: list[int]) -> tuple[Encounter, Creature, Creature, InMemoryEventBus]:
+def _make_two_party_enc(
+    rng_rolls: list[int],
+) -> tuple[Encounter, Creature, Creature, InMemoryEventBus]:
     """Sanity-сценарий: a (PARTY) vs b (MONSTERS); RNG задаёт инициативу."""
     deps, bus = _make_deps(rng_rolls)
     a = _make_creature("a", dex=14)
@@ -629,9 +631,7 @@ def test_custom_policy_triggers_opportunity_attack() -> None:
     bf.place_creature(a.id, Square(2, 2))
     bf.place_creature(b.id, Square(3, 2))
 
-    def reactor_policy(
-        evt: OpportunityAttackProvoked, encounter: Encounter
-    ) -> None:
+    def reactor_policy(evt: OpportunityAttackProvoked, encounter: Encounter) -> None:
         reactor = encounter.participants[evt.threatener_id]
         params = AttackParams(
             target_id=evt.actor_id,
@@ -646,6 +646,7 @@ def test_custom_policy_triggers_opportunity_attack() -> None:
         # реактивный handler собирает TurnContext руками
         # с актором-реактором как owner'ом.
         from dnd.application.engine.turn_context import TurnContext
+
         ctx = TurnContext(
             actor_id=reactor.id,
             battlefield=encounter.battlefield,
@@ -682,9 +683,7 @@ def test_policy_not_called_after_encounter_ended() -> None:
     """После EncounterEnded подписка на провокации отписывается."""
     calls = []
 
-    def policy(
-        evt: OpportunityAttackProvoked, encounter: Encounter
-    ) -> None:
+    def policy(evt: OpportunityAttackProvoked, encounter: Encounter) -> None:
         calls.append(evt)
 
     deps, _bus = _make_deps([14, 10])
@@ -708,9 +707,7 @@ def test_policy_not_called_after_encounter_ended() -> None:
 
     # Прямая публикация провокации после конца боя — не должна вызвать policy.
     enc.deps.event_bus.publish(
-        OpportunityAttackProvoked(
-            actor_id=a.id, threatener_id=b.id, leaving_square=Square(2, 2)
-        )
+        OpportunityAttackProvoked(actor_id=a.id, threatener_id=b.id, leaving_square=Square(2, 2))
     )
     assert calls == []
 
@@ -724,9 +721,7 @@ def test_noop_policy_helper_is_safe_to_call() -> None:
         factions={a.id: Faction.PARTY},
         deps=deps,
     )
-    evt = OpportunityAttackProvoked(
-        actor_id=a.id, threatener_id=a.id, leaving_square=Square(0, 0)
-    )
+    evt = OpportunityAttackProvoked(actor_id=a.id, threatener_id=a.id, leaving_square=Square(0, 0))
     noop_reaction_policy(evt, enc)  # не падает, ничего не возвращает
 
 
@@ -774,9 +769,7 @@ def test_reaction_policy_exception_does_not_break_encounter() -> None:
     deps.battlefield.place_creature(a.id, Square(2, 2))
     deps.battlefield.place_creature(b.id, Square(3, 2))
 
-    def crashing_policy(
-        _evt: OpportunityAttackProvoked, _enc: Encounter
-    ) -> None:
+    def crashing_policy(_evt: OpportunityAttackProvoked, _enc: Encounter) -> None:
         raise RuntimeError("simulated handler bug")
 
     enc = Encounter(
@@ -832,9 +825,7 @@ def test_start_turn_clears_pending_help_grants() -> None:
 
 
 @pytest.mark.rules
-@pytest.mark.parametrize(
-    "blocker", ["incapacitated", "stunned", "paralyzed", "unconscious"]
-)
+@pytest.mark.parametrize("blocker", ["incapacitated", "stunned", "paralyzed", "unconscious"])
 def test_paralyzed_actor_has_zero_movement(blocker: str) -> None:
     """EN-G009 (audit 13 EN-R001): PHB-2024 стр. 367 — speed=0 при
     Paralyzed/Stunned/Unconscious/Incapacitated."""

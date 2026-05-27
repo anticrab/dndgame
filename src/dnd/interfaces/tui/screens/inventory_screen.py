@@ -13,6 +13,7 @@ chest. Показывает его содержимое (через item_reposit
 Drop / Equip / Unequip пока не реализованы — это отдельные сторонки UI
 в составе R (level-up) / отдельного character-screen'а.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
@@ -66,28 +67,18 @@ class InventoryScreen(ModalScreen[tuple[ObjectId, ItemId] | None]):
     def _render_body(self) -> str:
         # Empty case — короткое сообщение + Esc to close.
         if not self._stacks:
-            return (
-                f"[bold]{self._chest.id}[/]\n\n"
-                "[dim]Сундук пуст.[/]\n\n"
-                "[dim]Esc — закрыть.[/]"
-            )
+            return f"[bold]{self._chest.id}[/]\n\n[dim]Сундук пуст.[/]\n\n[dim]Esc — закрыть.[/]"
         lines = [f"[bold]{self._chest.id}[/]", ""]
         for i, stack in enumerate(self._stacks):
             marker = "▶" if i == self._idx else " "
             qty = f" ×{stack.qty}" if stack.qty > 1 else ""
-            weight = (
-                f" [dim]({stack.total_weight_lb:.1f} lb)[/]"
-                if stack.total_weight_lb else ""
-            )
+            weight = f" [dim]({stack.total_weight_lb:.1f} lb)[/]" if stack.total_weight_lb else ""
             line = f"{marker} {stack.item.name}{qty}{weight}"
             if i == self._idx:
                 line = f"[reverse]{line}[/]"
             lines.append(line)
         lines.append("")
-        lines.append(
-            "[dim]↑↓ — выбор · Enter — взять весь стак · "
-            "Esc/Q — закрыть[/]"
-        )
+        lines.append("[dim]↑↓ — выбор · Enter — взять весь стак · Esc/Q — закрыть[/]")
         return "\n".join(lines)
 
     def _refresh(self) -> None:

@@ -1,4 +1,5 @@
 """P2b-4: MULTI targeting — резолвинг мультимножества + валидация."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -21,9 +22,12 @@ _SPELLS = Path(__file__).resolve().parents[3] / "data" / "content" / "spells.yam
 
 def _mage() -> Creature:
     c = Creature.create(
-        id_="mage", name="Mage",
+        id_="mage",
+        name="Mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=10, armor_class=12, speed_ft=30,
+        max_hp=10,
+        armor_class=12,
+        speed_ft=30,
     )
     c.spellcasting_ability = Ability.INT
     c.spell_slots = {1: 4}
@@ -32,9 +36,12 @@ def _mage() -> Creature:
 
 def _gob(id_: str) -> Creature:
     return Creature.create(
-        id_=id_, name=id_,
+        id_=id_,
+        name=id_,
         abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
-        max_hp=12, armor_class=13, speed_ft=30,
+        max_hp=12,
+        armor_class=13,
+        speed_ft=30,
     )
 
 
@@ -49,7 +56,9 @@ def _setup(rolls: list[int]) -> tuple[Encounter, Creature, Creature, Creature, o
     enc = Encounter(
         participants={mage.id: mage, a.id: a, b.id: b},
         factions={
-            mage.id: Faction.PARTY, a.id: Faction.MONSTERS, b.id: Faction.MONSTERS,
+            mage.id: Faction.PARTY,
+            a.id: Faction.MONSTERS,
+            b.id: Faction.MONSTERS,
         },
         deps=deps,
     )
@@ -66,12 +75,16 @@ def _setup(rolls: list[int]) -> tuple[Encounter, Creature, Creature, Creature, o
 
 def _mm() -> Spell:
     return Spell(
-        id=SpellId("mm"), name="MM", level=1, school="evocation",
+        id=SpellId("mm"),
+        name="MM",
+        level=1,
+        school="evocation",
         effect=SpellEffect.AUTO,
-        targeting=TargetingSpec(
-            kind=TargetKind.MULTI, max_targets=3, allow_repeat_target=True
-        ),
-        range_ft=120, description="", dice="1d4+1", damage_type=DamageType.FORCE,
+        targeting=TargetingSpec(kind=TargetKind.MULTI, max_targets=3, allow_repeat_target=True),
+        range_ft=120,
+        description="",
+        dice="1d4+1",
+        damage_type=DamageType.FORCE,
     )
 
 
@@ -104,9 +117,7 @@ def test_multi_empty_targets_forbidden() -> None:
     spell = _mm()
     mage.known_spells = (spell.id,)
     action = CastSpellAction(_OneSpellRepo(spell))
-    avail = action.can_perform_against(
-        mage, CastSpellParams(spell_id=spell.id, target_ids=()), ctx
-    )
+    avail = action.can_perform_against(mage, CastSpellParams(spell_id=spell.id, target_ids=()), ctx)
     assert isinstance(avail, Forbidden)
 
 
@@ -137,12 +148,16 @@ def test_multi_repeat_allowed_ok() -> None:
 def test_multi_repeat_forbidden_when_disallowed() -> None:
     _enc, mage, a, _b, ctx = _setup([20, 19, 19])
     spell = Spell(
-        id=SpellId("mm2"), name="MM2", level=1, school="evocation",
+        id=SpellId("mm2"),
+        name="MM2",
+        level=1,
+        school="evocation",
         effect=SpellEffect.AUTO,
-        targeting=TargetingSpec(
-            kind=TargetKind.MULTI, max_targets=3, allow_repeat_target=False
-        ),
-        range_ft=120, description="", dice="1d4+1", damage_type=DamageType.FORCE,
+        targeting=TargetingSpec(kind=TargetKind.MULTI, max_targets=3, allow_repeat_target=False),
+        range_ft=120,
+        description="",
+        dice="1d4+1",
+        damage_type=DamageType.FORCE,
     )
     mage.known_spells = (spell.id,)
     action = CastSpellAction(_OneSpellRepo(spell))
@@ -156,6 +171,7 @@ def test_magic_missile_distributes_across_targets() -> None:
     # 3 дротика 1d4+1: 2 в gobA, 1 в gobB. d4-броски [3,3,2].
     enc, mage, a, b, ctx = _setup([20, 19, 19, 3, 3, 2])
     from dnd.application.dto.engine_event import DamageDealt
+
     dmg: list[DamageDealt] = []
     enc.event_bus.subscribe(DamageDealt, dmg.append)
     spell = _mm()
@@ -170,8 +186,8 @@ def test_magic_missile_distributes_across_targets() -> None:
     by_target: dict[object, int] = {}
     for d in dmg:
         by_target[d.target_id] = by_target.get(d.target_id, 0) + d.raw_amount
-    assert by_target[a.id] == (3 + 1) + (3 + 1)   # 2 дротика
-    assert by_target[b.id] == (2 + 1)             # 1 дротик
+    assert by_target[a.id] == (3 + 1) + (3 + 1)  # 2 дротика
+    assert by_target[b.id] == (2 + 1)  # 1 дротик
 
 
 def test_bless_adds_d4_to_spell_save() -> None:
@@ -183,25 +199,37 @@ def test_bless_adds_d4_to_spell_save() -> None:
     from dnd.domain.values.modifiers import ModifierTargetKind
     from dnd.domain.values.roll_purpose import RollPurpose
     from dnd.domain.values.spell import BuffSpec
+
     # init x3; затем SaveSpellHandler: урон d8=5, спасбросок d20=10 + bless d4=4.
     _enc, mage, a, _b, ctx = _setup([20, 19, 19, 5, 10, 4])
     bless = Spell(
-        id=SpellId("bless"), name="Bless", level=1, school="enchantment",
+        id=SpellId("bless"),
+        name="Bless",
+        level=1,
+        school="enchantment",
         effect=SpellEffect.BUFF,
         targeting=TargetingSpec(kind=TargetKind.MULTI, max_targets=3),
-        range_ft=30, description="", concentration=True,
+        range_ft=30,
+        description="",
+        concentration=True,
         buffs=(BuffSpec(target=ModifierTargetKind.SAVING_THROW, dice_bonus="1d4"),),
     )
     BuffSpellHandler().apply(mage, (a,), bless, ctx)
-    mods = ctx.modifier_applier.collect(
-        owner_id=a.id, target_kind=ModifierTargetKind.SAVING_THROW
-    )
+    mods = ctx.modifier_applier.collect(owner_id=a.id, target_kind=ModifierTargetKind.SAVING_THROW)
     assert ctx.modifier_applier.to_roll_adjustments(mods).extra_dice == ("1d4",)
     save_spell = Spell(
-        id=SpellId("sf"), name="SF", level=0, school="evocation",
-        effect=SpellEffect.SAVE, targeting=TargetingSpec(kind=TargetKind.SINGLE),
-        range_ft=60, description="", dice="1d8", damage_type=DamageType.RADIANT,
-        save_ability=Ability.DEX, save_for_half=False,
+        id=SpellId("sf"),
+        name="SF",
+        level=0,
+        school="evocation",
+        effect=SpellEffect.SAVE,
+        targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=60,
+        description="",
+        dice="1d8",
+        damage_type=DamageType.RADIANT,
+        save_ability=Ability.DEX,
+        save_for_half=False,
     )
     captured: list[object] = []
     orig_roll = ctx.dice_roller.roll
@@ -212,9 +240,7 @@ def test_bless_adds_d4_to_spell_save() -> None:
 
     ctx.dice_roller.roll = _spy  # type: ignore[method-assign]
     SaveSpellHandler().apply(mage, (a,), save_spell, ctx)
-    save_ctxs = [
-        rc for rc in captured if getattr(rc, "purpose", None) is RollPurpose.SAVE
-    ]
+    save_ctxs = [rc for rc in captured if getattr(rc, "purpose", None) is RollPurpose.SAVE]
     assert save_ctxs and save_ctxs[0].extra_dice == ("1d4",)  # type: ignore[attr-defined]
 
 
@@ -223,6 +249,7 @@ def test_spell_kill_triggers_downing() -> None:
     как и от оружия — обработчик висит на DamageDealt(was_lethal), не на
     AttackResolved."""
     from dnd.application.dto.engine_event import CreatureDied
+
     # init x3; 3 дротика d4=[4,4,4] → 15 урона по gobA (12 HP) → смерть.
     enc, mage, a, _b, ctx = _setup([20, 19, 19, 4, 4, 4])
     spell = _mm()
@@ -230,9 +257,7 @@ def test_spell_kill_triggers_downing() -> None:
     deaths: list[CreatureDied] = []
     enc.event_bus.subscribe(CreatureDied, deaths.append)
     action = CastSpellAction(_OneSpellRepo(spell))
-    action.execute(
-        mage, CastSpellParams(spell_id=spell.id, target_ids=(a.id, a.id, a.id)), ctx
-    )
+    action.execute(mage, CastSpellParams(spell_id=spell.id, target_ids=(a.id, a.id, a.id)), ctx)
     assert not a.is_alive
     assert any(d.actor_id == a.id for d in deaths)  # падение отработало
 
@@ -246,6 +271,7 @@ def test_spell_kill_breaks_concentration() -> None:
     )
     from dnd.domain.values.modifiers import ModifierTargetKind
     from dnd.domain.values.spell import BuffSpec
+
     # init×3; gobA 12 HP, дротики 1d4+1=5: дротик1 (12→7) + CON-save d20=10
     # (успех, REV-1), дротик2 (7→2) + CON-save d20=10 (успех), дротик3 (→0,
     # летальный — рвёт концентрацию убийством, как и проверяет тест).
@@ -254,10 +280,15 @@ def test_spell_kill_breaks_concentration() -> None:
     mage.known_spells = (spell.id,)
     # gobA «концентрируется»: вешаем concentration-бафф на него (source=gobA).
     conc_spell = Spell(
-        id=SpellId("conc"), name="Conc", level=1, school="abjuration",
+        id=SpellId("conc"),
+        name="Conc",
+        level=1,
+        school="abjuration",
         effect=SpellEffect.BUFF,
-        targeting=TargetingSpec(kind=TargetKind.SINGLE), range_ft=5,
-        description="", concentration=True,
+        targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=5,
+        description="",
+        concentration=True,
         buffs=(BuffSpec(target=ModifierTargetKind.ARMOR_CLASS, numeric_bonus=2),),
     )
     BuffSpellHandler().apply(a, (a,), conc_spell, ctx)
@@ -270,9 +301,7 @@ def test_spell_kill_breaks_concentration() -> None:
         mage, CastSpellParams(spell_id=spell.id, target_ids=(a.id, a.id, a.id)), ctx
     )
     assert not a.is_alive
-    after = ctx.modifier_applier.collect(
-        owner_id=a.id, target_kind=ModifierTargetKind.ARMOR_CLASS
-    )
+    after = ctx.modifier_applier.collect(owner_id=a.id, target_kind=ModifierTargetKind.ARMOR_CLASS)
     assert ctx.modifier_applier.to_roll_adjustments(after).numeric_bonus == 0
     assert concentration_source(a.id)  # sanity: source-helper доступен
 
@@ -280,10 +309,16 @@ def test_spell_kill_breaks_concentration() -> None:
 def test_multi_out_of_range_forbidden() -> None:
     _enc, mage, _a, b, ctx = _setup([20, 19, 19])
     spell = Spell(
-        id=SpellId("mm3"), name="MM3", level=1, school="evocation",
+        id=SpellId("mm3"),
+        name="MM3",
+        level=1,
+        school="evocation",
         effect=SpellEffect.AUTO,
         targeting=TargetingSpec(kind=TargetKind.MULTI, max_targets=3),
-        range_ft=5, description="", dice="1d4+1", damage_type=DamageType.FORCE,
+        range_ft=5,
+        description="",
+        dice="1d4+1",
+        damage_type=DamageType.FORCE,
     )
     mage.known_spells = (spell.id,)
     action = CastSpellAction(_OneSpellRepo(spell))

@@ -95,8 +95,7 @@ class GameRunner:
         self,
         *,
         intent_provider: PlayerIntentProvider,
-        monster_turn: Callable[[Creature, TurnContext, Encounter], None]
-        | None = None,
+        monster_turn: Callable[[Creature, TurnContext, Encounter], None] | None = None,
         item_repository: ItemRepository | None = None,
         spell_repository: SpellRepository | None = None,
     ) -> None:
@@ -122,11 +121,7 @@ class GameRunner:
             actor = encounter.participants[actor_id]
             ctx = encounter.start_turn()
 
-            if (
-                not actor.is_alive
-                or actor.is_at_zero_hp
-                or actor.has_condition(INCAPACITATED)
-            ):
+            if not actor.is_alive or actor.is_at_zero_hp or actor.has_condition(INCAPACITATED):
                 encounter.end_turn()
                 continue
 
@@ -140,9 +135,7 @@ class GameRunner:
 
     # --- PC turn ------------------------------------------------------
 
-    def _run_pc_turn(
-        self, actor: Creature, ctx: TurnContext, encounter: Encounter
-    ) -> None:
+    def _run_pc_turn(self, actor: Creature, ctx: TurnContext, encounter: Encounter) -> None:
         """Опрашиваем provider до EndTurnIntent или предельного счётчика.
 
         Аудит 15 CL-R001: после каждого intent перепроверяем
@@ -192,15 +185,13 @@ class GameRunner:
         if isinstance(intent, DashIntent):
             # T4: Cunning Action — Dash бонусным действием при флаге интента.
             economy = (
-                ActionEconomyCost.BONUS_ACTION if intent.bonus_action
-                else ActionEconomyCost.ACTION
+                ActionEconomyCost.BONUS_ACTION if intent.bonus_action else ActionEconomyCost.ACTION
             )
             self._do_stance(DashAction(economy=economy), actor, ctx)
             return
         if isinstance(intent, DisengageIntent):
             economy = (
-                ActionEconomyCost.BONUS_ACTION if intent.bonus_action
-                else ActionEconomyCost.ACTION
+                ActionEconomyCost.BONUS_ACTION if intent.bonus_action else ActionEconomyCost.ACTION
             )
             self._do_stance(DisengageAction(economy=economy), actor, ctx)
             return
@@ -233,9 +224,7 @@ class GameRunner:
         # Защита от расширения PlayerIntent без обновления GameRunner.
         raise TypeError(f"unknown PlayerIntent: {type(intent).__name__}")
 
-    def _do_attack(
-        self, actor: Creature, intent: AttackIntent, ctx: TurnContext
-    ) -> None:
+    def _do_attack(self, actor: Creature, intent: AttackIntent, ctx: TurnContext) -> None:
         if actor.equipped_weapon is None:
             self._log_rejected(actor, "attack", "no_equipped_weapon")
             return
@@ -247,9 +236,7 @@ class GameRunner:
         else:
             self._log_rejected(actor, "attack", _avail_reason(avail))
 
-    def _do_move(
-        self, actor: Creature, intent: MoveIntent, ctx: TurnContext
-    ) -> None:
+    def _do_move(self, actor: Creature, intent: MoveIntent, ctx: TurnContext) -> None:
         params = MoveParams(path=intent.path)
         move = MoveAction()
         avail = move.can_perform_against(actor, params, ctx)
@@ -258,9 +245,7 @@ class GameRunner:
         else:
             self._log_rejected(actor, "move", _avail_reason(avail))
 
-    def _do_interact(
-        self, actor: Creature, intent: InteractIntent, ctx: TurnContext
-    ) -> None:
+    def _do_interact(self, actor: Creature, intent: InteractIntent, ctx: TurnContext) -> None:
         params = InteractParams(
             target_object_id=intent.target_object_id,
             kind=intent.interact_kind,
@@ -272,13 +257,9 @@ class GameRunner:
         else:
             self._log_rejected(actor, "interact", _avail_reason(avail))
 
-    def _do_pickup(
-        self, actor: Creature, intent: PickupIntent, ctx: TurnContext
-    ) -> None:
+    def _do_pickup(self, actor: Creature, intent: PickupIntent, ctx: TurnContext) -> None:
         if self._item_repository is None:
-            self._log_rejected(
-                actor, "pickup", "no_item_repository (runner not wired)"
-            )
+            self._log_rejected(actor, "pickup", "no_item_repository (runner not wired)")
             return
         params = PickupParams(
             target_object_id=intent.target_object_id,
@@ -292,9 +273,7 @@ class GameRunner:
         else:
             self._log_rejected(actor, "pickup", _avail_reason(avail))
 
-    def _do_stabilize(
-        self, actor: Creature, intent: StabilizeIntent, ctx: TurnContext
-    ) -> None:
+    def _do_stabilize(self, actor: Creature, intent: StabilizeIntent, ctx: TurnContext) -> None:
         params = StabilizeParams(target_id=intent.target_id)
         action = StabilizeAction()
         avail = action.can_perform_against(actor, params, ctx)
@@ -319,13 +298,9 @@ class GameRunner:
         else:
             self._log_rejected(actor, label, _avail_reason(avail))
 
-    def _do_cast(
-        self, actor: Creature, intent: CastSpellIntent, ctx: TurnContext
-    ) -> None:
+    def _do_cast(self, actor: Creature, intent: CastSpellIntent, ctx: TurnContext) -> None:
         if self._spell_repository is None:
-            self._log_rejected(
-                actor, "cast_spell", "no_spell_repository (runner not wired)"
-            )
+            self._log_rejected(actor, "cast_spell", "no_spell_repository (runner not wired)")
             return
         params = CastSpellParams(
             spell_id=intent.spell_id,
@@ -341,9 +316,7 @@ class GameRunner:
         else:
             self._log_rejected(actor, "cast_spell", _avail_reason(avail))
 
-    def _do_break(
-        self, actor: Creature, intent: BreakIntent, ctx: TurnContext
-    ) -> None:
+    def _do_break(self, actor: Creature, intent: BreakIntent, ctx: TurnContext) -> None:
         """Атака по объекту экипированным оружием.
 
         attack_bonus / damage_expr / damage_type берём из
@@ -383,9 +356,7 @@ class GameRunner:
         if isinstance(avail, Allowed):
             action.execute(actor, _NoParams(), ctx)
         else:
-            self._log_rejected(
-                actor, action.__class__.__name__.lower(), _avail_reason(avail)
-            )
+            self._log_rejected(actor, action.__class__.__name__.lower(), _avail_reason(avail))
 
     @staticmethod
     def _log_rejected(actor: Creature, action_id: str, reason: str) -> None:
@@ -406,18 +377,14 @@ class GameRunner:
     # --- Monster turn -------------------------------------------------
 
     @staticmethod
-    def _default_monster_turn(
-        actor: Creature, ctx: TurnContext, encounter: Encounter
-    ) -> None:
+    def _default_monster_turn(actor: Creature, ctx: TurnContext, encounter: Encounter) -> None:
         predicate = is_hostile_from_factions(actor.id, encounter.factions)
         take_monster_turn(actor, ctx, is_hostile=predicate)
 
 
 def _avail_reason(avail: ActionAvailability) -> str:
     if isinstance(avail, Forbidden):
-        return f"{avail.reason.value}" + (
-            f"({avail.details})" if avail.details else ""
-        )
+        return f"{avail.reason.value}" + (f"({avail.details})" if avail.details else "")
     return "unknown"
 
 

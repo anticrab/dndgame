@@ -6,6 +6,7 @@
 Конвенция Y: ось Y растёт вниз (Y=0 — север, Y=height-1 — юг). Это
 согласуется с raster-render картой.
 """
+
 from __future__ import annotations
 
 from enum import StrEnum

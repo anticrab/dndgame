@@ -154,9 +154,7 @@ def test_prints_encounter_winners() -> None:
 
 def test_prints_encounter_draw_when_winners_none() -> None:
     _, buf, bus = _printer_with_buffer()
-    bus.publish(
-        EncounterEnded(winners=None, round_number=100, survivors=())
-    )
+    bus.publish(EncounterEnded(winners=None, round_number=100, survivors=()))
     assert "DRAW" in buf.getvalue()
 
 

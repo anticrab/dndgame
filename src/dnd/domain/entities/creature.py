@@ -368,8 +368,7 @@ class Creature:
             raise ValueError(f"speed_ft must be >= 0, got {speed_ft}")
         if proficiency_bonus < 2 or proficiency_bonus > 6:
             raise ValueError(
-                f"proficiency_bonus must be 2..6 (PHB-2024 стр. 32), "
-                f"got {proficiency_bonus}"
+                f"proficiency_bonus must be 2..6 (PHB-2024 стр. 32), got {proficiency_bonus}"
             )
         return cls(
             id=id_,
@@ -486,9 +485,7 @@ class Creature:
                 self.death_saves = DeathSaveState(failures=3)
             elif not was_alive and self.death_saves is not None:
                 # Удар по уже лежачему (был 0 HP до удара): провал, крит → 2.
-                self.death_saves = self.death_saves.apply_damage_at_zero(
-                    is_critical=is_critical
-                )
+                self.death_saves = self.death_saves.apply_damage_at_zero(is_critical=is_critical)
 
         # Концентрация (см. docstring пункт 6).
         concentration_ended_automatically = False
@@ -567,15 +564,11 @@ class Creature:
             self.hit_points = self.hit_points.heal(1)
             self.death_saves = None
             self.remove_condition(UNCONSCIOUS)
-            return DeathSaveOutcome(
-                result="recovered", successes=0, failures=0, d20_raw=20
-            )
+            return DeathSaveOutcome(result="recovered", successes=0, failures=0, d20_raw=20)
         before = self.death_saves
         self.death_saves = before.apply_save_roll(d20_raw)
         result: Literal["success", "failure"] = (
-            "success"
-            if self.death_saves.successes > before.successes
-            else "failure"
+            "success" if self.death_saves.successes > before.successes else "failure"
         )
         return DeathSaveOutcome(
             result=result,
@@ -588,11 +581,7 @@ class Creature:
     def is_dead(self) -> bool:
         """Окончательно мёртв (3 провала). Только для uses_death_saves; NPC
         «мертвы» через is_alive=False + CORPSE (решает Encounter)."""
-        return (
-            self.uses_death_saves
-            and self.death_saves is not None
-            and self.death_saves.is_dead
-        )
+        return self.uses_death_saves and self.death_saves is not None and self.death_saves.is_dead
 
     # --- spellcasting (P1) ---------------------------------------------
 

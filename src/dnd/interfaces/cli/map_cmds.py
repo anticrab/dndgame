@@ -4,6 +4,7 @@
 ``YamlMapRepository`` поверх ``data/content/maps/``. JSON-формат
 доступен для скриптовой интеграции.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -37,11 +38,15 @@ def list_(
     items: list[dict[str, object]] = []
     for id_ in repo.list_ids():
         doc = repo.load(id_)
-        items.append({
-            "id": doc.id, "name": doc.name,
-            "size": f"{doc.width}x{doc.height}",
-            "tiles": len(doc.tiles), "objects": len(doc.objects),
-        })
+        items.append(
+            {
+                "id": doc.id,
+                "name": doc.name,
+                "size": f"{doc.width}x{doc.height}",
+                "tiles": len(doc.tiles),
+                "objects": len(doc.objects),
+            }
+        )
     if format_ == "json":
         typer.echo(json.dumps(items, ensure_ascii=False, indent=2))
         return
@@ -152,8 +157,10 @@ def validate(
     repo = _repo(maps_dir)
     try:
         doc = repo.load(id_)
-        typer.echo(f"OK: {doc.id} {doc.width}x{doc.height} "
-                   f"tiles={len(doc.tiles)} objects={len(doc.objects)}")
+        typer.echo(
+            f"OK: {doc.id} {doc.width}x{doc.height} "
+            f"tiles={len(doc.tiles)} objects={len(doc.objects)}"
+        )
     except (KeyError, ValueError) as exc:
         typer.echo(f"INVALID: {exc}", err=True)
         raise typer.Exit(code=2) from None
@@ -209,10 +216,16 @@ def paint(
         new_tiles.append(updated)
     else:
         new_tiles[idx] = updated
-    repo.save(MapDocument(
-        id=doc.id, name=doc.name, width=doc.width, height=doc.height,
-        tiles=tuple(new_tiles), objects=doc.objects,
-    ))
+    repo.save(
+        MapDocument(
+            id=doc.id,
+            name=doc.name,
+            width=doc.width,
+            height=doc.height,
+            tiles=tuple(new_tiles),
+            objects=doc.objects,
+        )
+    )
     typer.echo(f"painted {at}: base={new_base} features={list(new_features)}")
 
 
@@ -233,6 +246,7 @@ def edit(
     # Импорт лениво: textual — тяжёлая зависимость, не нужная остальным
     # подкомандам ``dnd map ...``.
     from dnd.interfaces.tui import TuiApp
+
     TuiApp(editor=(doc, repo, sprites)).run()
 
 
@@ -249,9 +263,8 @@ def export(
         body = json.dumps(doc.model_dump(mode="json"), ensure_ascii=False, indent=2)
     else:
         import yaml  # type: ignore[import-untyped]
-        body = yaml.safe_dump(
-            doc.model_dump(mode="json"), sort_keys=False, allow_unicode=True
-        )
+
+        body = yaml.safe_dump(doc.model_dump(mode="json"), sort_keys=False, allow_unicode=True)
     if output:
         output.write_text(body, encoding="utf-8")
         typer.echo(f"exported to {output}")
@@ -271,6 +284,7 @@ def import_(
         data = json.loads(text)
     else:
         import yaml
+
         data = yaml.safe_load(text)
     if as_:
         data["id"] = as_

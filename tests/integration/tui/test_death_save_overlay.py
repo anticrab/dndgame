@@ -1,4 +1,5 @@
 """Q-10: StatusWidget показывает пипсы спасбросков от смерти."""
+
 from __future__ import annotations
 
 from dnd.domain.entities.creature import Creature
@@ -9,9 +10,12 @@ from dnd.interfaces.tui.widgets.status_widget import format_status
 
 def _pc() -> Creature:
     c = Creature.create(
-        id_="hero", name="Hero",
+        id_="hero",
+        name="Hero",
         abilities=AbilityScores.of(str_=14, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=12, speed_ft=30,
+        max_hp=10,
+        armor_class=12,
+        speed_ft=30,
     )
     c.uses_death_saves = True
     return c

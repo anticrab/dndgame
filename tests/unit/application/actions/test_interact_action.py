@@ -1,4 +1,5 @@
 """InteractAction — открытие/закрытие дверей и сундуков (PHB-2024 free)."""
+
 from __future__ import annotations
 
 from dnd.application.dto.action import (
@@ -29,7 +30,9 @@ from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.infrastructure.rng.scripted_rng import ScriptedRNG
 
 
-def _setup(*, actor_pos: Square, obj_pos: Square, obj_state: dict) -> tuple[Creature, InteractableObject, TurnContext, InMemoryEventBus]:
+def _setup(
+    *, actor_pos: Square, obj_pos: Square, obj_state: dict
+) -> tuple[Creature, InteractableObject, TurnContext, InMemoryEventBus]:
     actor = Creature.create(
         id_=CreatureId("pc"),
         name="PC",
@@ -139,7 +142,9 @@ def test_interact_open_chest_returns_loot_in_event() -> None:
         id_=CreatureId("pc"),
         name="PC",
         abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=10, speed_ft=30,
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
     )
     chest = InteractableObject(
         id=ObjectId("chest-1"),
@@ -155,12 +160,15 @@ def test_interact_open_chest_returns_loot_in_event() -> None:
     registry = ConditionRegistry()
     register_default_conditions(registry)
     ctx = TurnContext(
-        actor_id=actor.id, battlefield=bf,
+        actor_id=actor.id,
+        battlefield=bf,
         dice_roller=ComputerDiceRoller(rng=rng, event_bus=bus),
         modifier_applier=ModifierApplier(ModifierBag()),
         condition_service=ConditionService(registry),
-        event_bus=bus, rng=rng,
-        participants={actor.id: actor}, movement_remaining_ft=30,
+        event_bus=bus,
+        rng=rng,
+        participants={actor.id: actor},
+        movement_remaining_ft=30,
     )
     captured: list[EngineEvent] = []
     bus.subscribe(EngineEvent, captured.append)

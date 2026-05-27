@@ -82,9 +82,7 @@ class TuiIntentProvider:
             try:
                 self._turn_signal(actor, ctx, encounter)
             except Exception:
-                _log.exception(
-                    "TuiIntentProvider.turn_signal raised; suppressing"
-                )
+                _log.exception("TuiIntentProvider.turn_signal raised; suppressing")
         return self._queue.get()
 
 

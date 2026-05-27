@@ -1,4 +1,5 @@
 """build_keymap — {hotkey: Ability} с учётом override'ов keybindings."""
+
 from __future__ import annotations
 
 from dnd.application.abilities.defaults import register_default_abilities
@@ -13,9 +14,13 @@ from dnd.interfaces.tui.screens.keymap import build_keymap
 
 def _make(keybindings: dict[str, AbilityId] | None = None) -> Creature:
     c = Creature.create(
-        id_=CreatureId("x"), name="X",
+        id_=CreatureId("x"),
+        name="X",
         abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=10, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     if keybindings:
         c.keybindings.update(keybindings)

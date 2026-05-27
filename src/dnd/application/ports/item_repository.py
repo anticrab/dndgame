@@ -13,6 +13,7 @@ Items в инвентаре, сундуках и на трупах хранят�
 Write-операции (создание новых предметов рантайм) пока не нужны —
 items.yaml редактируется вручную или TUI-палитрой потом.
 """
+
 from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
@@ -30,8 +31,7 @@ class ItemRepository(Protocol):
         """Полное описание предмета. KeyError если неизвестный id."""
         ...
 
-    def contains(self, item_id: ItemId) -> bool:
-        ...
+    def contains(self, item_id: ItemId) -> bool: ...
 
 
 __all__ = ["ItemRepository"]

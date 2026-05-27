@@ -1,4 +1,5 @@
 """Cunning Action (T4-c): Плут L2 — Dash/Disengage бонусным действием."""
+
 from __future__ import annotations
 
 from dnd.application.dto.action import ActionEconomyCost
@@ -14,9 +15,12 @@ from dnd.domain.values.ids import CreatureId, FeatureId
 def test_cunning_action_grants_bonus_abilities() -> None:
     reg = default_feature_registry()
     c = Creature.create(
-        id_=CreatureId("r"), name="r",
+        id_=CreatureId("r"),
+        name="r",
         abilities=AbilityScores.of(str_=10, dex=16, con=12, int_=12, wis=10, cha=10),
-        max_hp=16, armor_class=14, speed_ft=30,
+        max_hp=16,
+        armor_class=14,
+        speed_ft=30,
     )
     reg.get(FeatureId("cunning_action")).on_gain(c, None)
     assert AbilityId("cunning_dash") in c.ability_ids

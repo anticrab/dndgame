@@ -1,4 +1,5 @@
 """R1-13: LevelUpScreen — выбор «Сейчас / После боя / Подробнее»."""
+
 from __future__ import annotations
 
 import asyncio
@@ -21,12 +22,14 @@ class _Host(App[None]):
 
     def on_mount(self) -> None:
         ev = LevelUpReady(actor_id="hero", from_level=1, to_level=2)
-        self.push_screen(LevelUpScreen(
-            ev,
-            on_now=self._on_now,
-            on_later=self._on_later,
-            details="+8 HP, Action Surge",
-        ))
+        self.push_screen(
+            LevelUpScreen(
+                ev,
+                on_now=self._on_now,
+                on_later=self._on_later,
+                details="+8 HP, Action Surge",
+            )
+        )
 
     def _on_now(self) -> None:
         self.now_called += 1
@@ -42,6 +45,7 @@ def test_displays_level_transition() -> None:
         async with host.run_test(size=(80, 24)) as pilot:
             await pilot.pause(0.1)
             from textual.widgets import Label
+
             texts = [str(lbl.renderable) for lbl in pilot.app.screen.query(Label)]
             assert any("уровень 2" in t for t in texts), texts
 
@@ -83,6 +87,7 @@ def test_details_toggle_does_not_close() -> None:
             await pilot.press("d")
             await pilot.pause(0.1)
             from textual.widgets import Label
+
             texts = [str(lbl.renderable) for lbl in pilot.app.screen.query(Label)]
             assert any("Action Surge" in t for t in texts), texts
             # экран ещё открыт → колбэки не вызваны

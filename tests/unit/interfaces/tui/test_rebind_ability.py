@@ -1,4 +1,5 @@
 """rebind_ability / ability_can_afford — хелперы меню способностей (этап S)."""
+
 from __future__ import annotations
 
 from dnd.application.abilities.ability import Ability

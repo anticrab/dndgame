@@ -1,4 +1,5 @@
 """format_action_bar — чистая функция формата ability-полосы."""
+
 from __future__ import annotations
 
 from dnd.application.abilities.ability import AbilityId

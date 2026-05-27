@@ -1,4 +1,5 @@
 """YamlMapRepository: load/save/list карт в data/content/maps/{id}.yaml."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,8 +13,12 @@ from dnd.infrastructure.content.yaml_map_repository import YamlMapRepository
 def test_save_then_load_roundtrip(tmp_path: Path) -> None:
     repo = YamlMapRepository(tmp_path)
     doc = MapDocument(
-        id="test", name="Test", width=3, height=3,
-        tiles=(MapTileDoc(x=0, y=0, base="floor"),), objects=(),
+        id="test",
+        name="Test",
+        width=3,
+        height=3,
+        tiles=(MapTileDoc(x=0, y=0, base="floor"),),
+        objects=(),
     )
     repo.save(doc)
     loaded = repo.load("test")
@@ -57,5 +62,6 @@ def test_implements_protocol() -> None:
     from pathlib import Path
 
     from dnd.application.ports.map_repository import MapRepository
+
     with tempfile.TemporaryDirectory() as d:
         assert isinstance(YamlMapRepository(Path(d)), MapRepository)

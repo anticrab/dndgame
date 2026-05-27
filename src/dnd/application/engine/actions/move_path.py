@@ -6,6 +6,7 @@ fallback'а), затем настоящий обходной маршрут че
 :func:`find_walkable_path` — Dijkstra по 8-связному графу с весами
 5 ft / 10 ft (difficult) и пропуском непроходимых клеток.
 """
+
 from __future__ import annotations
 
 import heapq
@@ -16,9 +17,14 @@ from dnd.domain.values.ids import CreatureId
 from dnd.domain.values.square import Square
 
 _NEIGHBOURS: tuple[tuple[int, int], ...] = (
-    (-1, -1), (-1, 0), (-1, 1),
-    (0, -1),           (0, 1),
-    (1, -1),  (1, 0),  (1, 1),
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, -1),
+    (0, 1),
+    (1, -1),
+    (1, 0),
+    (1, 1),
 )
 
 
@@ -175,9 +181,7 @@ def find_walkable_path(
                 g_score[nb] = ng
                 prev[nb] = cur
                 h_nb = _h(nb)
-                heapq.heappush(
-                    pq, (ng + h_nb, _cross_bias(nb), h_nb, nb.x, nb.y)
-                )
+                heapq.heappush(pq, (ng + h_nb, _cross_bias(nb), h_nb, nb.x, nb.y))
 
     if target not in g_score:
         return None

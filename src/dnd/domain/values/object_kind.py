@@ -1,4 +1,5 @@
 """ObjectKind — типы интерактивных объектов на карте."""
+
 from __future__ import annotations
 
 from enum import StrEnum

@@ -1,4 +1,5 @@
 """E2E T3: парализованная цель — атака союзника с преимуществом и авто-критом."""
+
 from __future__ import annotations
 
 import pytest
@@ -22,22 +23,27 @@ from dnd.domain.values.weapon import LONGSWORD
 def test_paralyzed_target_attacked_with_advantage_and_autocrit() -> None:
     bf = Battlefield(5, 5)
     hero = Creature.create(
-        id_=CreatureId("hero"), name="hero",
+        id_=CreatureId("hero"),
+        name="hero",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     foe = Creature.create(
-        id_=CreatureId("foe"), name="foe",
+        id_=CreatureId("foe"),
+        name="foe",
         abilities=AbilityScores.of(str_=12, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=40, armor_class=14, speed_ft=30,
+        max_hp=40,
+        armor_class=14,
+        speed_ft=30,
     )
     foe.apply_condition(PARALYZED)
     bf.place_creature(hero.id, Square(1, 2))
     bf.place_creature(foe.id, Square(2, 2))
     # init hero=18, foe=1; атака advantage → 2 d20 (10,10), авто-крит → 2 d8.
-    deps, bus, _ = build_scripted_dependencies(
-        battlefield=bf, rolls=[18, 1, 10, 10, 5, 5]
-    )
+    deps, bus, _ = build_scripted_dependencies(battlefield=bf, rolls=[18, 1, 10, 10, 5, 5])
     enc = Encounter(
         participants={hero.id: hero, foe.id: foe},
         factions={hero.id: Faction.PARTY, foe.id: Faction.MONSTERS},

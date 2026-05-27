@@ -6,6 +6,7 @@ Tab/Shift+Tab циклит между достижимыми целями. Вы�
 Hint показывает HP/AC и расстояние выбранной цели (N-3) — без этого
 игрок не понимает, в кого бить выгоднее (когда целей много).
 """
+
 from __future__ import annotations
 
 from dnd.domain.entities.creature import Creature

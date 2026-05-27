@@ -96,9 +96,9 @@ def test_smoke_warrior_kills_goblin() -> None:
 
     rolls = [
         18,  # warrior init d20: 18 + 1 = 19
-        8,   # goblin  init d20:  8 + 2 = 10 → warrior первый
+        8,  # goblin  init d20:  8 + 2 = 10 → warrior первый
         18,  # warrior attack d20: 18 + 5 = 23 vs AC 13 → попал
-        7,   # warrior damage 1d8 = 7; +3 STR = 10 → goblin 7-10 = 0
+        7,  # warrior damage 1d8 = 7; +3 STR = 10 → goblin 7-10 = 0
     ]
     deps, bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=rolls)
 
@@ -129,13 +129,16 @@ def test_smoke_warrior_kills_goblin() -> None:
             # Воин атакует ближайшего goblin'а через AttackAction.
             params = weapon_attack_params(actor, goblin.id)
             from dnd.application.dto.action import Allowed
+
             attack = AttackAction()
             av = attack.can_perform_against(actor, params, ctx)
             if isinstance(av, Allowed):
                 attack.execute(actor, params, ctx)
         else:
             # MONSTERS — AI.
-            take_monster_turn(actor, ctx, is_hostile=is_hostile_from_factions(actor_id, enc.factions))
+            take_monster_turn(
+                actor, ctx, is_hostile=is_hostile_from_factions(actor_id, enc.factions)
+            )
 
         enc.end_turn()
 
@@ -164,10 +167,7 @@ def test_smoke_warrior_kills_goblin() -> None:
     assert attack_resolved[0].downed is True
     assert attack_resolved[0].hit is True
     # Goblin никогда не получил TurnStarted (умер на первом же ходу воина).
-    goblin_turns = [
-        e for e in captured
-        if isinstance(e, TurnStarted) and e.actor_id == goblin.id
-    ]
+    goblin_turns = [e for e in captured if isinstance(e, TurnStarted) and e.actor_id == goblin.id]
     assert goblin_turns == []
 
 
@@ -195,15 +195,15 @@ def test_smoke_monster_ai_moves_then_attacks() -> None:
 
     rolls = [
         18,  # goblin init: 18+2 = 20 → первый
-        8,   # warrior init: 8+1 = 9
+        8,  # warrior init: 8+1 = 9
         # goblin AI первый ход: подходит, затем атакует.
         # AttackAction.execute → 1 d20 (atk) + 1 d6 (damage) если попал.
         18,  # goblin atk d20: 18+4 = 22 vs 16 → попал
-        4,   # goblin damage 1d6=4; +2 DEX = 6
+        4,  # goblin damage 1d6=4; +2 DEX = 6
         # warrior ход: critical hit.
         20,  # warrior atk: nat 20 = crit
-        5,   # warrior damage 2d8 = 5+...
-        5,   # ... + 5 = 10; +3 STR = 13 → goblin 7-13 = 0
+        5,  # warrior damage 2d8 = 5+...
+        5,  # ... + 5 = 10; +3 STR = 13 → goblin 7-13 = 0
     ]
     deps, bus, _rng = build_scripted_dependencies(battlefield=bf, rolls=rolls)
 
@@ -231,6 +231,7 @@ def test_smoke_monster_ai_moves_then_attacks() -> None:
         if enc.factions[actor_id] is Faction.PARTY:
             params = weapon_attack_params(actor, goblin.id)
             from dnd.application.dto.action import Allowed
+
             attack = AttackAction()
             if isinstance(attack.can_perform_against(actor, params, ctx), Allowed):
                 attack.execute(actor, params, ctx)

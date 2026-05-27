@@ -100,9 +100,7 @@ class EventPrinter:
     # форматеры для конкретных событий ----------------------------------
 
     def _on_initiative(self, event: InitiativeRolled) -> None:
-        order = ", ".join(
-            f"{e.creature_id} ({e.total})" for e in event.order
-        )
+        order = ", ".join(f"{e.creature_id} ({e.total})" for e in event.order)
         self._print(f"[bold cyan]Initiative[/]: {order}")
 
     def _on_round_started(self, event: RoundStarted) -> None:
@@ -165,26 +163,17 @@ class EventPrinter:
 
     def _on_move_completed(self, event: MoveCompleted) -> None:
         self._print(
-            f"  {event.actor_id}: {event.start_pos} → {event.end_pos} "
-            f"({event.total_spent_ft} ft)"
+            f"  {event.actor_id}: {event.start_pos} → {event.end_pos} ({event.total_spent_ft} ft)"
         )
 
     def _on_provoked(self, event: OpportunityAttackProvoked) -> None:
-        self._print(
-            f"  ⚡ {event.actor_id} provokes opportunity from "
-            f"{event.threatener_id}"
-        )
+        self._print(f"  ⚡ {event.actor_id} provokes opportunity from {event.threatener_id}")
 
     def _on_help(self, event: HelpGranted) -> None:
-        self._print(
-            f"  🤝 {event.helper_id} helps {event.ally_id} vs "
-            f"{event.target_id}"
-        )
+        self._print(f"  🤝 {event.helper_id} helps {event.ally_id} vs {event.target_id}")
 
     def _on_search(self, event: SearchPerformed) -> None:
-        self._print(
-            f"  🔍 {event.actor_id} {event.skill_kind}: {event.total}"
-        )
+        self._print(f"  🔍 {event.actor_id} {event.skill_kind}: {event.total}")
 
     def _on_encounter_ended(self, event: EncounterEnded) -> None:
         if event.winners is None:
@@ -197,25 +186,17 @@ class EventPrinter:
         else:
             tail = "\nNo survivors."
         self._print(
-            f"\n[bold]=== ENCOUNTER ENDED ===[/]\n{verdict} "
-            f"(round {event.round_number}){tail}"
+            f"\n[bold]=== ENCOUNTER ENDED ===[/]\n{verdict} (round {event.round_number}){tail}"
         )
 
     def _on_stance(self, event: StanceTaken) -> None:
         # CL-UX002: Dodge/Dash/Disengage больше не «беззвучные».
-        self._print(
-            f"  [cyan]{event.actor_id} takes {event.stance.upper()}[/]"
-        )
+        self._print(f"  [cyan]{event.actor_id} takes {event.stance.upper()}[/]")
 
     def _on_interacted(self, event: ObjectInteracted) -> None:
         # K9 S1-3: лог InteractAction (free object interaction PHB-2024 стр. 21).
-        loot_part = (
-            f" → loot: {', '.join(event.loot)}" if event.loot else ""
-        )
-        self._print(
-            f"  ✋ {event.actor_id} {event.kind} {event.object_id}"
-            f"{loot_part}"
-        )
+        loot_part = f" → loot: {', '.join(event.loot)}" if event.loot else ""
+        self._print(f"  ✋ {event.actor_id} {event.kind} {event.object_id}{loot_part}")
 
     def _on_obj_damaged(self, event: ObjectDamaged) -> None:
         # K9 S1-3: лог BreakAction по InteractableObject.
@@ -251,24 +232,20 @@ class EventPrinter:
 
     def _on_condition_applied(self, event: ConditionApplied) -> None:
         names = ", ".join(sorted(str(c) for c in event.conditions))
-        self._print(
-            f"  ✦ [magenta]{event.target_id} получает состояние: {names}[/]"
-        )
+        self._print(f"  ✦ [magenta]{event.target_id} получает состояние: {names}[/]")
 
     def _on_condition_removed(self, event: ConditionRemoved) -> None:
         names = ", ".join(sorted(str(c) for c in event.conditions))
         reason = {
-            "damage": "от урона", "save": "спасброском",
-            "concentration_ended": "конец концентрации", "manual": "снято",
+            "damage": "от урона",
+            "save": "спасброском",
+            "concentration_ended": "конец концентрации",
+            "manual": "снято",
         }.get(event.reason, event.reason)
-        self._print(
-            f"  ✧ [green]{event.target_id} освобождается[/] ({names}, {reason})"
-        )
+        self._print(f"  ✧ [green]{event.target_id} освобождается[/] ({names}, {reason})")
 
     def _on_leveled_up(self, event: LeveledUp) -> None:
-        feats = (
-            f" ({', '.join(event.features_gained)})" if event.features_gained else ""
-        )
+        feats = f" ({', '.join(event.features_gained)})" if event.features_gained else ""
         self._print(
             f"  ⭐ [bold yellow]{event.actor_id} reaches level {event.new_level}![/] "
             f"+{event.hp_gained} HP{feats}"
@@ -279,9 +256,7 @@ class EventPrinter:
         # числом попаданий (✦×N), SINGLE — одна цель, AoE/SELF — без целей.
         if event.target_ids:
             counts = Counter(event.target_ids)
-            targets = ", ".join(
-                f"{cid}×{n}" if n > 1 else f"{cid}" for cid, n in counts.items()
-            )
+            targets = ", ".join(f"{cid}×{n}" if n > 1 else f"{cid}" for cid, n in counts.items())
             at = f" at {targets}"
         elif event.target_id is not None:
             at = f" at {event.target_id}"

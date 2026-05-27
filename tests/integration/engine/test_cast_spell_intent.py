@@ -1,4 +1,5 @@
 """P1-9: CastSpellIntent через GameRunner."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -29,9 +30,12 @@ class _ScriptedProvider:
 
 def _mage() -> Creature:
     c = Creature.create(
-        id_="mage", name="Mage",
+        id_="mage",
+        name="Mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=10, armor_class=12, speed_ft=30,
+        max_hp=10,
+        armor_class=12,
+        speed_ft=30,
     )
     c.spellcasting_ability = Ability.INT
     c.known_spells = (SpellId("fire_bolt"),)
@@ -41,9 +45,13 @@ def _mage() -> Creature:
 def test_cast_spell_intent_applies_damage() -> None:
     mage = _mage()
     gob = Creature.create(
-        id_="gob", name="Goblin",
+        id_="gob",
+        name="Goblin",
         abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
-        max_hp=12, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=12,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(8, 8)
     bf.place_creature(mage.id, Square(2, 2))
@@ -55,10 +63,12 @@ def test_cast_spell_intent_applies_damage() -> None:
         factions={mage.id: Faction.PARTY, gob.id: Faction.MONSTERS},
         deps=deps,
     )
-    provider = _ScriptedProvider([
-        CastSpellIntent(spell_id=SpellId("fire_bolt"), target_id=gob.id),
-        EndTurnIntent(),
-    ])
+    provider = _ScriptedProvider(
+        [
+            CastSpellIntent(spell_id=SpellId("fire_bolt"), target_id=gob.id),
+            EndTurnIntent(),
+        ]
+    )
     runner = GameRunner(
         intent_provider=provider,
         spell_repository=YamlSpellRepository(_SPELLS),
@@ -75,9 +85,13 @@ def test_multi_cast_intent_propagates_target_ids() -> None:
     mage.known_spells = (SpellId("magic_missile"),)
     mage.spell_slots = {1: 1}
     gob = Creature.create(
-        id_="gob", name="Goblin",
+        id_="gob",
+        name="Goblin",
         abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
-        max_hp=12, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=12,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(8, 8)
     bf.place_creature(mage.id, Square(2, 2))
@@ -89,30 +103,36 @@ def test_multi_cast_intent_propagates_target_ids() -> None:
         factions={mage.id: Faction.PARTY, gob.id: Faction.MONSTERS},
         deps=deps,
     )
-    provider = _ScriptedProvider([
-        CastSpellIntent(
-            spell_id=SpellId("magic_missile"),
-            target_ids=(gob.id, gob.id, gob.id),
-        ),
-        EndTurnIntent(),
-    ])
+    provider = _ScriptedProvider(
+        [
+            CastSpellIntent(
+                spell_id=SpellId("magic_missile"),
+                target_ids=(gob.id, gob.id, gob.id),
+            ),
+            EndTurnIntent(),
+        ]
+    )
     runner = GameRunner(
         intent_provider=provider,
         spell_repository=YamlSpellRepository(_SPELLS),
         monster_turn=lambda a, c, e: None,
     )
     runner.run(enc)
-    assert gob.hit_points.current == 0   # 12 - 15 → 0 (3 дротика попали)
-    assert mage.spell_slots == {1: 0}    # слот потрачен → каст реально прошёл
+    assert gob.hit_points.current == 0  # 12 - 15 → 0 (3 дротика попали)
+    assert mage.spell_slots == {1: 0}  # слот потрачен → каст реально прошёл
 
 
 def test_cast_without_spell_repository_rejected() -> None:
     """Без spell_repository CastSpellIntent тихо реджектится (урона нет)."""
     mage = _mage()
     gob = Creature.create(
-        id_="gob", name="Goblin",
+        id_="gob",
+        name="Goblin",
         abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
-        max_hp=12, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=12,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(8, 8)
     bf.place_creature(mage.id, Square(2, 2))
@@ -123,10 +143,12 @@ def test_cast_without_spell_repository_rejected() -> None:
         factions={mage.id: Faction.PARTY, gob.id: Faction.MONSTERS},
         deps=deps,
     )
-    provider = _ScriptedProvider([
-        CastSpellIntent(spell_id=SpellId("fire_bolt"), target_id=gob.id),
-        EndTurnIntent(),
-    ])
+    provider = _ScriptedProvider(
+        [
+            CastSpellIntent(spell_id=SpellId("fire_bolt"), target_id=gob.id),
+            EndTurnIntent(),
+        ]
+    )
     runner = GameRunner(intent_provider=provider, monster_turn=lambda a, c, e: None)
     runner.run(enc)
     assert gob.hit_points.current == 12  # spell_repository нет → каста нет

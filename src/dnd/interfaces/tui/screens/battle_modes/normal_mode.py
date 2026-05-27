@@ -5,6 +5,7 @@
 Этот handler нужен только чтобы state machine всегда имела активный
 ModeHandler.
 """
+
 from __future__ import annotations
 
 from dnd.interfaces.tui.screens.battle_modes.protocol import (

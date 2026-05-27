@@ -12,6 +12,7 @@ State chest хранит ``contents`` в сыром YAML-формате (canonic
 PickupAction перепарсивает через parse_loot, обновляет нужный стак,
 сериализует обратно через dump_loot_entries.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -76,9 +77,7 @@ class PickupAction:
     def economy_cost(self) -> ActionEconomyCost:
         return self.economy_cost_value
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         # Pickup тратит free object interaction (1/ход) — как Interact.
         # Если уже потрачено в этом ходу, Forbidden.
         if not ctx.can_use_object_interaction():
@@ -139,9 +138,7 @@ class PickupAction:
         ctx: TurnContext,
     ) -> ActionOutcome:
         if not isinstance(params, PickupParams):
-            raise TypeError(
-                f"PickupAction expects PickupParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"PickupAction expects PickupParams, got {type(params).__name__}")
         bf = ctx.battlefield
         # ВАЖНО: не списываем free object interaction до того, как
         # убедимся, что pickup реально случится. Audit MAJOR-3 фикс:

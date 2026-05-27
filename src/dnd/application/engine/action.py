@@ -53,9 +53,7 @@ class Action(Protocol):
     @property
     def economy_cost(self) -> ActionEconomyCost: ...
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability: ...
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability: ...
 
     def execute(
         self,

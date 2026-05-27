@@ -1,4 +1,5 @@
 """P1-10: spell_ability + полоса заклинаний в action-bar."""
+
 from __future__ import annotations
 
 from dnd.application.abilities.spell_abilities import (
@@ -14,9 +15,16 @@ from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKin
 
 def _fire_bolt() -> Spell:
     return Spell(
-        id=SpellId("fire_bolt"), name="Fire Bolt", level=0, school="evocation",
-        effect=SpellEffect.ATTACK, targeting=TargetingSpec(kind=TargetKind.SINGLE),
-        range_ft=120, description="", dice="1d10", damage_type=DamageType.FIRE,
+        id=SpellId("fire_bolt"),
+        name="Fire Bolt",
+        level=0,
+        school="evocation",
+        effect=SpellEffect.ATTACK,
+        targeting=TargetingSpec(kind=TargetKind.SINGLE),
+        range_ft=120,
+        description="",
+        dice="1d10",
+        damage_type=DamageType.FIRE,
     )
 
 
@@ -37,10 +45,17 @@ def test_base_ability_is_not_spell_ability() -> None:
     from dnd.application.abilities.ability import Ability as Ab
     from dnd.application.dto.action import ActionEconomyCost
     from dnd.domain.values.ability_id import AbilityId
+
     a = Ab(
-        id=AbilityId("weapon_attack"), name="Attack", icon="A", default_hotkey="a",
-        economy_cost=ActionEconomyCost.ACTION, requires_target=True,
-        requires_path=False, intent_factory=lambda target_id=None: CastSpellIntent(
-            spell_id=SpellId("x"), target_id=None),
+        id=AbilityId("weapon_attack"),
+        name="Attack",
+        icon="A",
+        default_hotkey="a",
+        economy_cost=ActionEconomyCost.ACTION,
+        requires_target=True,
+        requires_path=False,
+        intent_factory=lambda target_id=None: CastSpellIntent(
+            spell_id=SpellId("x"), target_id=None
+        ),
     )
     assert not is_spell_ability(a)

@@ -21,6 +21,7 @@
 просматривается. Если станет большим (>200 items) — разобьём
 по категориям (weapons.yaml / armor.yaml / consumables.yaml).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -43,16 +44,12 @@ class YamlItemRepository:
         if raw is None:
             return  # пустой файл
         if not isinstance(raw, list):
-            raise ValueError(
-                f"items file {self._file} must contain a list, got {type(raw)}"
-            )
+            raise ValueError(f"items file {self._file} must contain a list, got {type(raw)}")
         self._by_id = {}
         for entry in raw:
             item = self._parse(entry)
             if item.id in self._by_id:
-                raise ValueError(
-                    f"duplicate item id {item.id!r} in {self._file}"
-                )
+                raise ValueError(f"duplicate item id {item.id!r} in {self._file}")
             self._by_id[item.id] = item
 
     def _parse(self, entry: dict[str, Any]) -> Item:

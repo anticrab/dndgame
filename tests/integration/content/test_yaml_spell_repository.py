@@ -1,4 +1,5 @@
 """P1-2: YamlSpellRepository — загрузка каталога заклинаний."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -26,10 +27,17 @@ def test_loads_all_spells() -> None:
     ids = set(repo.list_ids())
     # P1 single/self + P2 AoE + P2b мультитаргет + T2 контроль.
     assert ids == {
-        SpellId("fire_bolt"), SpellId("sacred_flame"), SpellId("magic_missile"),
-        SpellId("cure_wounds"), SpellId("shield_of_faith"),
-        SpellId("fireball"), SpellId("burning_hands"), SpellId("lightning_bolt"),
-        SpellId("bless"), SpellId("sleep"), SpellId("hold_person"),
+        SpellId("fire_bolt"),
+        SpellId("sacred_flame"),
+        SpellId("magic_missile"),
+        SpellId("cure_wounds"),
+        SpellId("shield_of_faith"),
+        SpellId("fireball"),
+        SpellId("burning_hands"),
+        SpellId("lightning_bolt"),
+        SpellId("bless"),
+        SpellId("sleep"),
+        SpellId("hold_person"),
     }
 
 
@@ -50,6 +58,7 @@ def test_sacred_flame_save_fields() -> None:
 
 def test_shield_of_faith_buff() -> None:
     from dnd.domain.values.modifiers import ModifierTargetKind
+
     s = YamlSpellRepository(_SPELLS).load(SpellId("shield_of_faith"))
     assert s.effect is SpellEffect.BUFF and s.concentration is True
     assert len(s.buffs) == 1
@@ -85,8 +94,10 @@ def test_duplicate_id_rejected(tmp_path: Path) -> None:
 
 # --- P2-5: AoE-заклинания из YAML ----------------------------------------
 
+
 def test_loads_aoe_spells() -> None:
     from dnd.domain.values.spell import AreaShape, OriginMode, TargetKind
+
     repo = YamlSpellRepository(_SPELLS)
     fb = repo.load(SpellId("fireball"))
     assert fb.targeting.kind is TargetKind.AREA

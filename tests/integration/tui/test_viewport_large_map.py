@@ -4,6 +4,7 @@
 не способен показать всё; auto-follow в MapWidget центрирует viewport
 так, чтобы актор не уехал за safe-zone.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -34,14 +35,22 @@ def test_viewport_centers_on_pc_at_corner() -> None:
     EndScreen'у, и query_one('#map') падает).
     """
     pc = Creature.create(
-        id_=CreatureId("p"), name="PC",
+        id_=CreatureId("p"),
+        name="PC",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     goblin = Creature.create(
-        id_=CreatureId("g"), name="Goblin",
+        id_=CreatureId("g"),
+        name="Goblin",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(50, 50)
     bf.place_creature(pc.id, Square(40, 40))

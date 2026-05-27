@@ -1,4 +1,5 @@
 """BreakAction — атака по InteractableObject с HP."""
+
 from __future__ import annotations
 
 from dnd.application.dto.action import (
@@ -32,12 +33,18 @@ from dnd.infrastructure.rng.scripted_rng import ScriptedRNG
 
 def _setup(*, atk_d20: int, dmg_d8: int, obj_hp: int = 5, obj_ac: int = 10):
     actor = Creature.create(
-        id_=CreatureId("pc"), name="PC",
+        id_=CreatureId("pc"),
+        name="PC",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     barrel = InteractableObject(
-        id=ObjectId("bar-1"), kind=ObjectKind.BARREL, pos=Square(2, 3),
+        id=ObjectId("bar-1"),
+        kind=ObjectKind.BARREL,
+        pos=Square(2, 3),
         state={"hp": obj_hp, "ac": obj_ac, "broken": False, "contents": ["bolts_10"]},
     )
     bf = Battlefield(5, 5)
@@ -48,12 +55,15 @@ def _setup(*, atk_d20: int, dmg_d8: int, obj_hp: int = 5, obj_ac: int = 10):
     registry = ConditionRegistry()
     register_default_conditions(registry)
     ctx = TurnContext(
-        actor_id=actor.id, battlefield=bf,
+        actor_id=actor.id,
+        battlefield=bf,
         dice_roller=ComputerDiceRoller(rng=rng, event_bus=bus),
         modifier_applier=ModifierApplier(ModifierBag()),
         condition_service=ConditionService(registry),
-        event_bus=bus, rng=rng,
-        participants={actor.id: actor}, movement_remaining_ft=30,
+        event_bus=bus,
+        rng=rng,
+        participants={actor.id: actor},
+        movement_remaining_ft=30,
     )
     return actor, barrel, ctx, bus
 
@@ -84,8 +94,10 @@ def test_break_action_breaks_object_when_hp_zero() -> None:
     captured: list[EngineEvent] = []
     bus.subscribe(EngineEvent, captured.append)
     params = BreakParams(
-        target_object_id=barrel.id, attack_bonus=5,
-        damage_expr="1d8+3", damage_type=DamageType.BLUDGEONING,
+        target_object_id=barrel.id,
+        attack_bonus=5,
+        damage_expr="1d8+3",
+        damage_type=DamageType.BLUDGEONING,
     )
     BreakAction().execute(actor, params, ctx)
     # dmg = 8 + 3 = 11 > hp=5 → broken
@@ -97,12 +109,18 @@ def test_break_action_breaks_object_when_hp_zero() -> None:
 
 def test_break_action_too_far_forbidden() -> None:
     actor = Creature.create(
-        id_=CreatureId("pc"), name="PC",
+        id_=CreatureId("pc"),
+        name="PC",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     barrel = InteractableObject(
-        id=ObjectId("b"), kind=ObjectKind.BARREL, pos=Square(4, 4),
+        id=ObjectId("b"),
+        kind=ObjectKind.BARREL,
+        pos=Square(4, 4),
         state={"hp": 5, "ac": 10, "broken": False, "contents": []},
     )
     bf = Battlefield(5, 5)
@@ -113,16 +131,21 @@ def test_break_action_too_far_forbidden() -> None:
     registry = ConditionRegistry()
     register_default_conditions(registry)
     ctx = TurnContext(
-        actor_id=actor.id, battlefield=bf,
+        actor_id=actor.id,
+        battlefield=bf,
         dice_roller=ComputerDiceRoller(rng=rng, event_bus=bus),
         modifier_applier=ModifierApplier(ModifierBag()),
         condition_service=ConditionService(registry),
-        event_bus=bus, rng=rng,
-        participants={actor.id: actor}, movement_remaining_ft=30,
+        event_bus=bus,
+        rng=rng,
+        participants={actor.id: actor},
+        movement_remaining_ft=30,
     )
     params = BreakParams(
-        target_object_id=barrel.id, attack_bonus=5,
-        damage_expr="1d8", damage_type=DamageType.BLUDGEONING,
+        target_object_id=barrel.id,
+        attack_bonus=5,
+        damage_expr="1d8",
+        damage_type=DamageType.BLUDGEONING,
     )
     av = BreakAction().can_perform_against(actor, params, ctx)
     assert isinstance(av, Forbidden)
@@ -132,12 +155,18 @@ def test_break_action_too_far_forbidden() -> None:
 def test_break_action_object_no_hp_rejected() -> None:
     """Если у объекта нет hp в state — Forbidden CUSTOM."""
     actor = Creature.create(
-        id_=CreatureId("pc"), name="PC",
+        id_=CreatureId("pc"),
+        name="PC",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     chest = InteractableObject(
-        id=ObjectId("c"), kind=ObjectKind.CHEST, pos=Square(2, 3),
+        id=ObjectId("c"),
+        kind=ObjectKind.CHEST,
+        pos=Square(2, 3),
         state={"open": False, "contents": []},  # нет hp!
     )
     bf = Battlefield(5, 5)
@@ -148,16 +177,21 @@ def test_break_action_object_no_hp_rejected() -> None:
     registry = ConditionRegistry()
     register_default_conditions(registry)
     ctx = TurnContext(
-        actor_id=actor.id, battlefield=bf,
+        actor_id=actor.id,
+        battlefield=bf,
         dice_roller=ComputerDiceRoller(rng=rng, event_bus=bus),
         modifier_applier=ModifierApplier(ModifierBag()),
         condition_service=ConditionService(registry),
-        event_bus=bus, rng=rng,
-        participants={actor.id: actor}, movement_remaining_ft=30,
+        event_bus=bus,
+        rng=rng,
+        participants={actor.id: actor},
+        movement_remaining_ft=30,
     )
     params = BreakParams(
-        target_object_id=chest.id, attack_bonus=5,
-        damage_expr="1d8", damage_type=DamageType.BLUDGEONING,
+        target_object_id=chest.id,
+        attack_bonus=5,
+        damage_expr="1d8",
+        damage_type=DamageType.BLUDGEONING,
     )
     av = BreakAction().can_perform_against(actor, params, ctx)
     assert isinstance(av, Forbidden)
@@ -167,8 +201,10 @@ def test_break_action_object_no_hp_rejected() -> None:
 def test_break_action_consumes_action() -> None:
     actor, barrel, ctx, _ = _setup(atk_d20=15, dmg_d8=4)
     params = BreakParams(
-        target_object_id=barrel.id, attack_bonus=5,
-        damage_expr="1d8+3", damage_type=DamageType.BLUDGEONING,
+        target_object_id=barrel.id,
+        attack_bonus=5,
+        damage_expr="1d8+3",
+        damage_type=DamageType.BLUDGEONING,
     )
     BreakAction().execute(actor, params, ctx)
     assert ctx.action_used is True

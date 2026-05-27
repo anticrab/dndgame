@@ -11,6 +11,7 @@ Mutable entity (как Creature). Имеет ``state: dict`` со свободн
 Методы (``open()`` / ``take_damage()`` / ...) — конкретные операции,
 которые валидируют state и меняют его на месте.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -93,9 +94,7 @@ class InteractableObject:
             # сломанная дверь = открытая
             if self.kind is ObjectKind.DOOR:
                 self.state["open"] = True
-        return ObjectDamageResult(
-            raw=damage.amount, final=applied, was_lethal=was_lethal
-        )
+        return ObjectDamageResult(raw=damage.amount, final=applied, was_lethal=was_lethal)
 
 
 __all__ = ["InteractableObject", "ObjectDamageResult"]

@@ -4,6 +4,7 @@
 обработка эффекта — через :class:`SpellEffectRegistry`. Новый тип воздействия =
 новый :class:`SpellEffectHandler` + регистрация, без касания CastSpellAction.
 """
+
 from __future__ import annotations
 
 from dnd.application.engine.spells.defaults import default_spell_effect_registry

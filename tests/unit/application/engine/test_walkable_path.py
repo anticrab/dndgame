@@ -1,4 +1,5 @@
 """find_walkable_path — Dijkstra с учётом стен и difficult terrain."""
+
 from __future__ import annotations
 
 from dnd.application.engine.actions.move_path import (
@@ -116,7 +117,9 @@ def test_dead_creature_does_not_block_path() -> None:
     bf = _open(7, 1)
     bf.place_creature(CreatureId("corpse"), Square(3, 0))
     path = find_walkable_path(
-        bf, Square(0, 0), Square(6, 0),
+        bf,
+        Square(0, 0),
+        Square(6, 0),
         is_alive=lambda cid: cid != CreatureId("corpse"),
     )
     assert path is not None
@@ -128,7 +131,9 @@ def test_living_creature_still_blocks_with_filter() -> None:
     bf = _open(7, 1)
     bf.place_creature(CreatureId("g"), Square(3, 0))
     path = find_walkable_path(
-        bf, Square(0, 0), Square(6, 0),
+        bf,
+        Square(0, 0),
+        Square(6, 0),
         is_alive=lambda cid: True,  # все живые → блокируют как раньше
     )
     assert path is None
@@ -147,7 +152,9 @@ def test_dead_creature_does_not_block_path_when_walls_force_detour() -> None:
     # Снизу всё свободно (2,2).
     bf.place_creature(CreatureId("corpse_up"), Square(2, 0))
     path = find_walkable_path(
-        bf, Square(0, 1), Square(4, 1),
+        bf,
+        Square(0, 1),
+        Square(4, 1),
         is_alive=lambda cid: cid != CreatureId("corpse_up"),
     )
     # Должен найти путь — либо через (2,0) (труп проходим), либо (2,2).
@@ -158,7 +165,9 @@ def test_dead_creature_does_not_block_path_when_walls_force_detour() -> None:
     bf2.set_terrain(Square(1, 1), WALL)
     bf2.place_creature(CreatureId("alive_up"), Square(1, 0))
     path2 = find_walkable_path(
-        bf2, Square(0, 1), Square(2, 1),
+        bf2,
+        Square(0, 1),
+        Square(2, 1),
         is_alive=lambda cid: True,
     )
     # Должен пройти снизу через (1, 2) — никаких блокировок там нет.

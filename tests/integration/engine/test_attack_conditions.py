@@ -1,4 +1,5 @@
 """Атака учитывает состояния цели/атакующего (T3)."""
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import AttackRolled, EngineEvent
@@ -19,14 +20,21 @@ from dnd.domain.values.weapon import LONGSWORD
 def _enc(rolls: list[int]) -> tuple[Encounter, Creature, Creature, list[EngineEvent]]:
     bf = Battlefield(5, 5)
     hero = Creature.create(
-        id_=CreatureId("hero"), name="hero",
+        id_=CreatureId("hero"),
+        name="hero",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     gob = Creature.create(
-        id_=CreatureId("g"), name="g",
+        id_=CreatureId("g"),
+        name="g",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=30, armor_class=13, speed_ft=30,
+        max_hp=30,
+        armor_class=13,
+        speed_ft=30,
     )
     bf.place_creature(hero.id, Square(1, 2))
     bf.place_creature(gob.id, Square(2, 2))

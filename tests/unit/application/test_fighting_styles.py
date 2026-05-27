@@ -1,4 +1,5 @@
 """Боевые стили Воина (T4-a)."""
+
 from __future__ import annotations
 
 from dnd.application.engine.features.defaults import default_feature_registry
@@ -14,9 +15,12 @@ from dnd.domain.values.ids import CreatureId, FeatureId
 
 def _c() -> Creature:
     return Creature.create(
-        id_=CreatureId("c"), name="c",
+        id_=CreatureId("c"),
+        name="c",
         abilities=AbilityScores.of(str_=14, dex=14, con=12, int_=10, wis=10, cha=10),
-        max_hp=12, armor_class=15, speed_ft=30,
+        max_hp=12,
+        armor_class=15,
+        speed_ft=30,
     )
 
 

@@ -26,9 +26,7 @@ runner = CliRunner()
 def test_play_unknown_scenario_exits_with_error() -> None:
     result = runner.invoke(app, ["play", "no-such-scenario"])
     assert result.exit_code != 0
-    assert "not found" in result.stdout.lower() or "not found" in (
-        result.stderr or ""
-    ).lower()
+    assert "not found" in result.stdout.lower() or "not found" in (result.stderr or "").lower()
 
 
 @pytest.mark.e2e
@@ -81,12 +79,8 @@ def test_play_mvp_skirmish_runs_to_end_with_scripted_intents(
         console = Console()
         # Scripted RNG чтобы тест был детерминированным.
         rng = ScriptedRNG([18, 8, 18, 7])
-        deps = build_default_dependencies(
-            battlefield=Battlefield(1, 1), rng=rng
-        )
-        enc = build_encounter_from_scenario(
-            scenario, content=repo, deps=deps
-        )
+        deps = build_default_dependencies(battlefield=Battlefield(1, 1), rng=rng)
+        enc = build_encounter_from_scenario(scenario, content=repo, deps=deps)
         EventPrinter(console).subscribe(enc.deps.event_bus)
         GameRunner(intent_provider=scripted).run(enc)
 

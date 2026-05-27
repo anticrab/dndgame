@@ -49,9 +49,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.ids import ActionId, CreatureId
 
-_ACTION_BLOCKERS: Final = frozenset(
-    {INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS}
-)
+_ACTION_BLOCKERS: Final = frozenset({INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS})
 
 _HELP_REACH_FT = 5  # PHB-2024 стр. 22: «within 5 feet of the creature being attacked»
 
@@ -89,9 +87,7 @@ class HelpAction:
     def economy_cost(self) -> ActionEconomyCost:
         return self.economy_cost_value
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         if not ctx.can_spend(ActionEconomyCost.ACTION):
             return Forbidden(reason=ForbiddenReason.NO_ECONOMY_LEFT)
         for cond in _ACTION_BLOCKERS:
@@ -131,9 +127,7 @@ class HelpAction:
         ctx: TurnContext,
     ) -> ActionOutcome:
         if not isinstance(params, HelpParams):
-            raise TypeError(
-                f"HelpAction expects HelpParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"HelpAction expects HelpParams, got {type(params).__name__}")
         ally = ctx.participants.get(params.ally_id)
         if ally is None:
             raise RuntimeError(
@@ -209,9 +203,7 @@ class SearchAction:
     def economy_cost(self) -> ActionEconomyCost:
         return self.economy_cost_value
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         if not ctx.can_spend(ActionEconomyCost.ACTION):
             return Forbidden(reason=ForbiddenReason.NO_ECONOMY_LEFT)
         for cond in _ACTION_BLOCKERS:
@@ -229,9 +221,7 @@ class SearchAction:
         ctx: TurnContext,
     ) -> ActionOutcome:
         if not isinstance(params, SearchParams):
-            raise TypeError(
-                f"SearchAction expects SearchParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"SearchAction expects SearchParams, got {type(params).__name__}")
 
         ctx.spend(ActionEconomyCost.ACTION)
 

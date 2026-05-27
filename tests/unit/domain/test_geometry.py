@@ -1,4 +1,5 @@
 """P2-2: геометрия зон (круг/линия/конус) по клеткам."""
+
 from __future__ import annotations
 
 from dnd.domain.values.direction import Direction
@@ -43,10 +44,14 @@ def test_direction_delta_all_eight() -> None:
 def test_cone_east_length2() -> None:
     # k=1: (1,0); k=2: ось (2,0) ± перп (0,1) → (2,-1),(2,0),(2,1)
     cells = cone_squares(Square(0, 0), Direction.E, 2)
-    assert cells == frozenset({
-        Square(1, 0),
-        Square(2, -1), Square(2, 0), Square(2, 1),
-    })
+    assert cells == frozenset(
+        {
+            Square(1, 0),
+            Square(2, -1),
+            Square(2, 0),
+            Square(2, 1),
+        }
+    )
     assert Square(0, 0) not in cells
 
 

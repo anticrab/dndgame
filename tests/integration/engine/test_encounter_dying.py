@@ -1,4 +1,5 @@
 """Q-2/Q-3/Q-4: lifecycle умирания в Encounter."""
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import DamageDealt, DeathSaveRolled
@@ -17,9 +18,13 @@ from dnd.domain.values.weapon import LONGSWORD
 
 def _pc() -> Creature:
     c = Creature.create(
-        id_="hero", name="Hero",
+        id_="hero",
+        name="Hero",
         abilities=AbilityScores.of(str_=14, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=10,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     c.uses_death_saves = True
     return c
@@ -27,9 +32,13 @@ def _pc() -> Creature:
 
 def _goblin() -> Creature:
     return Creature.create(
-        id_="gob", name="Goblin",
+        id_="gob",
+        name="Goblin",
         abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
 
 
@@ -54,11 +63,16 @@ def _lethal(attacker: Creature, target: Creature) -> DamageDealt:
     Урон сам наносится через ``take_damage`` в тесте; это событие триггерит
     реакцию Encounter (dying/CORPSE), как реальный урон оружием/заклинанием."""
     return DamageDealt(
-        attacker_id=attacker.id, target_id=target.id,
+        attacker_id=attacker.id,
+        target_id=target.id,
         damage_roll_id="00000000-0000-0000-0000-000000000000",
-        damage_type=DamageType.SLASHING, raw_amount=0, final_amount=0,
-        is_critical=False, hp_after=target.hit_points.current,
-        hp_max=target.hit_points.maximum, was_lethal=True,
+        damage_type=DamageType.SLASHING,
+        raw_amount=0,
+        final_amount=0,
+        is_critical=False,
+        hp_after=target.hit_points.current,
+        hp_max=target.hit_points.maximum,
+        was_lethal=True,
     )
 
 
@@ -122,6 +136,7 @@ def test_massive_damage_on_pc_emits_creature_died() -> None:
     """audit M-1: PC, убитый огромным уроном (overflow >= max HP), умирает
     мгновенно И публикует CreatureDied (а не «молча»)."""
     from dnd.application.dto.engine_event import CreatureDied
+
     pc, gob = _pc(), _goblin()
     enc = _enc(pc, gob)
     died: list[CreatureDied] = []
@@ -139,9 +154,7 @@ def test_melee_hit_on_dying_pc_is_auto_crit() -> None:
     bf.place_creature(gob.id, Square(2, 3))  # вплотную (1 клетка = 5 фт)
     # rolls: 2 инициативы (gob выше), атака=10 (+4=14 vs AC12 → hit),
     # урон 1d6→крит 2d6 = два значения ≤6.
-    deps, _, _ = build_scripted_dependencies(
-        battlefield=bf, rolls=[19, 20, 10, 3, 3] + [1] * 20
-    )
+    deps, _, _ = build_scripted_dependencies(battlefield=bf, rolls=[19, 20, 10, 3, 3] + [1] * 20)
     enc = Encounter(
         participants={pc.id: pc, gob.id: gob},
         factions={pc.id: Faction.PARTY, gob.id: Faction.MONSTERS},
@@ -158,8 +171,16 @@ def test_melee_hit_on_dying_pc_is_auto_crit() -> None:
     assert enc.current_actor_id == gob.id
     ctx = enc.start_turn()
     before = pc.death_saves.failures
-    AttackAction().execute(gob, AttackParams(
-        target_id=pc.id, kind=AttackKind.MELEE, attack_bonus=4,
-        damage_expr="1d6", damage_type=DamageType.SLASHING, range_ft=5,
-    ), ctx)
+    AttackAction().execute(
+        gob,
+        AttackParams(
+            target_id=pc.id,
+            kind=AttackKind.MELEE,
+            attack_bonus=4,
+            damage_expr="1d6",
+            damage_type=DamageType.SLASHING,
+            range_ft=5,
+        ),
+        ctx,
+    )
     assert pc.death_saves.failures - before == 2  # авто-крит → 2 провала

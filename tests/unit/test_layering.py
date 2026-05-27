@@ -8,6 +8,7 @@
 Закрепляет рефактор: id-типы, модификаторы и RollPurpose переехали в domain,
 поэтому `from dnd.application…` в domain быть НЕ должно.
 """
+
 from __future__ import annotations
 
 import ast

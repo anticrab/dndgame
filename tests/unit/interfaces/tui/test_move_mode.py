@@ -1,4 +1,5 @@
 """MoveModeHandler: курсор + walkable path preview + path_styles + hint."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock

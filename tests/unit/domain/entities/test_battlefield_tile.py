@@ -3,6 +3,7 @@
 Не дублирует существующий test_battlefield.py (там сохранён старый
 Terrain-API, который тоже должен работать через alias).
 """
+
 from __future__ import annotations
 
 import pytest

@@ -6,6 +6,7 @@
   после reload в репозитории видна непустая ``tiles``.
 * Клавиша ``q`` корректно выходит из приложения.
 """
+
 from __future__ import annotations
 
 import asyncio

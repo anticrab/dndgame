@@ -1,4 +1,5 @@
 """Protocol-проверка: SpriteRegistry имеет нужную форму."""
+
 from __future__ import annotations
 
 from dnd.application.ports.sprite_registry import (
@@ -19,4 +20,5 @@ def test_protocol_runtime_checkable() -> None:
         def get_terrain(self, id_: str): ...
         def get_feature(self, id_: str): ...
         def list_by_category(self, c): ...
+
     assert isinstance(_Stub(), SpriteRegistry)

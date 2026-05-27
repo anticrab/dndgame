@@ -1,4 +1,5 @@
 """CONTROL-заклинания (T2): валидация полей Spell."""
+
 from __future__ import annotations
 
 import pytest
@@ -16,11 +17,16 @@ from dnd.domain.values.spell import (
 
 def _control(**over: object) -> Spell:
     base: dict[str, object] = dict(
-        id=SpellId("x"), name="X", level=1, school="enchantment",
+        id=SpellId("x"),
+        name="X",
+        level=1,
+        school="enchantment",
         effect=SpellEffect.CONTROL,
         targeting=TargetingSpec(kind=TargetKind.SINGLE),
-        range_ft=60, description="",
-        condition=PARALYZED, save_ability=Ability.WIS,
+        range_ft=60,
+        description="",
+        condition=PARALYZED,
+        save_ability=Ability.WIS,
     )
     base.update(over)
     return Spell(**base)  # type: ignore[arg-type]
@@ -53,5 +59,6 @@ def test_control_requires_exactly_one_gate() -> None:
 
 def test_repeat_save_requires_save_ability() -> None:
     with pytest.raises(ValueError, match="condition_repeat_save"):
-        _control(save_ability=None, hp_pool_dice="5d8",
-                 condition=UNCONSCIOUS, condition_repeat_save=True)
+        _control(
+            save_ability=None, hp_pool_dice="5d8", condition=UNCONSCIOUS, condition_repeat_save=True
+        )

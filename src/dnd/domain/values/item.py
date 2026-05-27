@@ -13,6 +13,7 @@
   refactor в одном task'е. На O-8/O-9 свяжем через ``equipped_item_id``.
 * charges/uses у consumable'ов — в state-машине Inventory (O-3).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -53,9 +54,7 @@ class Item:
 
     def __post_init__(self) -> None:
         if self.weight_lb < 0:
-            raise ValueError(
-                f"item {self.id}: weight_lb must be >= 0, got {self.weight_lb}"
-            )
+            raise ValueError(f"item {self.id}: weight_lb must be >= 0, got {self.weight_lb}")
         if not self.id:
             raise ValueError("item id must be non-empty")
         if not self.name:

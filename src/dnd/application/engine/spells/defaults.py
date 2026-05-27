@@ -4,6 +4,7 @@
 поддержанными ядром. Контент-паки/плагины могут добавлять свои хендлеры в
 полученный реестр через ``register(...)``.
 """
+
 from __future__ import annotations
 
 from dnd.application.engine.spells.effect_handler import SpellEffectRegistry

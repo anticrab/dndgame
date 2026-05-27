@@ -1,4 +1,5 @@
 """Дефолтные реестры фич и ресурсов (этап R1)."""
+
 from __future__ import annotations
 
 from dnd.application.engine.features.handlers import (

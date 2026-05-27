@@ -19,6 +19,7 @@ API:
 Не входит сюда: equip-slot'ы (отдельный аспект Creature, O-8),
 auto-sort, категории-вкладки UI (TUI-логика O-9).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -35,14 +36,9 @@ class Inventory:
 
     def __post_init__(self) -> None:
         if self.slot_limit is not None and self.slot_limit < 0:
-            raise ValueError(
-                f"slot_limit must be >= 0 (or None), got {self.slot_limit}"
-            )
+            raise ValueError(f"slot_limit must be >= 0 (or None), got {self.slot_limit}")
         if self.weight_limit_lb is not None and self.weight_limit_lb < 0:
-            raise ValueError(
-                f"weight_limit_lb must be >= 0 (or None), "
-                f"got {self.weight_limit_lb}"
-            )
+            raise ValueError(f"weight_limit_lb must be >= 0 (or None), got {self.weight_limit_lb}")
 
     # --- queries ----------------------------------------------------
 

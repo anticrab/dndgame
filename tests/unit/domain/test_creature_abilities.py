@@ -1,4 +1,5 @@
 """Creature.ability_ids + Creature.keybindings — поля L2-T4."""
+
 from __future__ import annotations
 
 from dnd.domain.entities.creature import Creature
@@ -10,9 +11,13 @@ from dnd.domain.values.weapon import LONGSWORD
 
 def _make() -> Creature:
     return Creature.create(
-        id_=CreatureId("x"), name="X",
+        id_=CreatureId("x"),
+        name="X",
         abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=10, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
 
 
@@ -67,6 +72,7 @@ def test_creature_keeps_each_inventory_separate() -> None:
     c1 = _make()
     c2 = _make()
     from dnd.domain.values.item import Item, ItemId, ItemKind
+
     c1.inventory.add(Item(id=ItemId("x"), name="X", kind=ItemKind.MISC))
     assert c2.inventory.slot_count() == 0
 
@@ -75,13 +81,17 @@ def test_creature_accepts_preloaded_inventory_via_create() -> None:
     """Стартовый набор — через kwarg Creature.create(inventory=...)."""
     from dnd.domain.entities.inventory import Inventory
     from dnd.domain.values.item import Item, ItemId, ItemKind
+
     inv = Inventory()
-    inv.add(Item(id=ItemId("gold"), name="Gold", kind=ItemKind.MISC,
-                 stackable=True), qty=10)
+    inv.add(Item(id=ItemId("gold"), name="Gold", kind=ItemKind.MISC, stackable=True), qty=10)
     c = Creature.create(
-        id_=CreatureId("y"), name="Y",
+        id_=CreatureId("y"),
+        name="Y",
         abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=10, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
         inventory=inv,
     )
     assert c.inventory.find_by_id(ItemId("gold")).qty == 10  # type: ignore[union-attr]

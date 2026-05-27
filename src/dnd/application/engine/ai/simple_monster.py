@@ -41,9 +41,7 @@ from dnd.domain.values.square import Square
 IsHostile = Callable[[CreatureId], bool]
 
 
-def take_monster_turn(
-    actor: Creature, ctx: TurnContext, *, is_hostile: IsHostile
-) -> None:
+def take_monster_turn(actor: Creature, ctx: TurnContext, *, is_hostile: IsHostile) -> None:
     """Сделать ход за монстра.
 
     ``is_hostile(other_id) -> bool`` — предикат «другое existo враг».
@@ -55,11 +53,7 @@ def take_monster_turn(
     Side effects: вызывает Action.execute, мутирует Battlefield,
     публикует события.
     """
-    if (
-        not actor.is_alive
-        or actor.is_at_zero_hp
-        or actor.has_condition(INCAPACITATED)
-    ):
+    if not actor.is_alive or actor.is_at_zero_hp or actor.has_condition(INCAPACITATED):
         return  # ничего не делаем (мёртв / при смерти / недееспособен)
 
     target = _find_nearest_hostile(actor, ctx, is_hostile)
@@ -147,11 +141,7 @@ def _find_nearest_hostile(
 def _is_finishable(cr: Creature) -> bool:
     """Лежачий, но ещё не мёртвый спасаемый (PC при смерти) — его можно
     добить (удар в упор = провалы спасбросков, PHB-2024 стр. 27)."""
-    return (
-        cr.uses_death_saves
-        and cr.death_saves is not None
-        and not cr.death_saves.is_dead
-    )
+    return cr.uses_death_saves and cr.death_saves is not None and not cr.death_saves.is_dead
 
 
 def _path_towards(

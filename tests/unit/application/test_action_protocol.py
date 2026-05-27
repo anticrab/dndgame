@@ -40,9 +40,7 @@ class _StubAction:
     def can_perform(self, actor: object, ctx: TurnContext) -> Allowed:  # type: ignore[override]
         return Allowed()
 
-    def execute(
-        self, actor: object, params: ActionParams, ctx: TurnContext
-    ) -> ActionOutcome:
+    def execute(self, actor: object, params: ActionParams, ctx: TurnContext) -> ActionOutcome:
         return ActionOutcome(success=True, consumed=ActionEconomyCost.ACTION)
 
 
@@ -69,8 +67,6 @@ def test_stub_can_perform_returns_allowed() -> None:
 
 def test_stub_execute_returns_outcome() -> None:
     stub = _StubAction()
-    outcome = stub.execute(
-        actor=MagicMock(), params=ActionParams(), ctx=MagicMock()
-    )
+    outcome = stub.execute(actor=MagicMock(), params=ActionParams(), ctx=MagicMock())
     assert outcome.success is True
     assert outcome.consumed is ActionEconomyCost.ACTION

@@ -3,6 +3,7 @@
 Новая форма зоны = новый :class:`AreaShapeResolver` + регистрация в
 :func:`default_area_shape_registry`, без правки ``CastSpellAction``.
 """
+
 from __future__ import annotations
 
 from dnd.application.engine.spells.area.defaults import default_area_shape_registry

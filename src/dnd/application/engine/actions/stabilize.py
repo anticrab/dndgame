@@ -6,6 +6,7 @@ PHB-2024 стр. 27: действие, проверка Мудрость(Мед�
 
 Cost: ACTION. Reach: 5 фт.
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -66,11 +67,7 @@ class StabilizeAction:
         if target is None:
             return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
         # Стабилизировать можно только умирающего: dying, не stable, не dead.
-        if (
-            target.death_saves is None
-            or target.death_saves.is_dead
-            or target.death_saves.is_stable
-        ):
+        if target.death_saves is None or target.death_saves.is_dead or target.death_saves.is_stable:
             return Forbidden(
                 reason=ForbiddenReason.NO_VALID_TARGETS,
                 details="target is not dying",
@@ -88,9 +85,7 @@ class StabilizeAction:
         ctx: TurnContext,
     ) -> ActionOutcome:
         if not isinstance(params, StabilizeParams):
-            raise TypeError(
-                f"StabilizeAction expects StabilizeParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"StabilizeAction expects StabilizeParams, got {type(params).__name__}")
         avail = self.can_perform_against(actor, params, ctx)
         if isinstance(avail, Forbidden):
             return ActionOutcome(success=False, consumed=ActionEconomyCost.FREE)
@@ -108,9 +103,7 @@ class StabilizeAction:
         )
         if roll.total >= _MEDICINE_DC and target.death_saves is not None:
             target.death_saves = target.death_saves.stabilized()
-            ctx.event_bus.publish(
-                CreatureStabilized(actor_id=target.id, by=actor.id)
-            )
+            ctx.event_bus.publish(CreatureStabilized(actor_id=target.id, by=actor.id))
             return ActionOutcome(
                 success=True,
                 consumed=ActionEconomyCost.ACTION,

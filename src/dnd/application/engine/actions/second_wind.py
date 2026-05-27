@@ -3,6 +3,7 @@
 Ресурс ``second_wind`` (1/short rest). Восстанавливается RestService'ом между
 боями. Лечение — через Creature.heal (как cure_wounds).
 """
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -58,16 +59,12 @@ class SecondWindAction:
             return Forbidden(reason=ForbiddenReason.NO_ECONOMY_LEFT)
         return Allowed()
 
-    def execute(
-        self, actor: Creature, params: ActionParams, ctx: TurnContext
-    ) -> ActionOutcome:
+    def execute(self, actor: Creature, params: ActionParams, ctx: TurnContext) -> ActionOutcome:
         if isinstance(self.can_perform_against(actor, params, ctx), Forbidden):
             return ActionOutcome(success=False, consumed=ActionEconomyCost.FREE)
         roll = ctx.dice_roller.roll(
             DiceExpr.parse("1d10"),
-            RollContext(
-                purpose=RollPurpose.OTHER, actor_id=actor.id, tags=("second_wind",)
-            ),
+            RollContext(purpose=RollPurpose.OTHER, actor_id=actor.id, tags=("second_wind",)),
         )
         amount = max(0, roll.total + actor.level)
         result = actor.heal(amount)
@@ -75,8 +72,11 @@ class SecondWindAction:
         ctx.spend(ActionEconomyCost.BONUS_ACTION)
         ctx.event_bus.publish(
             HealingApplied(
-                healer_id=actor.id, target_id=actor.id, amount=result.final_amount,
-                hp_after=actor.hit_points.current, hp_max=actor.hit_points.maximum,
+                healer_id=actor.id,
+                target_id=actor.id,
+                amount=result.final_amount,
+                hp_after=actor.hit_points.current,
+                hp_max=actor.hit_points.maximum,
             )
         )
         return ActionOutcome(

@@ -1,4 +1,5 @@
 """R1-2: ClassProgression / ClassLevel."""
+
 from __future__ import annotations
 
 import pytest
@@ -9,7 +10,9 @@ from dnd.domain.values.ids import FeatureId
 
 def _fighter() -> ClassProgression:
     return ClassProgression(
-        id="fighter", name="Воин", hit_die="1d10",
+        id="fighter",
+        name="Воин",
+        hit_die="1d10",
         levels={
             1: ClassLevel(proficiency_bonus=2, features=(FeatureId("second_wind"),)),
             2: ClassLevel(proficiency_bonus=2, features=(FeatureId("action_surge"),)),
@@ -38,7 +41,9 @@ def test_class_progression_has_saving_throw_proficiencies() -> None:
     from dnd.domain.values.ability import Ability
 
     prog = ClassProgression(
-        id="x", name="X", hit_die="1d6",
+        id="x",
+        name="X",
+        hit_die="1d6",
         levels={1: ClassLevel(proficiency_bonus=2)},
         saving_throw_proficiencies=frozenset({Ability.INT, Ability.WIS}),
     )
@@ -48,7 +53,9 @@ def test_class_progression_has_saving_throw_proficiencies() -> None:
 
 def test_class_progression_save_profs_default_empty() -> None:
     prog = ClassProgression(
-        id="y", name="Y", hit_die="1d6",
+        id="y",
+        name="Y",
+        hit_die="1d6",
         levels={1: ClassLevel(proficiency_bonus=2)},
     )
     assert prog.saving_throw_proficiencies == frozenset()

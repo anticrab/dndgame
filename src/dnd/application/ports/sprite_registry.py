@@ -4,6 +4,7 @@
 Будущие реализации (SqliteSpriteRegistry, RemoteSpriteRegistry) —
 без правок engine.
 """
+
 from __future__ import annotations
 
 from enum import StrEnum

@@ -9,6 +9,7 @@
 Esc → ``cancelled``. Превью клеток считается тем же :class:`AreaShapeRegistry`,
 что и боевой резолвинг — UI и движок не расходятся.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -28,15 +29,26 @@ if TYPE_CHECKING:
 
 # Порядок цикла направлений (по часовой от N). Стрелки → ортогональные.
 _DIR_CYCLE: tuple[Direction, ...] = (
-    Direction.N, Direction.NE, Direction.E, Direction.SE,
-    Direction.S, Direction.SW, Direction.W, Direction.NW,
+    Direction.N,
+    Direction.NE,
+    Direction.E,
+    Direction.SE,
+    Direction.S,
+    Direction.SW,
+    Direction.W,
+    Direction.NW,
 )
 _ARROW_DIR: dict[str, Direction] = {
-    "up": Direction.N, "down": Direction.S,
-    "left": Direction.W, "right": Direction.E,
+    "up": Direction.N,
+    "down": Direction.S,
+    "left": Direction.W,
+    "right": Direction.E,
 }
 _ARROW_DELTA: dict[str, tuple[int, int]] = {
-    "up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0),
+    "up": (0, -1),
+    "down": (0, 1),
+    "left": (-1, 0),
+    "right": (1, 0),
 }
 
 
@@ -125,9 +137,7 @@ class AreaModeHandler:
         resolver = self._registry.get(self._spec.shape)
         if self._at_point:
             return resolver.squares(self._cursor, None, self._spec, self._bf)
-        return resolver.squares(
-            self._actor_pos, _DIR_CYCLE[self._dir_idx], self._spec, self._bf
-        )
+        return resolver.squares(self._actor_pos, _DIR_CYCLE[self._dir_idx], self._spec, self._bf)
 
     def overlay(self) -> OverlayData:
         if self._spec is None:
@@ -142,10 +152,7 @@ class AreaModeHandler:
             cursor = self._cursor
         else:
             d = _DIR_CYCLE[self._dir_idx]
-            hint = (
-                f"AREA: направление {d.value.upper()} — "
-                f"Tab/стрелки · Enter каст · Esc отмена"
-            )
+            hint = f"AREA: направление {d.value.upper()} — Tab/стрелки · Enter каст · Esc отмена"
             cursor = None
         return OverlayData(cursor=cursor, highlights=highlights, hint=hint)
 

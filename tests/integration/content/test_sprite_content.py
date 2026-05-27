@@ -1,4 +1,5 @@
 """Все реальные sprite-YAML'ы из data/content/sprites/ валидно загружаются."""
+
 from __future__ import annotations
 
 from pathlib import Path

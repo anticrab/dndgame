@@ -1,4 +1,5 @@
 """Q-8/Q-9: при смерти NPC спавнится CORPSE с лутом; лут через Interact+Pickup."""
+
 from __future__ import annotations
 
 from typing import ClassVar
@@ -24,8 +25,7 @@ from dnd.domain.values.object_kind import ObjectKind
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 
-_GOLD = Item(id=ItemId("gold"), name="Gold", kind=ItemKind.MISC,
-             weight_lb=0.02, stackable=True)
+_GOLD = Item(id=ItemId("gold"), name="Gold", kind=ItemKind.MISC, weight_lb=0.02, stackable=True)
 
 
 class _Repo:
@@ -43,9 +43,13 @@ class _Repo:
 
 def _pc() -> Creature:
     c = Creature.create(
-        id_="hero", name="Hero",
+        id_="hero",
+        name="Hero",
         abilities=AbilityScores.of(str_=14, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=10, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=10,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     c.uses_death_saves = True
     return c
@@ -56,9 +60,14 @@ def _goblin_with_gold(qty: int) -> Creature:
     if qty > 0:
         inv.add(_GOLD, qty)
     return Creature.create(
-        id_="gob", name="Goblin",
+        id_="gob",
+        name="Goblin",
         abilities=AbilityScores.of(str_=12, dex=14, con=10, int_=8, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD, inventory=inv,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
+        inventory=inv,
     )
 
 
@@ -78,13 +87,20 @@ def _enc(pc: Creature, gob: Creature, *, adjacent: bool) -> Encounter:
 
 def _kill_gob(enc: Encounter, pc: Creature, gob: Creature) -> None:
     gob.take_damage(DamageInstance(amount=10, type_=DamageType.SLASHING))
-    enc.event_bus.publish(DamageDealt(
-        attacker_id=pc.id, target_id=gob.id,
-        damage_roll_id="00000000-0000-0000-0000-000000000000",
-        damage_type=DamageType.SLASHING, raw_amount=10, final_amount=10,
-        is_critical=False, hp_after=gob.hit_points.current,
-        hp_max=gob.hit_points.maximum, was_lethal=True,
-    ))
+    enc.event_bus.publish(
+        DamageDealt(
+            attacker_id=pc.id,
+            target_id=gob.id,
+            damage_roll_id="00000000-0000-0000-0000-000000000000",
+            damage_type=DamageType.SLASHING,
+            raw_amount=10,
+            final_amount=10,
+            is_critical=False,
+            hp_after=gob.hit_points.current,
+            hp_max=gob.hit_points.maximum,
+            was_lethal=True,
+        )
+    )
 
 
 def test_npc_death_spawns_corpse_with_loot() -> None:
@@ -103,8 +119,7 @@ def test_empty_npc_spawns_empty_corpse() -> None:
     enc = _enc(pc, gob, adjacent=False)
     _kill_gob(enc, pc, gob)
     corpse = next(
-        o for o in enc.battlefield.objects_at(Square(6, 6))
-        if o.kind == ObjectKind.CORPSE
+        o for o in enc.battlefield.objects_at(Square(6, 6)) if o.kind == ObjectKind.CORPSE
     )
     assert corpse.state.get("contents") == []
 
@@ -118,8 +133,9 @@ def test_corpse_opens_via_interact() -> None:
     ctx = enc.start_turn()  # ход PC (gob мёртв, но бой ещё «решается» в end_turn)
     assert enc.current_actor_id == pc.id
     corpse_id = ObjectId("corpse-gob")
-    InteractAction().execute(pc, InteractParams(
-        target_object_id=corpse_id, kind=InteractKind.OPEN), ctx)
+    InteractAction().execute(
+        pc, InteractParams(target_object_id=corpse_id, kind=InteractKind.OPEN), ctx
+    )
     corpse = enc.battlefield.object_at(corpse_id)
     assert corpse.state["open"] is True
     assert corpse.state["contents"] == [{"item_id": "gold", "qty": 15}]
@@ -128,6 +144,7 @@ def test_corpse_opens_via_interact() -> None:
 def test_loot_open_corpse_via_pickup() -> None:
     """PickupAction забирает лут из открытого трупа тем же путём, что из сундука."""
     from dnd.application.dto.action import Allowed
+
     pc, gob = _pc(), _goblin_with_gold(15)
     enc = _enc(pc, gob, adjacent=True)
     _kill_gob(enc, pc, gob)

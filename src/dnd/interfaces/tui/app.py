@@ -99,16 +99,19 @@ class TuiApp(App[None]):
     def on_mount(self) -> None:
         if self._editor is not None:
             from dnd.interfaces.tui.screens.editor_screen import EditorScreen
+
             doc, repo, sprites = self._editor
             self.push_screen(EditorScreen(doc=doc, repo=repo, sprites=sprites))
             return
 
         if self._encounter is None:
-            self.push_screen(BattleScreen(
-                ability_registry=self._ability_registry,
-                item_repository=self._item_repository,
-                spell_repository=self._spell_repository,
-            ))
+            self.push_screen(
+                BattleScreen(
+                    ability_registry=self._ability_registry,
+                    item_repository=self._item_repository,
+                    spell_repository=self._spell_repository,
+                )
+            )
             return
 
         self._intent_queue = queue.Queue()
@@ -142,14 +145,10 @@ class TuiApp(App[None]):
         screen = self._battle_screen
         encounter = self._encounter
 
-        def _turn_signal(
-            actor: Creature, ctx: TurnContext, enc: Encounter
-        ) -> None:
+        def _turn_signal(actor: Creature, ctx: TurnContext, enc: Encounter) -> None:
             self.call_from_thread(screen.set_active_turn, actor, ctx, enc)
 
-        self._provider = TuiIntentProvider(
-            self._intent_queue, turn_signal=_turn_signal
-        )
+        self._provider = TuiIntentProvider(self._intent_queue, turn_signal=_turn_signal)
         # R1: прогрессия — XP за убийства + level-up. Подключаем только если
         # передан class_repository (иначе бой идёт без прогрессии, backward-compat).
         level_up_service = None
@@ -160,24 +159,27 @@ class TuiApp(App[None]):
             from dnd.application.engine.progression.level_up import LevelUpService
             from dnd.application.engine.progression.xp_award import XpAwardService
             from dnd.application.engine.progression.xp_curve import FastXpCurve
+
             level_up_service = LevelUpService(
                 class_repository=self._class_repository,
                 feature_registry=default_feature_registry(),
                 event_bus=encounter.event_bus,
             )
             XpAwardService(
-                event_bus=encounter.event_bus, curve=FastXpCurve(),
-                participants=encounter.participants, factions=encounter.factions,
+                event_bus=encounter.event_bus,
+                curve=FastXpCurve(),
+                participants=encounter.participants,
+                factions=encounter.factions,
                 class_repository=self._class_repository,  # REV-6
             ).subscribe()
 
         self._renderer = EventRenderer(
-            screen, encounter, call_from_thread=self.call_from_thread,
+            screen,
+            encounter,
+            call_from_thread=self.call_from_thread,
             level_up_service=level_up_service,
         )
-        self._renderer_unsubscribe = self._renderer.subscribe(
-            encounter.event_bus
-        )
+        self._renderer_unsubscribe = self._renderer.subscribe(encounter.event_bus)
 
         runner = GameRunner(
             intent_provider=self._provider,
@@ -230,8 +232,11 @@ def run_tui(
     после закрытия приложения.
     """
     TuiApp(
-        encounter=encounter, theme=theme, item_repository=item_repository,
-        spell_repository=spell_repository, class_repository=class_repository,
+        encounter=encounter,
+        theme=theme,
+        item_repository=item_repository,
+        spell_repository=spell_repository,
+        class_repository=class_repository,
     ).run()
 
 

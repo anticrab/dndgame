@@ -1,4 +1,5 @@
 """Инкапаситированный актёр (Paralyzed/Unconscious) не действует (T2)."""
+
 from __future__ import annotations
 
 from dnd.application.engine.ai.simple_monster import (
@@ -20,14 +21,21 @@ from dnd.domain.values.weapon import SCIMITAR
 def test_paralyzed_monster_does_nothing() -> None:
     bf = Battlefield(5, 5)
     hero = Creature.create(
-        id_=CreatureId("hero"), name="hero",
+        id_=CreatureId("hero"),
+        name="hero",
         abilities=AbilityScores.of(str_=14, dex=12, con=12, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=15, speed_ft=30,
+        max_hp=20,
+        armor_class=15,
+        speed_ft=30,
     )
     gob = Creature.create(
-        id_=CreatureId("g"), name="g",
+        id_=CreatureId("g"),
+        name="g",
         abilities=AbilityScores.of(str_=10, dex=12, con=10, int_=8, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=SCIMITAR,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=SCIMITAR,
     )
     gob.apply_condition(PARALYZED)
     bf.place_creature(hero.id, Square(1, 2))
@@ -43,8 +51,6 @@ def test_paralyzed_monster_does_nothing() -> None:
     actor = enc.participants[enc.current_actor_id]
     hp_before = hero.hit_points.current
     if enc.factions[actor.id] is Faction.MONSTERS:
-        take_monster_turn(
-            actor, ctx, is_hostile=is_hostile_from_factions(actor.id, enc.factions)
-        )
+        take_monster_turn(actor, ctx, is_hostile=is_hostile_from_factions(actor.id, enc.factions))
     # Парализованный гоблин не атакует — герой целым.
     assert hero.hit_points.current == hp_before

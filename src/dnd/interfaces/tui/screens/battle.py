@@ -384,9 +384,10 @@ class BattleScreen(Screen[None]):
             return
         data = self._mode_handler.overlay()
         actor, _ctx, encounter = self._current
-        if self._mode in (
-            BattleMode.TARGET, BattleMode.AREA, BattleMode.MULTI_TARGET
-        ) and data.cursor is not None:
+        if (
+            self._mode in (BattleMode.TARGET, BattleMode.AREA, BattleMode.MULTI_TARGET)
+            and data.cursor is not None
+        ):
             follow = data.cursor  # AREA at-point: камера едет за курсором-точкой
         else:
             follow = self._current_battlefield.position_of(actor.id)
@@ -434,9 +435,7 @@ class BattleScreen(Screen[None]):
             # keymap запускаем: (1) override базового умения (rebind на другую
             # клавишу) и (2) ВСЕ заклинания (hotkey'и 1..9 не в BINDINGS, иначе
             # нажатие цифры заклинания не срабатывало бы — P2-аудит-fix).
-            if ab is not None and (
-                is_spell_ability(ab) or event.key != ab.default_hotkey
-            ):
+            if ab is not None and (is_spell_ability(ab) or event.key != ab.default_hotkey):
                 self._trigger_ability(ab)
                 event.stop()
                 event.prevent_default()
@@ -490,9 +489,7 @@ class BattleScreen(Screen[None]):
         # просто refresh для arrow/tab — overlay изменился
         self._refresh_map_overlay()
 
-    def _submit_area_intent(
-        self, point: Square | None, direction: Direction | None
-    ) -> None:
+    def _submit_area_intent(self, point: Square | None, direction: Direction | None) -> None:
         """Построить CastSpellIntent для подтверждённой зоны (P2)."""
         ab = self._pending_ability
         spell = self._spell_by_ability.get(ab.id) if ab is not None else None
@@ -501,9 +498,7 @@ class BattleScreen(Screen[None]):
         if spell is None:
             return
         self._put_intent(
-            CastSpellIntent(
-                spell_id=spell.id, target_point=point, direction=direction
-            )
+            CastSpellIntent(spell_id=spell.id, target_point=point, direction=direction)
         )
 
     def _submit_multi_intent(self, picks: tuple[CreatureId, ...]) -> None:
@@ -540,9 +535,7 @@ class BattleScreen(Screen[None]):
                 )
             )
         elif kind == "break":
-            self._put_intent(
-                BreakIntent(target_object_id=ObjectId(str(target)))
-            )
+            self._put_intent(BreakIntent(target_object_id=ObjectId(str(target))))
 
     def _list_spell_targets(
         self,
@@ -562,9 +555,7 @@ class BattleScreen(Screen[None]):
         )
 
         action = CastSpellAction(spell_repository=self._spell_repository)
-        offensive = spell.effect in (
-            SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
-        )
+        offensive = spell.effect in (SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO)
         actor_faction = encounter.factions.get(actor.id)
         result: list[CreatureId] = []
         for cid, cr in encounter.participants.items():
@@ -595,9 +586,7 @@ class BattleScreen(Screen[None]):
         союзники+сам для heal/buff. Фильтр по дальности и жизни напрямую
         (per-target can_perform_against для MULTI не применим — он работает с
         целым target_ids сразу)."""
-        offensive = spell.effect in (
-            SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO
-        )
+        offensive = spell.effect in (SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO)
         actor_faction = encounter.factions.get(actor.id)
         bf = encounter.battlefield
         actor_pos = bf.position_of(actor.id)
@@ -649,9 +638,13 @@ class BattleScreen(Screen[None]):
         for key, ab in self._keymap.items():
             if is_spell_ability(ab) and ab.id not in seen:
                 seen.add(ab.id)
-                rows.append(AbilityRow(
-                    ability=ab, hotkey=key, available=ability_can_afford(ab, ctx),
-                ))
+                rows.append(
+                    AbilityRow(
+                        ability=ab,
+                        hotkey=key,
+                        available=ability_can_afford(ab, ctx),
+                    )
+                )
 
         def _apply(ability: Ability) -> None:
             self._trigger_ability(ability)
@@ -660,9 +653,7 @@ class BattleScreen(Screen[None]):
             rebind_ability(actor, key, ability.id)
             self._apply_keymap(actor)
 
-        self.app.push_screen(
-            AbilityMenuScreen(rows, on_apply=_apply, on_rebind=_rebind)
-        )
+        self.app.push_screen(AbilityMenuScreen(rows, on_apply=_apply, on_rebind=_rebind))
 
     def _trigger_ability(self, ab: Ability) -> None:
         """Запустить ability через её ``intent_factory``.
@@ -683,9 +674,7 @@ class BattleScreen(Screen[None]):
         if area_spell is not None and area_spell.targeting.kind is TargetKind.MULTI:
             candidates = self._list_multi_candidates(actor, encounter, area_spell)
             if not candidates:
-                self.log_widget.write(
-                    f"[bold]No targets in reach for {area_spell.name}.[/]"
-                )
+                self.log_widget.write(f"[bold]No targets in reach for {area_spell.name}.[/]")
                 return
             bf = encounter.battlefield
             self._current_battlefield = bf
@@ -712,9 +701,7 @@ class BattleScreen(Screen[None]):
             else:
                 targets = _list_reachable_hostiles(actor, ctx, encounter)
             if not targets:
-                self.log_widget.write(
-                    f"[bold]No targets in reach for {ab.name}.[/]"
-                )
+                self.log_widget.write(f"[bold]No targets in reach for {ab.name}.[/]")
                 return
             bf = encounter.battlefield
             self._current_battlefield = bf
@@ -771,6 +758,7 @@ class BattleScreen(Screen[None]):
         actor, ctx, encounter = self._current
         # Проверяем что движение в принципе возможно (есть футы, не Incapacitated).
         from dnd.application.engine.actions.move import MoveAction
+
         move_check = MoveAction().can_perform(actor, ctx)
         if isinstance(move_check, Forbidden):
             self.log_widget.write(_explain_forbidden("move", move_check))
@@ -784,6 +772,7 @@ class BattleScreen(Screen[None]):
             return
         actor, ctx, _ = self._current
         from dnd.application.engine.actions.stances import DodgeAction
+
         check = DodgeAction().can_perform(actor, ctx)
         if isinstance(check, Forbidden):
             self.log_widget.write(_explain_forbidden("dodge", check))
@@ -795,6 +784,7 @@ class BattleScreen(Screen[None]):
             return
         actor, ctx, _ = self._current
         from dnd.application.engine.actions.stances import DashAction
+
         check = DashAction().can_perform(actor, ctx)
         if isinstance(check, Forbidden):
             self.log_widget.write(_explain_forbidden("dash", check))
@@ -806,6 +796,7 @@ class BattleScreen(Screen[None]):
             return
         actor, ctx, _ = self._current
         from dnd.application.engine.actions.stances import DisengageAction
+
         check = DisengageAction().can_perform(actor, ctx)
         if isinstance(check, Forbidden):
             self.log_widget.write(_explain_forbidden("disengage", check))
@@ -882,9 +873,7 @@ class BattleScreen(Screen[None]):
             return
         actor, _ctx, encounter = self._current
         if self._item_repository is None:
-            self.log_widget.write(
-                "[bold]Loot UI requires item catalog (run via 'dnd play').[/]"
-            )
+            self.log_widget.write("[bold]Loot UI requires item catalog (run via 'dnd play').[/]")
             return
         bf = encounter.battlefield
         actor_pos = bf.position_of(actor.id)
@@ -906,13 +895,10 @@ class BattleScreen(Screen[None]):
                     )
                     return
         self.log_widget.write(
-            "[bold]No open chests in reach.[/] "
-            "Use [bold]i[/] to open a chest first."
+            "[bold]No open chests in reach.[/] Use [bold]i[/] to open a chest first."
         )
 
-    def _on_loot_picked(
-        self, picked: tuple[ObjectId, ItemId] | None
-    ) -> None:
+    def _on_loot_picked(self, picked: tuple[ObjectId, ItemId] | None) -> None:
         """Callback от InventoryScreen.dismiss(...). None = закрыли
         без выбора. Иначе формируем PickupIntent (qty=None = всё)."""
         if picked is None:
@@ -920,7 +906,9 @@ class BattleScreen(Screen[None]):
         chest_id, item_id = picked
         self._put_intent(
             PickupIntent(
-                target_object_id=chest_id, item_id=item_id, qty=None,
+                target_object_id=chest_id,
+                item_id=item_id,
+                qty=None,
             )
         )
 
@@ -954,8 +942,7 @@ class BattleScreen(Screen[None]):
 
 _FORBIDDEN_MESSAGES: dict[ForbiddenReason, str] = {
     ForbiddenReason.NO_ECONOMY_LEFT: (
-        "[bold]Action already used this turn.[/] "
-        "Press [bold]e[/] to end turn, or use bonus action."
+        "[bold]Action already used this turn.[/] Press [bold]e[/] to end turn, or use bonus action."
     ),
     ForbiddenReason.INCAPACITATED: "[bold]Incapacitated — cannot act.[/]",
     ForbiddenReason.CONDITION_BLOCKS_ACTION: (
@@ -986,6 +973,7 @@ def _count_living_hostiles(actor: Creature, encounter: Encounter) -> int:
         if other_faction is None or other_faction == actor_faction:
             continue
         from dnd.domain.values.faction import Faction as _F
+
         if other_faction is _F.NEUTRAL:
             continue
         count += 1

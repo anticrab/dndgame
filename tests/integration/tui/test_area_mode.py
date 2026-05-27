@@ -1,4 +1,5 @@
 """P2-6/P2-7: AreaModeHandler — выбор зоны (точка / направление) + превью."""
+
 from __future__ import annotations
 
 from dnd.application.engine.spells.area import default_area_shape_registry
@@ -28,15 +29,19 @@ class _FakeScreen:
 
 def _circle_spec() -> TargetingSpec:
     return TargetingSpec(
-        kind=TargetKind.AREA, origin=OriginMode.AT_POINT,
-        shape=AreaShape.CIRCLE, radius_ft=10,
+        kind=TargetKind.AREA,
+        origin=OriginMode.AT_POINT,
+        shape=AreaShape.CIRCLE,
+        radius_ft=10,
     )
 
 
 def _cone_spec() -> TargetingSpec:
     return TargetingSpec(
-        kind=TargetKind.AREA, origin=OriginMode.FROM_CASTER,
-        shape=AreaShape.CONE, length_ft=15,
+        kind=TargetKind.AREA,
+        origin=OriginMode.FROM_CASTER,
+        shape=AreaShape.CONE,
+        length_ft=15,
     )
 
 
@@ -44,8 +49,8 @@ def test_at_point_cursor_moves_and_confirms() -> None:
     h = AreaModeHandler()
     screen = _FakeScreen(_circle_spec(), range_ft=150, actor=Square(2, 2))
     h.on_enter(screen)
-    h.on_key(screen, "right")   # курсор → (3,2)
-    h.on_key(screen, "down")    # → (3,3)
+    h.on_key(screen, "right")  # курсор → (3,2)
+    h.on_key(screen, "down")  # → (3,3)
     assert h.confirmed_point is None
     h.on_key(screen, "enter")
     assert h.confirmed_point == Square(3, 3)
@@ -77,7 +82,7 @@ def test_from_caster_direction_cycle_and_confirm() -> None:
     h = AreaModeHandler()
     screen = _FakeScreen(_cone_spec(), range_ft=0, actor=Square(5, 5))
     h.on_enter(screen)
-    h.on_key(screen, "up")      # направление N
+    h.on_key(screen, "up")  # направление N
     assert h.confirmed_direction is None
     h.on_key(screen, "enter")
     assert h.confirmed_direction is Direction.N
@@ -87,7 +92,7 @@ def test_from_caster_tab_cycles() -> None:
     h = AreaModeHandler()
     screen = _FakeScreen(_cone_spec(), range_ft=0, actor=Square(5, 5))
     h.on_enter(screen)
-    h.on_key(screen, "tab")     # default E (idx2) → SE
+    h.on_key(screen, "tab")  # default E (idx2) → SE
     h.on_key(screen, "enter")
     assert h.confirmed_direction is Direction.SE
 
@@ -105,6 +110,7 @@ def test_pilot_fireball_enters_area_mode_and_casts() -> None:
     import asyncio
 
     import pytest
+
     pytest.importorskip("textual")
     from pathlib import Path
 
@@ -123,18 +129,26 @@ def test_pilot_fireball_enters_area_mode_and_casts() -> None:
         Path(__file__).resolve().parents[3] / "data" / "content" / "spells.yaml"
     )
     mage = Creature.create(
-        id_="aelar", name="Aelar",
+        id_="aelar",
+        name="Aelar",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=20, armor_class=12, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=12,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     mage.spellcasting_ability = Ability.INT
     # порядок known_spells → Fireball на hotkey по позиции
     mage.known_spells = (SpellId("fireball"),)
     mage.spell_slots = {1: 3}
     gob = Creature.create(
-        id_="g", name="G",
+        id_="g",
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(10, 10)
     for y in range(10):
@@ -165,6 +179,7 @@ def test_pilot_fireball_enters_area_mode_and_casts() -> None:
             await pilot.press("1")  # Fireball — первый в action-bar
             await pilot.pause(0.2)
             from dnd.interfaces.tui.screens.battle_modes.protocol import BattleMode
+
             assert screen._mode is BattleMode.AREA
             await pilot.press("enter")  # каст в текущую точку (на кастере)
             await pilot.pause(0.3)

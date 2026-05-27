@@ -1,4 +1,5 @@
 """После этапа L default zoom = small (1×1), пользователь явно сказал."""
+
 from dnd.interfaces.tui.widgets.map_widget import MapWidget
 
 

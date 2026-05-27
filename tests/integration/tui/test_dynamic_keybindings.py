@@ -5,6 +5,7 @@
 себя как родной 'a' (default hotkey'и при этом продолжают работать
 через BINDINGS — этот тест проверяет именно override-путь).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -29,15 +30,23 @@ from dnd.interfaces.tui.app import TuiApp
 
 def test_z_rebound_to_attack_opens_target_mode() -> None:
     pc = Creature.create(
-        id_=CreatureId("pc"), name="PC",
+        id_=CreatureId("pc"),
+        name="PC",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     pc.keybindings["z"] = AbilityId("weapon_attack")
     g = Creature.create(
-        id_=CreatureId("g"), name="G",
+        id_=CreatureId("g"),
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(10, 10)
     bf.place_creature(pc.id, Square(5, 5))
@@ -74,15 +83,23 @@ def test_z_rebound_to_attack_opens_target_mode() -> None:
 def test_default_hotkey_a_still_works_alongside_rebind() -> None:
     """Дефолтный 'a' продолжает работать даже когда есть override 'z'."""
     pc = Creature.create(
-        id_=CreatureId("pc"), name="PC",
+        id_=CreatureId("pc"),
+        name="PC",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     pc.keybindings["z"] = AbilityId("weapon_attack")
     g = Creature.create(
-        id_=CreatureId("g"), name="G",
+        id_=CreatureId("g"),
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = Battlefield(10, 10)
     bf.place_creature(pc.id, Square(5, 5))

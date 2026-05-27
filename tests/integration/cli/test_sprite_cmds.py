@@ -1,4 +1,5 @@
 """dnd sprite ... — list/show/validate."""
+
 from __future__ import annotations
 
 import json

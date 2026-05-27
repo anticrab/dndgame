@@ -1,4 +1,5 @@
 """R1-1: RestKind / RechargeOn + покрытие отдыхом."""
+
 from __future__ import annotations
 
 from dnd.domain.values.rest import RechargeOn, RestKind, recharge_covers

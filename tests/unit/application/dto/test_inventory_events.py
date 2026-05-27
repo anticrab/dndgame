@@ -1,4 +1,5 @@
 """Inventory events: ItemPickedUp / ItemDropped / ItemEquipped / ItemUnequipped."""
+
 from __future__ import annotations
 
 import pytest
@@ -16,8 +17,11 @@ from dnd.domain.values.item import ItemId
 
 def test_picked_up_serializes_basic() -> None:
     ev = ItemPickedUp(
-        actor_id=CreatureId("aelar"), item_id=ItemId("longsword"),
-        item_name="Longsword", qty=1, source="chest:chest-1",
+        actor_id=CreatureId("aelar"),
+        item_id=ItemId("longsword"),
+        item_name="Longsword",
+        qty=1,
+        source="chest:chest-1",
     )
     assert ev.event_type == "inventory.item_picked_up"
     assert ev.qty == 1
@@ -26,8 +30,10 @@ def test_picked_up_serializes_basic() -> None:
 
 def test_dropped_carries_qty() -> None:
     ev = ItemDropped(
-        actor_id=CreatureId("aelar"), item_id=ItemId("gold"),
-        item_name="Gold piece", qty=25,
+        actor_id=CreatureId("aelar"),
+        item_id=ItemId("gold"),
+        item_name="Gold piece",
+        qty=25,
     )
     assert ev.event_type == "inventory.item_dropped"
     assert ev.qty == 25
@@ -35,10 +41,14 @@ def test_dropped_carries_qty() -> None:
 
 def test_equip_and_unequip_have_distinct_event_types() -> None:
     eq = ItemEquipped(
-        actor_id=CreatureId("aelar"), item_id=ItemId("sword"), item_name="Sword",
+        actor_id=CreatureId("aelar"),
+        item_id=ItemId("sword"),
+        item_name="Sword",
     )
     un = ItemUnequipped(
-        actor_id=CreatureId("aelar"), item_id=ItemId("sword"), item_name="Sword",
+        actor_id=CreatureId("aelar"),
+        item_id=ItemId("sword"),
+        item_name="Sword",
     )
     assert eq.event_type != un.event_type
     assert eq.event_type == "inventory.item_equipped"
@@ -51,8 +61,11 @@ def test_pickup_source_is_open_string() -> None:
     добавлять новые источники без миграции DTO."""
     for src in ("chest:c1", "corpse:goblin1", "ground", "shop:merchant1"):
         ev = ItemPickedUp(
-            actor_id=CreatureId("a"), item_id=ItemId("x"),
-            item_name="X", qty=1, source=src,
+            actor_id=CreatureId("a"),
+            item_id=ItemId("x"),
+            item_name="X",
+            qty=1,
+            source=src,
         )
         assert ev.source == src
 
@@ -62,11 +75,16 @@ def test_qty_must_be_positive() -> None:
     создать 'я подобрал 0 зелий' что бессмысленно."""
     with pytest.raises(ValidationError):
         ItemPickedUp(
-            actor_id=CreatureId("a"), item_id=ItemId("x"),
-            item_name="X", qty=0, source="ground",
+            actor_id=CreatureId("a"),
+            item_id=ItemId("x"),
+            item_name="X",
+            qty=0,
+            source="ground",
         )
     with pytest.raises(ValidationError):
         ItemDropped(
-            actor_id=CreatureId("a"), item_id=ItemId("x"),
-            item_name="X", qty=-1,
+            actor_id=CreatureId("a"),
+            item_id=ItemId("x"),
+            item_name="X",
+            qty=-1,
         )

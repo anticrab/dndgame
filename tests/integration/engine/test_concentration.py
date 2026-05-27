@@ -1,4 +1,5 @@
 """REV-1: концентрация прерывается провалом CON-спасброска при уроне (PHB-2024)."""
+
 from __future__ import annotations
 
 from dnd.application.dto.engine_event import (
@@ -19,9 +20,12 @@ from dnd.domain.values.square import Square
 
 def _caster() -> Creature:
     c = Creature.create(
-        id_=CreatureId("mage"), name="Mage",
+        id_=CreatureId("mage"),
+        name="Mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=14, int_=16, wis=10, cha=10),
-        max_hp=20, armor_class=12, speed_ft=30,
+        max_hp=20,
+        armor_class=12,
+        speed_ft=30,
     )
     c.concentration = SpellId("shield_of_faith")
     return c
@@ -29,9 +33,12 @@ def _caster() -> Creature:
 
 def _gob() -> Creature:
     return Creature.create(
-        id_=CreatureId("gob"), name="Gob",
+        id_=CreatureId("gob"),
+        name="Gob",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
     )
 
 
@@ -52,10 +59,16 @@ def _enc(rolls: list[int]) -> tuple[Encounter, Creature]:
 
 def _dmg(target: CreatureId, amount: int) -> DamageDealt:
     return DamageDealt(
-        attacker_id=CreatureId("gob"), target_id=target,
+        attacker_id=CreatureId("gob"),
+        target_id=target,
         damage_roll_id=RollId("00000000-0000-0000-0000-000000000000"),
-        damage_type=DamageType.SLASHING, raw_amount=amount, final_amount=amount,
-        is_critical=False, hp_after=10, hp_max=20, was_lethal=False,
+        damage_type=DamageType.SLASHING,
+        raw_amount=amount,
+        final_amount=amount,
+        is_critical=False,
+        hp_after=10,
+        hp_max=20,
+        was_lethal=False,
     )
 
 

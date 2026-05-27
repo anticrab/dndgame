@@ -17,6 +17,7 @@
 :class:`MapRepository`. Карта рендерится через временный
 :class:`Battlefield`, собранный из ``_tiles`` (без существ / без objects).
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -103,28 +104,23 @@ class EditorScreen(Screen[None]):
             return
         idx = next(
             (
-                i for i, t in enumerate(self._tiles)
+                i
+                for i, t in enumerate(self._tiles)
                 if t.x == self._cursor.x and t.y == self._cursor.y
             ),
             None,
         )
         if palette.category is SpriteCategory.TERRAIN:
             base = sprite_id
-            features: tuple[str, ...] = (
-                () if idx is None else self._tiles[idx].features
-            )
+            features: tuple[str, ...] = () if idx is None else self._tiles[idx].features
         else:  # FEATURE: toggle
             base = "floor" if idx is None else self._tiles[idx].base
-            current_features: tuple[str, ...] = (
-                () if idx is None else self._tiles[idx].features
-            )
+            current_features: tuple[str, ...] = () if idx is None else self._tiles[idx].features
             if sprite_id in current_features:
                 features = tuple(f for f in current_features if f != sprite_id)
             else:
                 features = (*current_features, sprite_id)
-        new_tile = MapTileDoc(
-            x=self._cursor.x, y=self._cursor.y, base=base, features=features
-        )
+        new_tile = MapTileDoc(x=self._cursor.x, y=self._cursor.y, base=base, features=features)
         if idx is None:
             self._tiles.append(new_tile)
         else:
@@ -150,9 +146,12 @@ class EditorScreen(Screen[None]):
 
     def action_save(self) -> None:
         new_doc = MapDocument(
-            id=self._doc.id, name=self._doc.name,
-            width=self._doc.width, height=self._doc.height,
-            tiles=tuple(self._tiles), objects=self._doc.objects,
+            id=self._doc.id,
+            name=self._doc.name,
+            width=self._doc.width,
+            height=self._doc.height,
+            tiles=tuple(self._tiles),
+            objects=self._doc.objects,
         )
         self._repo.save(new_doc)
         self._doc = new_doc

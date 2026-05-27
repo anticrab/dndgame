@@ -10,6 +10,7 @@ Footer от Textual мы оставляем для генерических би
 zoom), а ability-полоса живёт отдельно — её содержимое плавающее, а
 Footer выводит фиксированный список из ``BINDINGS``-классаттрибута.
 """
+
 from __future__ import annotations
 
 from textual.widgets import Static

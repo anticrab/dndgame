@@ -7,6 +7,7 @@
 T4: выбор стиля — данными шаблона (``Creature.fighting_style``), интерактив
 отложен (см. память project_interactive_choice_deferred).
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

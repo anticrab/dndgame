@@ -1,4 +1,5 @@
 """render_battlefield: клипует к visible_rect + рисует path_preview + highlights."""
+
 from dnd.domain.entities.battlefield import Battlefield
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import CreatureId
@@ -9,7 +10,10 @@ from dnd.interfaces.tui.widgets.map_widget import render_battlefield
 def test_render_clips_to_visible_rect() -> None:
     bf = Battlefield(20, 20)
     rendered = render_battlefield(
-        bf, factions={}, with_color=False, zoom="small",
+        bf,
+        factions={},
+        with_color=False,
+        zoom="small",
         visible_rect=(10, 10, 20, 20),  # 10×10 окно
     )
     lines = str(rendered).split("\n")
@@ -28,7 +32,10 @@ def test_render_full_when_rect_none() -> None:
 def test_render_path_preview_draws_middle_dot() -> None:
     bf = Battlefield(10, 10)
     rendered = render_battlefield(
-        bf, factions={}, with_color=False, zoom="small",
+        bf,
+        factions={},
+        with_color=False,
+        zoom="small",
         path_preview=(Square(2, 2), Square(3, 2)),
     )
     lines = str(rendered).split("\n")
@@ -43,7 +50,10 @@ def test_path_preview_does_not_override_creature() -> None:
     cid = CreatureId("c1")
     bf.place_creature(cid, Square(2, 2))
     rendered = render_battlefield(
-        bf, factions={cid: Faction.PARTY}, with_color=False, zoom="small",
+        bf,
+        factions={cid: Faction.PARTY},
+        with_color=False,
+        zoom="small",
         path_preview=(Square(2, 2),),
     )
     lines = str(rendered).split("\n")
@@ -56,7 +66,10 @@ def test_highlights_applied() -> None:
     bf = Battlefield(10, 10)
     # отрисуй с highlights — проверим, что symbol на месте, через repr Text
     rendered = render_battlefield(
-        bf, factions={}, with_color=False, zoom="small",
+        bf,
+        factions={},
+        with_color=False,
+        zoom="small",
         highlights={Square(3, 3): "bold"},
     )
     # просто smoke: рендер прошёл, и нужный символ floor '.' на месте

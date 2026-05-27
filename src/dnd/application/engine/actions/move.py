@@ -63,9 +63,7 @@ from dnd.domain.values.ids import ActionId, CreatureId
 from dnd.domain.values.square import Square
 
 # Состояния, отключающие движение в MVP.
-_MOVEMENT_BLOCKERS: Final = frozenset(
-    {INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS}
-)
+_MOVEMENT_BLOCKERS: Final = frozenset({INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS})
 
 
 class MoveParams(ActionParams):
@@ -103,9 +101,7 @@ class MoveAction:
 
     # --- can_perform ---------------------------------------------------
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         for cond in _MOVEMENT_BLOCKERS:
             if actor.has_condition(cond):
                 return Forbidden(
@@ -233,9 +229,7 @@ class MoveAction:
         ctx: TurnContext,
     ) -> ActionOutcome:
         if not isinstance(params, MoveParams):
-            raise TypeError(
-                f"MoveAction expects MoveParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"MoveAction expects MoveParams, got {type(params).__name__}")
 
         start_pos = ctx.battlefield.position_of(actor.id)
         prev = start_pos
@@ -248,11 +242,7 @@ class MoveAction:
         # реакция-окно от threatener'а на одно действие движения).
         # Disengage подавляет всю эту механику.
         already_provoked: set[CreatureId] = set()
-        threateners = (
-            {}
-            if ctx.disengaged
-            else self._collect_threateners(actor, ctx)
-        )
+        threateners = {} if ctx.disengaged else self._collect_threateners(actor, ctx)
 
         actor_faction = ctx.factions.get(actor.id)
         last_idx = len(params.path) - 1

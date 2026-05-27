@@ -13,6 +13,7 @@ Help/Search/Spell-casting и т.п. — в plan'e L3+, пока в коде не
 HelpIntent/SearchIntent — добавим вместе с самими intent'ами, чтобы
 не плодить «висящие» зарегистрированные умения без рабочей фабрики.
 """
+
 from __future__ import annotations
 
 from dnd.application.abilities.ability import Ability, AbilityId
@@ -94,78 +95,144 @@ def register_default_abilities(registry: AbilityRegistry) -> None:
     управление под игроком — ``Creature.keybindings`` всё ещё может это
     переопределить per-creature.
     """
-    registry.register(Ability(
-        id=AbilityId("weapon_attack"), name="Attack", icon="A",
-        default_hotkey="a", economy_cost=ActionEconomyCost.ACTION,
-        requires_target=True, requires_path=False,
-        intent_factory=_attack,
-    ))
-    registry.register(Ability(
-        id=AbilityId("dodge"), name="Dodge", icon="D",
-        default_hotkey="d", economy_cost=ActionEconomyCost.ACTION,
-        requires_target=False, requires_path=False,
-        intent_factory=_dodge,
-    ))
-    registry.register(Ability(
-        id=AbilityId("dash"), name="Dash", icon="H",
-        default_hotkey="h", economy_cost=ActionEconomyCost.ACTION,
-        requires_target=False, requires_path=False,
-        intent_factory=_dash,
-    ))
-    registry.register(Ability(
-        id=AbilityId("disengage"), name="Disengage", icon="G",
-        default_hotkey="g", economy_cost=ActionEconomyCost.ACTION,
-        requires_target=False, requires_path=False,
-        intent_factory=_disengage,
-    ))
-    registry.register(Ability(
-        id=AbilityId("interact"), name="Interact", icon="I",
-        default_hotkey="i", economy_cost=ActionEconomyCost.FREE,
-        requires_target=True, requires_path=False,
-        intent_factory=_interact,
-    ))
-    registry.register(Ability(
-        id=AbilityId("break_object"), name="Break", icon="K",
-        default_hotkey="k", economy_cost=ActionEconomyCost.ACTION,
-        requires_target=True, requires_path=False,
-        intent_factory=_break,
-    ))
-    registry.register(Ability(
-        id=AbilityId("stabilize"), name="Stabilize", icon="S",
-        default_hotkey="s", economy_cost=ActionEconomyCost.ACTION,
-        requires_target=True, requires_path=False,
-        intent_factory=_stabilize,
-    ))
+    registry.register(
+        Ability(
+            id=AbilityId("weapon_attack"),
+            name="Attack",
+            icon="A",
+            default_hotkey="a",
+            economy_cost=ActionEconomyCost.ACTION,
+            requires_target=True,
+            requires_path=False,
+            intent_factory=_attack,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("dodge"),
+            name="Dodge",
+            icon="D",
+            default_hotkey="d",
+            economy_cost=ActionEconomyCost.ACTION,
+            requires_target=False,
+            requires_path=False,
+            intent_factory=_dodge,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("dash"),
+            name="Dash",
+            icon="H",
+            default_hotkey="h",
+            economy_cost=ActionEconomyCost.ACTION,
+            requires_target=False,
+            requires_path=False,
+            intent_factory=_dash,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("disengage"),
+            name="Disengage",
+            icon="G",
+            default_hotkey="g",
+            economy_cost=ActionEconomyCost.ACTION,
+            requires_target=False,
+            requires_path=False,
+            intent_factory=_disengage,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("interact"),
+            name="Interact",
+            icon="I",
+            default_hotkey="i",
+            economy_cost=ActionEconomyCost.FREE,
+            requires_target=True,
+            requires_path=False,
+            intent_factory=_interact,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("break_object"),
+            name="Break",
+            icon="K",
+            default_hotkey="k",
+            economy_cost=ActionEconomyCost.ACTION,
+            requires_target=True,
+            requires_path=False,
+            intent_factory=_break,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("stabilize"),
+            name="Stabilize",
+            icon="S",
+            default_hotkey="s",
+            economy_cost=ActionEconomyCost.ACTION,
+            requires_target=True,
+            requires_path=False,
+            intent_factory=_stabilize,
+        )
+    )
     # Классовые активные фичи (этап R1). Выдаются персонажу через level-up
     # (FeatureRegistry добавляет ability_id в creature.ability_ids), но
     # регистрируются здесь, чтобы action-bar/keymap знали их фабрику/хоткей.
-    registry.register(Ability(
-        id=AbilityId("second_wind"), name="Second Wind", icon="W",
-        default_hotkey="w", economy_cost=ActionEconomyCost.BONUS_ACTION,
-        requires_target=False, requires_path=False,
-        intent_factory=_second_wind,
-    ))
-    registry.register(Ability(
-        id=AbilityId("action_surge"), name="Action Surge", icon="X",
-        default_hotkey="x", economy_cost=ActionEconomyCost.FREE,
-        requires_target=False, requires_path=False,
-        intent_factory=_action_surge,
-    ))
+    registry.register(
+        Ability(
+            id=AbilityId("second_wind"),
+            name="Second Wind",
+            icon="W",
+            default_hotkey="w",
+            economy_cost=ActionEconomyCost.BONUS_ACTION,
+            requires_target=False,
+            requires_path=False,
+            intent_factory=_second_wind,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("action_surge"),
+            name="Action Surge",
+            icon="X",
+            default_hotkey="x",
+            economy_cost=ActionEconomyCost.FREE,
+            requires_target=False,
+            requires_path=False,
+            intent_factory=_action_surge,
+        )
+    )
     # T4: Cunning Action (Плут L2) — Dash/Disengage бонусным действием.
     # Выдаются через CunningActionHandler (ability_ids); хоткей пуст (доступ
     # через меню способностей).
-    registry.register(Ability(
-        id=AbilityId("cunning_dash"), name="Cunning Dash", icon="h",
-        default_hotkey="", economy_cost=ActionEconomyCost.BONUS_ACTION,
-        requires_target=False, requires_path=False,
-        intent_factory=_cunning_dash,
-    ))
-    registry.register(Ability(
-        id=AbilityId("cunning_disengage"), name="Cunning Disengage", icon="g",
-        default_hotkey="", economy_cost=ActionEconomyCost.BONUS_ACTION,
-        requires_target=False, requires_path=False,
-        intent_factory=_cunning_disengage,
-    ))
+    registry.register(
+        Ability(
+            id=AbilityId("cunning_dash"),
+            name="Cunning Dash",
+            icon="h",
+            default_hotkey="",
+            economy_cost=ActionEconomyCost.BONUS_ACTION,
+            requires_target=False,
+            requires_path=False,
+            intent_factory=_cunning_dash,
+        )
+    )
+    registry.register(
+        Ability(
+            id=AbilityId("cunning_disengage"),
+            name="Cunning Disengage",
+            icon="g",
+            default_hotkey="",
+            economy_cost=ActionEconomyCost.BONUS_ACTION,
+            requires_target=False,
+            requires_path=False,
+            intent_factory=_cunning_disengage,
+        )
+    )
 
 
 __all__ = ["register_default_abilities"]

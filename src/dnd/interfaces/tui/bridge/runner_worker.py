@@ -36,9 +36,7 @@ class RunnerWorker:
     ) -> None:
         self._target = target
         self._on_finished = on_finished
-        self._thread = threading.Thread(
-            target=self._run, name="dnd-game-runner", daemon=True
-        )
+        self._thread = threading.Thread(target=self._run, name="dnd-game-runner", daemon=True)
 
     def start(self) -> None:
         self._thread.start()
@@ -61,9 +59,7 @@ class RunnerWorker:
                 try:
                     self._on_finished(exc)
                 except Exception:
-                    _log.exception(
-                        "RunnerWorker.on_finished raised; suppressing"
-                    )
+                    _log.exception("RunnerWorker.on_finished raised; suppressing")
 
 
 __all__ = ["RunnerWorker"]

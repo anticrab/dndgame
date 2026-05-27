@@ -29,9 +29,7 @@ def _make_encounter():
     repo = YamlContentRepository(Path("data/content"))
     scenario = repo.scenario_by_id("mvp_skirmish")
     services = build_default_runtime_services(rng=RealRNG(seed=42))
-    return build_encounter_from_scenario(
-        scenario, content=repo, services=services
-    )
+    return build_encounter_from_scenario(scenario, content=repo, services=services)
 
 
 @pytest.mark.e2e
@@ -86,10 +84,9 @@ def test_tui_dodge_intent_through_keypress() -> None:
             # завершения боя.
             log = screen.query_one("#log")
             content = " ".join(str(line) for line in log.lines)
-            assert any(
-                marker in content
-                for marker in ("DODGING", "ENCOUNTER ENDED", "WINS")
-            ), content
+            assert any(marker in content for marker in ("DODGING", "ENCOUNTER ENDED", "WINS")), (
+                content
+            )
 
     asyncio.run(_go())
 

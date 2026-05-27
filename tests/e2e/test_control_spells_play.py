@@ -1,4 +1,5 @@
 """E2E T2: маг усыпляет гоблина (Sleep) через CastSpellAction."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,32 +26,38 @@ from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository
 def test_mage_sleeps_goblin() -> None:
     bf = Battlefield(8, 8)
     mage = Creature.create(
-        id_=CreatureId("mage"), name="mage",
+        id_=CreatureId("mage"),
+        name="mage",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=14, armor_class=12, speed_ft=30,
+        max_hp=14,
+        armor_class=12,
+        speed_ft=30,
     )
     mage.spellcasting_ability = Ability.INT
     mage.known_spells = (SpellId("sleep"),)
     mage.spell_slots = {1: 2}
     gob = Creature.create(
-        id_=CreatureId("g"), name="g",
+        id_=CreatureId("g"),
+        name="g",
         abilities=AbilityScores.of(str_=8, dex=12, con=10, int_=8, wis=8, cha=8),
-        max_hp=6, armor_class=12, speed_ft=30,
+        max_hp=6,
+        armor_class=12,
+        speed_ft=30,
     )
     bf.place_creature(mage.id, Square(1, 1))
     bf.place_creature(gob.id, Square(2, 2))
     # init: mage=20, gob=1; затем пул 5d8 = 5×2 = 10 (хватает на гоблина 6 HP).
-    deps, bus, _ = build_scripted_dependencies(
-        battlefield=bf, rolls=[20, 1, 2, 2, 2, 2, 2]
-    )
+    deps, bus, _ = build_scripted_dependencies(battlefield=bf, rolls=[20, 1, 2, 2, 2, 2, 2])
     enc = Encounter(
         participants={mage.id: mage, gob.id: gob},
         factions={mage.id: Faction.PARTY, gob.id: Faction.MONSTERS},
         deps=deps,
     )
     OngoingEffectTracker(
-        participants=enc.participants, event_bus=enc.event_bus,
-        dice_roller=deps.dice_roller, modifier_applier=deps.modifier_applier,
+        participants=enc.participants,
+        event_bus=enc.event_bus,
+        dice_roller=deps.dice_roller,
+        modifier_applier=deps.modifier_applier,
     ).subscribe()
     applied: list[ConditionApplied] = []
     bus.subscribe(ConditionApplied, applied.append)

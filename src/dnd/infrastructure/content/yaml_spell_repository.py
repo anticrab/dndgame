@@ -4,6 +4,7 @@
 :class:`Spell`; ``targeting`` — вложенный объект ``{kind, max_targets, origin,
 shape, radius_ft, length_ft}``. Отсутствующий файл → пустой репозиторий.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -38,9 +39,7 @@ class YamlSpellRepository:
         if raw is None:
             return
         if not isinstance(raw, list):
-            raise ValueError(
-                f"spells file {self._file} must contain a list, got {type(raw)}"
-            )
+            raise ValueError(f"spells file {self._file} must contain a list, got {type(raw)}")
         self._by_id = {}
         for entry in raw:
             spell = self._parse(entry)

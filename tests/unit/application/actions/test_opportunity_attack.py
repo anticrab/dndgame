@@ -154,9 +154,7 @@ def test_execute_consumes_reaction_and_returns_reaction_outcome() -> None:
     """OpportunityAttack тратит actor.reaction_used, не ctx.action_used."""
     fighter, goblin, ctx, _ = _setup(rng_rolls=[14, 5])
 
-    outcome = OpportunityAttack().execute(
-        fighter, _attack_params(goblin.id), ctx
-    )
+    outcome = OpportunityAttack().execute(fighter, _attack_params(goblin.id), ctx)
 
     assert outcome.success is True
     assert outcome.consumed is ActionEconomyCost.REACTION
@@ -170,9 +168,7 @@ def test_execute_publishes_attack_events_like_normal_attack() -> None:
     captured: list[EngineEvent] = []
     bus.subscribe(EngineEvent, captured.append)
 
-    OpportunityAttack().execute(
-        fighter, _attack_params(goblin.id), ctx
-    )
+    OpportunityAttack().execute(fighter, _attack_params(goblin.id), ctx)
 
     types = [type(e).__name__ for e in captured]
     assert "AttackRolled" in types
@@ -221,9 +217,7 @@ def test_move_triggers_provoked_and_handler_executes_oa() -> None:
     bus.subscribe(OpportunityAttackProvoked, reactor_handler)
 
     # Goblin уходит из (2,2) в (1,2) — fighter в (3,2) теряет его из reach.
-    MoveAction().execute(
-        goblin, MoveParams(path=(Square(1, 2),)), ctx
-    )
+    MoveAction().execute(goblin, MoveParams(path=(Square(1, 2),)), ctx)
 
     assert len(executed) == 1
     assert executed[0].threatener_id == fighter.id
@@ -265,9 +259,7 @@ def test_oa_inherits_can_perform_against() -> None:
     """can_perform_against унаследован — те же проверки LoS/cover/range
     что и у обычной атаки."""
     fighter, goblin, ctx, _ = _setup(rng_rolls=[])
-    av = OpportunityAttack().can_perform_against(
-        fighter, _attack_params(goblin.id), ctx
-    )
+    av = OpportunityAttack().can_perform_against(fighter, _attack_params(goblin.id), ctx)
     assert isinstance(av, Allowed)
 
 

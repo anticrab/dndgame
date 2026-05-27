@@ -70,16 +70,12 @@ from dnd.domain.values.terrain import CoverLevel
 # Состояния, при которых нельзя выполнять действия с атакой.
 # PHB-2024 стр. 367: Incapacitated → нет actions, reactions, bonus actions.
 # Stunned / Paralyzed / Unconscious → implies Incapacitated.
-_BLOCKING_CONDITIONS: Final = frozenset(
-    {INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS}
-)
+_BLOCKING_CONDITIONS: Final = frozenset({INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS})
 
 # Состояния, при которых Dodge-стойка цели перестаёт давать
 # disadvantage атакующему (PHB-2024 стр. 22: «benefit ends if you are
 # Incapacitated or your Speed drops to 0»). Аудит 10 ST-R001.
-_DODGE_SUPPRESSING_CONDITIONS: Final = frozenset(
-    {INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS}
-)
+_DODGE_SUPPRESSING_CONDITIONS: Final = frozenset({INCAPACITATED, STUNNED, PARALYZED, UNCONSCIOUS})
 
 
 def _dodge_suppressed(target: Creature) -> bool:
@@ -143,9 +139,7 @@ class AttackAction:
 
     # --- can_perform ---------------------------------------------------
 
-    def _check_economy(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def _check_economy(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         """Проверка бюджета. Подклассы (``OpportunityAttack``) переопределяют
         её для reaction-режима, где «бюджет» — это
         ``actor.reaction_used`` per-round, а не ``ctx.reaction_used``."""
@@ -158,9 +152,7 @@ class AttackAction:
         ``_check_economy``."""
         ctx.spend(self.economy_cost_value)
 
-    def can_perform(
-        self, actor: Creature, ctx: TurnContext
-    ) -> ActionAvailability:
+    def can_perform(self, actor: Creature, ctx: TurnContext) -> ActionAvailability:
         # Этот метод НЕ принимает params (мы ещё не знаем, что игрок выберет);
         # глобальные блокеры — экономика и состояния. Конкретные проверки
         # «можно ли атаковать ИМЕННО эту цель» — в ``can_perform_against``,
@@ -261,9 +253,7 @@ class AttackAction:
         Это сознательно — Action не страхует UI/AI.
         """
         if not isinstance(params, AttackParams):
-            raise TypeError(
-                f"AttackAction expects AttackParams, got {type(params).__name__}"
-            )
+            raise TypeError(f"AttackAction expects AttackParams, got {type(params).__name__}")
 
         target = ctx.participants.get(params.target_id)
         if target is None:
@@ -309,10 +299,7 @@ class AttackAction:
         # impply Incapacitated; Paralyzed/Stunned/Unconscious дают также
         # speed=0. Поэтому если у цели любое из этих условий — Dodge
         # больше не действует. Аудит 10 ST-R001.
-        dodge_penalty = (
-            "dodging" in target.combat_stances
-            and not _dodge_suppressed(target)
-        )
+        dodge_penalty = "dodging" in target.combat_stances and not _dodge_suppressed(target)
 
         # Help-бонус: союзник назначил advantage на эту атаку
         # (PHB-2024 стр. 22). One-shot — сбрасывается после броска.
@@ -323,11 +310,7 @@ class AttackAction:
         # момент Help-action.
         help_bonus = False
         if actor.helped_against == target.id:
-            helper = (
-                ctx.participants.get(actor.helped_by)
-                if actor.helped_by is not None
-                else None
-            )
+            helper = ctx.participants.get(actor.helped_by) if actor.helped_by is not None else None
             if helper is not None and ctx.battlefield.has_creature(helper.id):
                 helper_pos = ctx.battlefield.position_of(helper.id)
                 if helper_pos.distance_to_feet(target_pos) <= 5:
@@ -358,8 +341,7 @@ class AttackAction:
             target_id=target.id,
             advantage=atk_adj.advantage or help_bonus or tgt_adv,
             disadvantage=(
-                atk_adj.disadvantage or long_range_penalty or dodge_penalty
-                or tgt_disadv
+                atk_adj.disadvantage or long_range_penalty or dodge_penalty or tgt_disadv
             ),
             extra_dice=atk_adj.extra_dice,
         )
@@ -432,9 +414,7 @@ class AttackAction:
             dmg_adj = ctx.modifier_applier.to_roll_adjustments(dmg_mods)
             base_expr = DiceExpr.parse(params.damage_expr)
             # T4: боевой стиль Dueling — +2 к урону melee.
-            dmg_numeric = dmg_adj.numeric_bonus + fighting_style_damage_bonus(
-                actor, params.kind
-            )
+            dmg_numeric = dmg_adj.numeric_bonus + fighting_style_damage_bonus(actor, params.kind)
             # Сборка через dataclasses.replace, не строковая конкатенация —
             # DiceExpr.parse не поддерживает «1d8+3+2» (одно опциональное
             # `[+-]\d+` в паттерне). Аудит 08 AT-R001.
@@ -501,10 +481,7 @@ class AttackAction:
             success=True,
             consumed=self.economy_cost_value,
             events_published=tuple(published),
-            notes=(
-                f"hit={hit} crit={is_crit} target={target.id} "
-                f"effective_ac={effective_ac}"
-            ),
+            notes=(f"hit={hit} crit={is_crit} target={target.id} effective_ac={effective_ac}"),
         )
 
 
@@ -538,8 +515,11 @@ def _maybe_sneak_attack(
     sneak_roll = ctx.dice_roller.roll(
         DiceExpr.parse(f"{n}d6"),
         RollContext(
-            purpose=RollPurpose.DAMAGE, actor_id=actor.id,
-            target_id=target.id, crit=is_crit, tags=("sneak_attack",),
+            purpose=RollPurpose.DAMAGE,
+            actor_id=actor.id,
+            target_id=target.id,
+            crit=is_crit,
+            tags=("sneak_attack",),
         ),
     )
     actor.sneak_used_this_turn = True
@@ -547,10 +527,15 @@ def _maybe_sneak_attack(
     result = target.take_damage(DamageInstance(amount=raw, type_=params.damage_type))
     ctx.event_bus.publish(
         DamageDealt(
-            attacker_id=actor.id, target_id=target.id,
-            damage_roll_id=sneak_roll.roll_id, damage_type=params.damage_type,
-            raw_amount=raw, final_amount=result.final_amount, is_critical=is_crit,
-            hp_after=target.hit_points.current, hp_max=target.hit_points.maximum,
+            attacker_id=actor.id,
+            target_id=target.id,
+            damage_roll_id=sneak_roll.roll_id,
+            damage_type=params.damage_type,
+            raw_amount=raw,
+            final_amount=result.final_amount,
+            is_critical=is_crit,
+            hp_after=target.hit_points.current,
+            hp_max=target.hit_points.maximum,
             was_lethal=result.was_lethal,
         )
     )

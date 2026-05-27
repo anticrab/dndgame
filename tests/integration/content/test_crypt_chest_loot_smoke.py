@@ -4,6 +4,7 @@
 сломала боевой content-pipeline: каждый сундук в crypt'е резолвится
 через items.yaml в реальные ItemStack'и.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,9 +20,7 @@ _MAPS_DIR = _REPO_ROOT / "data" / "content" / "maps"
 _ITEMS_YAML = _REPO_ROOT / "data" / "content" / "items.yaml"
 
 
-@pytest.mark.skipif(
-    not _ITEMS_YAML.exists(), reason="items.yaml not present"
-)
+@pytest.mark.skipif(not _ITEMS_YAML.exists(), reason="items.yaml not present")
 def test_crypt_chest_contents_resolve_to_real_items() -> None:
     items = YamlItemRepository(_ITEMS_YAML)
     maps = YamlMapRepository(_MAPS_DIR)
@@ -49,9 +48,7 @@ def test_crypt_chest_contents_resolve_to_real_items() -> None:
     assert total_stacks >= len(chests)
 
 
-@pytest.mark.skipif(
-    not _ITEMS_YAML.exists(), reason="items.yaml not present"
-)
+@pytest.mark.skipif(not _ITEMS_YAML.exists(), reason="items.yaml not present")
 def test_no_chest_in_real_maps_references_unknown_item() -> None:
     """Bus check для всех карт: каждый chest contents resolves через
     каталог. Падает фастом если в карту попал тип, которого нет в

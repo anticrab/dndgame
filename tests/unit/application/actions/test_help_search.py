@@ -71,8 +71,11 @@ def _make_creature(cid: str = "actor") -> Creature:
 
 
 def _setup_three(
-    helper_pos: Square, ally_pos: Square, target_pos: Square,
-    *, rng_rolls: list[int] | None = None,
+    helper_pos: Square,
+    ally_pos: Square,
+    target_pos: Square,
+    *,
+    rng_rolls: list[int] | None = None,
 ) -> tuple[Creature, Creature, Creature, TurnContext, InMemoryEventBus]:
     helper = _make_creature("helper")
     ally = _make_creature("ally")
@@ -103,17 +106,13 @@ def _setup_three(
 
 
 def test_help_can_perform_allowed() -> None:
-    helper, _ally, _target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, _ally, _target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     av = HelpAction().can_perform(helper, ctx)
     assert isinstance(av, Allowed)
 
 
 def test_help_can_perform_no_economy() -> None:
-    helper, _, _, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, _, _, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     ctx.spend(ActionEconomyCost.ACTION)
     av = HelpAction().can_perform(helper, ctx)
     assert isinstance(av, Forbidden)
@@ -122,9 +121,7 @@ def test_help_can_perform_no_economy() -> None:
 
 @pytest.mark.rules
 def test_help_against_no_valid_ally() -> None:
-    helper, _ally, target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, _ally, target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     av = HelpAction().can_perform_against(
         helper,
         HelpParams(
@@ -139,9 +136,7 @@ def test_help_against_no_valid_ally() -> None:
 
 @pytest.mark.rules
 def test_help_against_self_is_forbidden() -> None:
-    helper, _ally, target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, _ally, target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     av = HelpAction().can_perform_against(
         helper, HelpParams(ally_id=helper.id, target_id=target.id), ctx
     )
@@ -153,9 +148,7 @@ def test_help_against_self_is_forbidden() -> None:
 def test_help_requires_within_5ft_of_target() -> None:
     """PHB-2024 стр. 22: helper в 5 фт от ЦЕЛИ. Здесь helper в (1,1),
     target в (5,1) → 20 фт → запрет."""
-    helper, ally, target, ctx, _ = _setup_three(
-        Square(1, 1), Square(4, 1), Square(5, 1)
-    )
+    helper, ally, target, ctx, _ = _setup_three(Square(1, 1), Square(4, 1), Square(5, 1))
     av = HelpAction().can_perform_against(
         helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
     )
@@ -168,15 +161,11 @@ def test_help_requires_within_5ft_of_target() -> None:
 
 @pytest.mark.rules
 def test_help_execute_sets_helped_against_and_publishes() -> None:
-    helper, ally, target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, ally, target, ctx, bus = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     captured: list[EngineEvent] = []
     bus.subscribe(EngineEvent, captured.append)
 
-    outcome = HelpAction().execute(
-        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
-    )
+    outcome = HelpAction().execute(helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx)
 
     assert outcome.success is True
     assert outcome.consumed is ActionEconomyCost.ACTION
@@ -196,12 +185,12 @@ def test_helped_ally_gets_advantage_on_attack_target_one_shot() -> None:
     """После Help.execute: следующая атака ally по target идёт с
     advantage; поле сбрасывается one-shot."""
     helper, ally, target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2),
+        Square(1, 1),
+        Square(2, 1),
+        Square(2, 2),
         rng_rolls=[5, 18, 4],  # advantage берёт 18; damage 4
     )
-    HelpAction().execute(
-        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
-    )
+    HelpAction().execute(helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx)
     assert ally.helped_against == target.id
 
     # Ally атакует target — должен получить advantage и попасть.
@@ -242,25 +231,19 @@ def test_helped_ally_gets_advantage_on_attack_target_one_shot() -> None:
 @pytest.mark.rules
 def test_helped_ally_no_advantage_on_different_target() -> None:
     """Help — для конкретного target_id, не для других."""
-    helper, ally, target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, ally, target, ctx, bus = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     other = _make_creature("other")
     ctx.battlefield.place_creature(other.id, Square(3, 1))
     ctx.participants[other.id] = other
 
-    HelpAction().execute(
-        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
-    )
+    HelpAction().execute(helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx)
     # ScriptedRNG только один d20 — значит advantage НЕ применился
     # (если бы применился, нужно было бы 2 значения и тест упал бы
     # IndexError).
     ctx_for_ally = TurnContext(
         actor_id=ally.id,
         battlefield=ctx.battlefield,
-        dice_roller=ComputerDiceRoller(
-            rng=ScriptedRNG([10, 4]), event_bus=bus
-        ),
+        dice_roller=ComputerDiceRoller(rng=ScriptedRNG([10, 4]), event_bus=bus),
         modifier_applier=ctx.modifier_applier,
         condition_service=ctx.condition_service,
         event_bus=bus,
@@ -289,20 +272,14 @@ def test_helped_ally_no_advantage_on_different_target() -> None:
 
 
 def test_search_can_perform_allowed() -> None:
-    actor, _ally, _target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    actor, _ally, _target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     assert isinstance(SearchAction().can_perform(actor, ctx), Allowed)
 
 
 @pytest.mark.rules
-@pytest.mark.parametrize(
-    "condition_id", ["incapacitated", "stunned", "paralyzed", "unconscious"]
-)
+@pytest.mark.parametrize("condition_id", ["incapacitated", "stunned", "paralyzed", "unconscious"])
 def test_search_blocked_by_condition(condition_id: str) -> None:
-    actor, _ally, _target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    actor, _ally, _target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     actor.apply_condition(ConditionId(condition_id))
     av = SearchAction().can_perform(actor, ctx)
     assert isinstance(av, Forbidden)
@@ -312,7 +289,9 @@ def test_search_blocked_by_condition(condition_id: str) -> None:
 @pytest.mark.rules
 def test_search_execute_publishes_event_and_rolls() -> None:
     actor, _ally, _target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2),
+        Square(1, 1),
+        Square(2, 1),
+        Square(2, 2),
         rng_rolls=[14],
     )
     captured: list[EngineEvent] = []
@@ -334,9 +313,7 @@ def test_search_execute_publishes_event_and_rolls() -> None:
 
 
 def test_search_rejects_wrong_params() -> None:
-    actor, _ally, _target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    actor, _ally, _target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     with pytest.raises(TypeError, match="SearchParams"):
         SearchAction().execute(actor, NoParams(), ctx)
 
@@ -346,7 +323,9 @@ def test_search_survival_kind() -> None:
     # Medicine / Perception / Survival (все Wisdom). Investigation
     # (Int) в книге для Search не упомянут.
     actor, _ally, _target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2),
+        Square(1, 1),
+        Square(2, 1),
+        Square(2, 2),
         rng_rolls=[10],
     )
     captured: list[EngineEvent] = []
@@ -361,18 +340,14 @@ def test_search_survival_kind() -> None:
 
 
 def test_help_rejects_wrong_params() -> None:
-    helper, _ally, _target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, _ally, _target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     with pytest.raises(TypeError, match="HelpParams"):
         HelpAction().execute(helper, NoParams(), ctx)
 
 
 def test_help_execute_contract_violation() -> None:
     """Если ally нет в participants — RuntimeError."""
-    helper, _ally, target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, _ally, target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     bad = HelpParams(ally_id=CreatureId("ghost"), target_id=target.id)
     with pytest.raises(RuntimeError, match="contract violation"):
         HelpAction().execute(helper, bad, ctx)
@@ -380,14 +355,10 @@ def test_help_execute_contract_violation() -> None:
 
 def test_help_mock_condition_service_unused() -> None:
     """Helper.condition_service не должен дёргаться в Help — мок проверяет."""
-    helper, ally, target, ctx, _ = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
+    helper, ally, target, ctx, _ = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
     mock_service = MagicMock()
     ctx.condition_service = mock_service
-    HelpAction().execute(
-        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
-    )
+    HelpAction().execute(helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx)
     mock_service.assert_not_called()
 
 
@@ -404,12 +375,8 @@ def test_help_advantage_lost_when_helper_moves_away_before_attack() -> None:
 
     Аудит 11 HS-R001.
     """
-    helper, ally, target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
-    HelpAction().execute(
-        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
-    )
+    helper, ally, target, ctx, bus = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
+    HelpAction().execute(helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx)
     assert ally.helped_against == target.id
     assert ally.helped_by == helper.id
 
@@ -421,9 +388,7 @@ def test_help_advantage_lost_when_helper_moves_away_before_attack() -> None:
     ctx_for_ally = TurnContext(
         actor_id=ally.id,
         battlefield=ctx.battlefield,
-        dice_roller=ComputerDiceRoller(
-            rng=ScriptedRNG([14, 4]), event_bus=bus
-        ),
+        dice_roller=ComputerDiceRoller(rng=ScriptedRNG([14, 4]), event_bus=bus),
         modifier_applier=ctx.modifier_applier,
         condition_service=ctx.condition_service,
         event_bus=bus,
@@ -460,12 +425,12 @@ def test_help_advantage_lost_when_helper_moves_away_before_attack() -> None:
 def test_help_advantage_applied_when_helper_still_within_5ft() -> None:
     """Sanity: если helper не отошёл, advantage срабатывает (как раньше)."""
     helper, ally, target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2),
+        Square(1, 1),
+        Square(2, 1),
+        Square(2, 2),
         rng_rolls=[5, 18, 4],  # advantage берёт 18
     )
-    HelpAction().execute(
-        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
-    )
+    HelpAction().execute(helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx)
     # Helper НЕ двигался — остался в (1,1), target в (2,2). distance =
     # max(|1-2|, |1-2|) = 1 клетка = 5 фут. OK.
 
@@ -505,20 +470,14 @@ def test_help_advantage_applied_when_helper_still_within_5ft() -> None:
 def test_help_advantage_lost_when_helper_removed_from_battlefield() -> None:
     """Если helper'а вообще больше нет на поле (сценарий: погиб и
     removed) — advantage не действует."""
-    helper, ally, target, ctx, bus = _setup_three(
-        Square(1, 1), Square(2, 1), Square(2, 2)
-    )
-    HelpAction().execute(
-        helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx
-    )
+    helper, ally, target, ctx, bus = _setup_three(Square(1, 1), Square(2, 1), Square(2, 2))
+    HelpAction().execute(helper, HelpParams(ally_id=ally.id, target_id=target.id), ctx)
     ctx.battlefield.remove_creature(helper.id)
 
     ctx_for_ally = TurnContext(
         actor_id=ally.id,
         battlefield=ctx.battlefield,
-        dice_roller=ComputerDiceRoller(
-            rng=ScriptedRNG([14, 4]), event_bus=bus
-        ),
+        dice_roller=ComputerDiceRoller(rng=ScriptedRNG([14, 4]), event_bus=bus),
         modifier_applier=ctx.modifier_applier,
         condition_service=ctx.condition_service,
         event_bus=bus,

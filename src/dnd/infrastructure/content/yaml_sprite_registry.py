@@ -21,6 +21,7 @@ passable_cost_ft) и сохраняются отдельно от ``_features``,
 вывод. Все четыре словаря открыты через ``get_feature`` (единый лукап
 для legacy-вызовов) и ``list_by_category`` (для CLI).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -55,18 +56,10 @@ class YamlSpriteRegistry:
         self._objects: dict[str, FeatureKind] = {}
         self._creatures: dict[str, FeatureKind] = {}
         if sprites_dir.is_dir():
-            self._terrains = _load_dir(
-                sprites_dir / "terrain", _TERRAIN_ADAPTER
-            )
-            self._features = _load_dir(
-                sprites_dir / "features", _FEATURE_ADAPTER
-            )
-            self._objects = _load_dir(
-                sprites_dir / "objects", _FEATURE_ADAPTER
-            )
-            self._creatures = _load_dir(
-                sprites_dir / "creatures", _FEATURE_ADAPTER
-            )
+            self._terrains = _load_dir(sprites_dir / "terrain", _TERRAIN_ADAPTER)
+            self._features = _load_dir(sprites_dir / "features", _FEATURE_ADAPTER)
+            self._objects = _load_dir(sprites_dir / "objects", _FEATURE_ADAPTER)
+            self._creatures = _load_dir(sprites_dir / "creatures", _FEATURE_ADAPTER)
 
     def get_terrain(self, id_: str) -> TerrainBase:
         try:
@@ -83,9 +76,7 @@ class YamlSpriteRegistry:
                 return src[id_]
         raise KeyError(f"unknown feature sprite: {id_!r}")
 
-    def list_by_category(
-        self, category: SpriteCategory
-    ) -> tuple[TerrainBase | FeatureKind, ...]:
+    def list_by_category(self, category: SpriteCategory) -> tuple[TerrainBase | FeatureKind, ...]:
         if category is SpriteCategory.TERRAIN:
             return tuple(self._terrains.values())
         if category is SpriteCategory.FEATURE:

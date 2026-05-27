@@ -1,4 +1,5 @@
 """Регистрация встроенных резолверов форм зоны (этап P2)."""
+
 from __future__ import annotations
 
 from dnd.application.engine.spells.area.resolver import AreaShapeRegistry

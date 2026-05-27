@@ -42,6 +42,7 @@ def _terrain_glyph(terrain: Terrain) -> str:
         return ","  # difficult / pit — оба difficult, на small-zoom неразличимы
     return "."
 
+
 _FACTION_GLYPH: dict[Faction, str] = {
     Faction.PARTY: "@",
     Faction.MONSTERS: "g",
@@ -111,9 +112,7 @@ def render_battlefield(
     glyph'а (символ не меняется). Используется в TARGET mode (L1-T8).
     """
     if zoom == "medium":
-        return _render_medium(
-            battlefield, factions, cursor=cursor, with_color=with_color
-        )
+        return _render_medium(battlefield, factions, cursor=cursor, with_color=with_color)
     if visible_rect is None:
         x0, y0, x1, y1 = 0, 0, battlefield.width, battlefield.height
     else:
@@ -134,8 +133,12 @@ def render_battlefield(
                 out.append("·", style=style)
                 continue
             glyph, style = _cell_glyph(
-                battlefield, factions, sq, cursor,
-                with_color=with_color, is_alive=is_alive,
+                battlefield,
+                factions,
+                sq,
+                cursor,
+                with_color=with_color,
+                is_alive=is_alive,
             )
             if highlights and sq in highlights:
                 extra = highlights[sq]
@@ -204,9 +207,7 @@ def _cell_glyph(
         # Если все на клетке мёртвые — рисуем труп (roguelike `%`).
         # is_alive=None ⇒ старое поведение (все живые); это нужно для
         # рендер-тестов без participants-контекста.
-        living = [
-            c for c in occupants if (is_alive is None or is_alive(c))
-        ]
+        living = [c for c in occupants if (is_alive is None or is_alive(c))]
         if not living:
             # Все мёртвые — труп. Тёмно-красный приглушённый, чтобы не
             # «пёкло глаза» как живой враг и не сливалось с фоном.
@@ -232,8 +233,10 @@ def _cell_glyph(
                 Faction.MONSTERS: "reverse",
                 Faction.NEUTRAL: "",
             }[faction]
-            style = f"{base} reverse" if sq == cursor and base else (
-                "reverse" if sq == cursor else base
+            style = (
+                f"{base} reverse"
+                if sq == cursor and base
+                else ("reverse" if sq == cursor else base)
             )
         return (glyph, style)
 
@@ -369,20 +372,31 @@ class MapWidget(Static):
         if follow is not None:
             self._auto_follow(follow)
         with_color = self._is_color_theme()
-        self.update(render_battlefield(
-            battlefield, factions,
-            cursor=cursor, with_color=with_color, zoom=self._zoom,
-            visible_rect=self.visible_rect() if self._zoom == "small" else None,
-            highlights=highlights, path_preview=path_preview,
-            path_styles=path_styles, is_alive=is_alive,
-        ))
+        self.update(
+            render_battlefield(
+                battlefield,
+                factions,
+                cursor=cursor,
+                with_color=with_color,
+                zoom=self._zoom,
+                visible_rect=self.visible_rect() if self._zoom == "small" else None,
+                highlights=highlights,
+                path_preview=path_preview,
+                path_styles=path_styles,
+                is_alive=is_alive,
+            )
+        )
 
     def _auto_follow(self, target: Square) -> None:
         """Если target вышел за safe-zone (3 клетки от края viewport) — pan."""
         x0, y0, x1, y1 = self.visible_rect()
         safe = 3
-        if (target.x < x0 + safe or target.x >= x1 - safe
-                or target.y < y0 + safe or target.y >= y1 - safe):
+        if (
+            target.x < x0 + safe
+            or target.x >= x1 - safe
+            or target.y < y0 + safe
+            or target.y >= y1 - safe
+        ):
             self.center_on(target)
 
     def _is_color_theme(self) -> bool:

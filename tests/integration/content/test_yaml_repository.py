@@ -117,12 +117,11 @@ def test_build_creature_without_weapon(
         AbilityScoresTemplate,
         MonsterTemplate,
     )
+
     template = MonsterTemplate(
         id="dummy",
         name="Dummy",
-        abilities=AbilityScoresTemplate(
-            str=10, dex=10, con=10, int=10, wis=10, cha=10
-        ),
+        abilities=AbilityScoresTemplate(str=10, dex=10, con=10, int=10, wis=10, cha=10),
         max_hp=5,
         armor_class=10,
         weapon_id=None,

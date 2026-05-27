@@ -96,9 +96,7 @@ def test_cannot_end_move_on_enemy_square_via_execute() -> None:
     ctx, bus = _ctx(actor, bf=bf, others=[(enemy, Faction.MONSTERS)])
     captured = _capture(bus)
 
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=(Square(2, 2),)), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=(Square(2, 2),)), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.SQUARE_OCCUPIED
     assert bf.position_of(actor.id) == Square(1, 2)
@@ -118,9 +116,7 @@ def test_cannot_pass_through_hostile_via_execute() -> None:
     ctx, bus = _ctx(actor, bf=bf, others=[(enemy, Faction.MONSTERS)])
     captured = _capture(bus)
 
-    av = MoveAction().can_perform_against(
-        actor, MoveParams(path=(Square(2, 1), Square(3, 1))), ctx
-    )
+    av = MoveAction().can_perform_against(actor, MoveParams(path=(Square(2, 1), Square(3, 1))), ctx)
     assert isinstance(av, Forbidden)
     assert av.reason is ForbiddenReason.PATH_THROUGH_HOSTILE
     assert bf.position_of(actor.id) == Square(1, 1)
@@ -145,9 +141,7 @@ def test_pass_through_ally_costs_extra_5ft_via_execute() -> None:
     captured = _capture(bus)
 
     params = MoveParams(path=(Square(2, 1), Square(3, 1)))
-    assert isinstance(
-        MoveAction().can_perform_against(actor, params, ctx), Allowed
-    )
+    assert isinstance(MoveAction().can_perform_against(actor, params, ctx), Allowed)
     MoveAction().execute(actor, params, ctx)
 
     completed = [e for e in captured if isinstance(e, MoveCompleted)]

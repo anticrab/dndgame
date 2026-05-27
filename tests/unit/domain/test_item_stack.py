@@ -1,4 +1,5 @@
 """ItemStack — пара item+qty, защита от qty<1 и от стакания не-stackable."""
+
 from __future__ import annotations
 
 import pytest
@@ -7,8 +8,11 @@ from dnd.domain.values.item import Item, ItemId, ItemKind
 from dnd.domain.values.item_stack import ItemStack
 
 _POTION = Item(
-    id=ItemId("potion"), name="Potion", kind=ItemKind.CONSUMABLE,
-    weight_lb=0.5, stackable=True,
+    id=ItemId("potion"),
+    name="Potion",
+    kind=ItemKind.CONSUMABLE,
+    weight_lb=0.5,
+    stackable=True,
 )
 _SWORD = Item(id=ItemId("sword"), name="Sword", kind=ItemKind.WEAPON)
 

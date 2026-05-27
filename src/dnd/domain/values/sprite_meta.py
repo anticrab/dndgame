@@ -26,9 +26,7 @@ def _validate_glyph_5x3(g: tuple[str, ...]) -> tuple[str, str, str]:
         raise ValueError(f"glyph_5x3 must be 3 rows, got {len(g)}")
     for i, row in enumerate(g):
         if len(row) != 5:
-            raise ValueError(
-                f"glyph_5x3 row {i} must be 5 chars, got {len(row)} ({row!r})"
-            )
+            raise ValueError(f"glyph_5x3 row {i} must be 5 chars, got {len(row)} ({row!r})")
     return (g[0], g[1], g[2])
 
 

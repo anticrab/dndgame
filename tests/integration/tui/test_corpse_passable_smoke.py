@@ -6,6 +6,7 @@ C-1 regression guard: A* main loop игнорировал is_alive — труп
 что pathfinder в MoveModeHandler возвращает путь, проходящий через
 эту клетку.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -40,25 +41,37 @@ def test_pathfinder_routes_through_dead_creature() -> None:
     """PC в (2,2), труп в (4,2), цель курсора — (6,2). Путь должен
     проходить через клетку с трупом."""
     pc = Creature.create(
-        id_=CreatureId("aelar"), name="Aelar",
+        id_=CreatureId("aelar"),
+        name="Aelar",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     # Goblin сразу убит (0 HP) — нужен только чтобы Encounter имел
     # обе фракции и не закончился победой PC мгновенно.
     goblin = Creature.create(
-        id_=CreatureId("g_dead"), name="G",
+        id_=CreatureId("g_dead"),
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=1, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=1,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     goblin.hit_points = goblin.hit_points.take_damage(99)
     assert not goblin.is_alive
 
     # Живой goblin далеко — чтобы PC не закончил бой моментально.
     g_alive = Creature.create(
-        id_=CreatureId("g_alive"), name="G2",
+        id_=CreatureId("g_alive"),
+        name="G2",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
 
     bf = _open_bf(10, 5)
@@ -102,9 +115,7 @@ def test_pathfinder_routes_through_dead_creature() -> None:
             # проходить через (4, 2) — клетку с трупом.
             data = screen._mode_handler.overlay()
             assert data.cursor == Square(6, 2)
-            assert data.path_preview, (
-                "путь должен существовать — труп не блокирует"
-            )
+            assert data.path_preview, "путь должен существовать — труп не блокирует"
             assert Square(4, 2) in data.path_preview, (
                 f"путь должен проходить через клетку трупа, got {data.path_preview}"
             )

@@ -4,6 +4,7 @@
 активные инициализируют ресурс и выдают способность (Ability), исполняемую
 своим Action (см. second_wind.py / action_surge.py).
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -34,6 +35,7 @@ class SneakAttackHandler:
 def _grant_ability(creature: Creature, ability_id: str) -> None:
     """Выдать существу активную способность (добавить id в ability_ids)."""
     from dnd.domain.values.ability_id import AbilityId
+
     aid = AbilityId(ability_id)
     if aid not in creature.ability_ids:
         creature.ability_ids = (*creature.ability_ids, aid)
@@ -86,6 +88,7 @@ class FightingStyleHandler:
             KNOWN_STYLES,
             STYLE_DEFENSE,
         )
+
         style = creature.fighting_style
         if style is None or style not in KNOWN_STYLES:
             style = STYLE_DEFENSE

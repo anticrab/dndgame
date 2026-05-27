@@ -4,6 +4,7 @@
 таблицу, FeatureRegistry исполняет фичи по id. Новый класс = строки в YAML +
 (при необходимости) хендлеры фич, без правки движка.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -20,7 +21,7 @@ class ClassLevel:
 
     proficiency_bonus: int
     features: tuple[FeatureId, ...] = ()
-    spell_slots: dict[int, int] | None = None   # None у не-кастеров (Воин/Плут)
+    spell_slots: dict[int, int] | None = None  # None у не-кастеров (Воин/Плут)
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,7 +30,7 @@ class ClassProgression:
 
     id: str
     name: str
-    hit_die: str                                 # сериализованный DiceExpr, "1d10"
+    hit_die: str  # сериализованный DiceExpr, "1d10"
     levels: dict[int, ClassLevel] = field(default_factory=dict)
     # Спасброски, в которых класс профициентен (PHB-2024 стр. 9): d20+mod+prof.
     # Пусто у не-PC. T1: Воин STR/CON, Плут DEX/INT, Маг INT/WIS.
@@ -38,7 +39,7 @@ class ClassProgression:
     def __post_init__(self) -> None:
         if 1 not in self.levels:
             raise ValueError(f"class {self.id} must define level 1")
-        DiceExpr.parse(self.hit_die)             # валидируем нотацию кости
+        DiceExpr.parse(self.hit_die)  # валидируем нотацию кости
 
     def hit_die_average(self) -> int:
         """Фикс. среднее кости хитов (PHB «fixed value»): ⌈(sides+1)/2⌉."""

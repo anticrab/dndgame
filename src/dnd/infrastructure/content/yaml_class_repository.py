@@ -4,6 +4,7 @@
 ClassProgression; ``levels`` — мапа уровень → {proficiency_bonus, features,
 spell_slots}.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -43,13 +44,13 @@ class YamlClassRepository:
             levels[int(lvl_raw)] = ClassLevel(
                 proficiency_bonus=int(data["proficiency_bonus"]),
                 features=tuple(FeatureId(f) for f in data.get("features", [])),
-                spell_slots=(
-                    {int(k): int(v) for k, v in slots.items()} if slots else None
-                ),
+                spell_slots=({int(k): int(v) for k, v in slots.items()} if slots else None),
             )
         return ClassProgression(
-            id=entry["id"], name=entry["name"],
-            hit_die=entry["hit_die"], levels=levels,
+            id=entry["id"],
+            name=entry["name"],
+            hit_die=entry["hit_die"],
+            levels=levels,
             saving_throw_proficiencies=frozenset(
                 Ability(code) for code in entry.get("saving_throw_proficiencies", [])
             ),

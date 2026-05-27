@@ -1,4 +1,5 @@
 """R1-7: LevelUpService — применение уровней (HP/prof/slots/features)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,9 +26,12 @@ class _RecordingHandler:
 
 def _pc() -> Creature:
     c = Creature.create(
-        id_="hero", name="Hero",
+        id_="hero",
+        name="Hero",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=12, armor_class=16, speed_ft=30,
+        max_hp=12,
+        armor_class=16,
+        speed_ft=30,
     )
     c.character_class = "fighter"
     return c
@@ -36,7 +40,8 @@ def _pc() -> Creature:
 def _svc(bus: InMemoryEventBus, registry: FeatureRegistry) -> LevelUpService:
     return LevelUpService(
         class_repository=YamlClassRepository(_CLASSES),
-        feature_registry=registry, event_bus=bus,
+        feature_registry=registry,
+        event_bus=bus,
     )
 
 
@@ -46,7 +51,7 @@ def test_level_up_grants_hp_prof_and_feature() -> None:
     bus.subscribe(LeveledUp, leveled.append)
     reg = FeatureRegistry()
     surge = _RecordingHandler()
-    reg.register(FeatureId("action_surge"), surge)   # фича L2 воина
+    reg.register(FeatureId("action_surge"), surge)  # фича L2 воина
     pc = _pc()
     res = _svc(bus, reg).apply(pc, to_level=2, ctx=None)
     assert pc.level == 2
@@ -66,5 +71,5 @@ def test_level_up_idempotent() -> None:
     svc = _svc(bus, reg)
     svc.apply(pc, to_level=2, ctx=None)
     hp_after_first = pc.hit_points.maximum
-    svc.apply(pc, to_level=2, ctx=None)   # повтор — no-op
+    svc.apply(pc, to_level=2, ctx=None)  # повтор — no-op
     assert pc.hit_points.maximum == hp_after_first and pc.level == 2

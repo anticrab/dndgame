@@ -7,6 +7,7 @@ handler требует от своего «screen». Это позволяет (
 handler'ы через моки без поднятия BattleScreen, (2) mypy strict
 проверяет контракт без циклических зависимостей.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -26,8 +27,8 @@ class BattleMode(Enum):
     NORMAL = "normal"
     MOVE = "move"
     TARGET = "target"
-    AREA = "area"   # выбор зоны AoE-заклинания (P2)
-    MULTI_TARGET = "multi_target"   # выбор нескольких целей (P2b)
+    AREA = "area"  # выбор зоны AoE-заклинания (P2)
+    MULTI_TARGET = "multi_target"  # выбор нескольких целей (P2b)
 
 
 @dataclass(frozen=True)

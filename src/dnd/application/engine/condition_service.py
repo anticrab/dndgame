@@ -129,7 +129,9 @@ class ConditionService:
 
     # --- T3: мост «данные состояния → бросок» --------------------------
     def collect_modifiers(
-        self, creature: Creature, target_kind: ModifierTargetKind,
+        self,
+        creature: Creature,
+        target_kind: ModifierTargetKind,
     ) -> list[Modifier]:
         """Self-модификаторы от активных состояний носителя для данного класса
         броска (T3 — активирует осиротевший ``provides_modifiers``). Состояние
@@ -144,7 +146,11 @@ class ConditionService:
         return out
 
     def incoming_attack_adjustment(
-        self, target: Creature, *, distance_ft: int, attack_kind: AttackKind,
+        self,
+        target: Creature,
+        *,
+        distance_ft: int,
+        attack_kind: AttackKind,
     ) -> tuple[bool, bool]:
         """``(advantage, disadvantage)`` для атакующего по ``target`` из боевых
         данных состояний цели. Prone: melee ≤5 фт → преимущество, иначе помеха

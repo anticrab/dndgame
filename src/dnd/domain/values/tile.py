@@ -8,6 +8,7 @@ backwards-compatibility alias через готовые Tile-константы 
 Семантика клетки (passable/LoS/cover/cost) **читается** из data,
 а не наследуется. Никаких side-effects: Tile — pure frozen value.
 """
+
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict

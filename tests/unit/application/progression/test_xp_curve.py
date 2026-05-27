@@ -1,4 +1,5 @@
 """R1-3: XP-кривые."""
+
 from __future__ import annotations
 
 import pytest
@@ -28,7 +29,7 @@ def test_fast_level_for_xp() -> None:
 
 def test_milestone_never_advances_by_xp() -> None:
     c = MilestoneXpCurve()
-    assert c.level_for_xp(999) == 1   # milestone: рост по событиям, не по XP
+    assert c.level_for_xp(999) == 1  # milestone: рост по событиям, не по XP
 
 
 def test_factory() -> None:

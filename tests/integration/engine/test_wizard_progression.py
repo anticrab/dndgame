@@ -1,4 +1,5 @@
 """T1: класс wizard — слоты растут по уровням через LevelUpService."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,9 +15,12 @@ from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 
 def _wiz() -> Creature:
     c = Creature.create(
-        id_=CreatureId("w"), name="w",
+        id_=CreatureId("w"),
+        name="w",
         abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
-        max_hp=6, armor_class=12, speed_ft=30,
+        max_hp=6,
+        armor_class=12,
+        speed_ft=30,
     )
     c.character_class = "wizard"
     c.level = 1

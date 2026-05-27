@@ -8,6 +8,7 @@
 бизнес-логики (выбор/применение) тут нет — это делает EditorScreen,
 обращаясь к :meth:`selected_sprite_id` и :meth:`toggle_category`.
 """
+
 from __future__ import annotations
 
 from textual.app import ComposeResult
@@ -61,15 +62,15 @@ class PaletteWidget(Vertical):
     def toggle_category(self) -> None:
         """Переключить TERRAIN ↔ FEATURE (object/creature пока не редактируем)."""
         self._category = (
-            SpriteCategory.FEATURE if self._category is SpriteCategory.TERRAIN
+            SpriteCategory.FEATURE
+            if self._category is SpriteCategory.TERRAIN
             else SpriteCategory.TERRAIN
         )
         # Перерисовка через recompose
         from contextlib import suppress
+
         with suppress(Exception):
-            self.query_one("#palette-cat", Label).update(
-                f"Palette: {self._category.value}"
-            )
+            self.query_one("#palette-cat", Label).update(f"Palette: {self._category.value}")
             lv = self.query_one("#palette-list", ListView)
             lv.clear()
             for s in self._registry.list_by_category(self._category):

@@ -7,6 +7,7 @@
 (:class:`~dnd.application.abilities.ability.Ability` — с intent_factory
 и UI-полями) — в application.
 """
+
 from __future__ import annotations
 
 from typing import NewType

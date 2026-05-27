@@ -5,6 +5,7 @@ O-9 integration smoke под Pilot'ом: PC рядом с сундуком, да
 (или что pickup реально случился, если бы был GameRunner; здесь
 проверяем сам факт push'а интента).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -34,8 +35,11 @@ class _MiniRepo:
     def __init__(self) -> None:
         self._items = {
             ItemId("gold"): Item(
-                id=ItemId("gold"), name="Gold piece",
-                kind=ItemKind.MISC, weight_lb=0.02, stackable=True,
+                id=ItemId("gold"),
+                name="Gold piece",
+                kind=ItemKind.MISC,
+                weight_lb=0.02,
+                stackable=True,
             ),
         }
 
@@ -59,24 +63,40 @@ def _open_bf(w: int, h: int) -> Battlefield:
 
 def test_l_opens_inventory_screen_enter_pushes_pickup_intent() -> None:
     pc = Creature.create(
-        id_=CreatureId("aelar"), name="Aelar",
+        id_=CreatureId("aelar"),
+        name="Aelar",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     g = Creature.create(
-        id_=CreatureId("g"), name="G",
+        id_=CreatureId("g"),
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = _open_bf(8, 8)
     bf.place_creature(pc.id, Square(2, 2))
     bf.place_creature(g.id, Square(7, 7))
-    bf.place_object(InteractableObject(
-        id=ObjectId("chest-loot"), kind=ObjectKind.CHEST,
-        pos=Square(3, 2),
-        state={"open": True, "locked": False, "hp": 8, "ac": 14,
-               "contents": [{"item_id": "gold", "qty": 25}]},
-    ))
+    bf.place_object(
+        InteractableObject(
+            id=ObjectId("chest-loot"),
+            kind=ObjectKind.CHEST,
+            pos=Square(3, 2),
+            state={
+                "open": True,
+                "locked": False,
+                "hp": 8,
+                "ac": 14,
+                "contents": [{"item_id": "gold", "qty": 25}],
+            },
+        )
+    )
     services = build_default_runtime_services(rng=RealRNG(seed=42))
     deps = services.with_battlefield(bf)
     enc = Encounter(
@@ -111,9 +131,7 @@ def test_l_opens_inventory_screen_enter_pushes_pickup_intent() -> None:
             # выполнил PickupAction → в инвентаре PC появилось gold,
             # а сундук стал пуст. Проверяем побочный эффект, не очередь
             # (она может быть уже опустошена worker'ом).
-            assert pc.inventory.contains(ItemId("gold")), (
-                "PC должен был забрать gold из сундука"
-            )
+            assert pc.inventory.contains(ItemId("gold")), "PC должен был забрать gold из сундука"
             chest_obj = enc.battlefield.object_at(ObjectId("chest-loot"))
             assert chest_obj.state.get("contents") in ([], None), (
                 f"сундук должен быть пуст, contents={chest_obj.state.get('contents')!r}"
@@ -125,25 +143,41 @@ def test_l_opens_inventory_screen_enter_pushes_pickup_intent() -> None:
 def test_l_without_chest_in_reach_logs_warning() -> None:
     """Если в reach нет открытых сундуков — InventoryScreen НЕ открывается."""
     pc = Creature.create(
-        id_=CreatureId("aelar"), name="Aelar",
+        id_=CreatureId("aelar"),
+        name="Aelar",
         abilities=AbilityScores.of(str_=16, dex=12, con=14, int_=10, wis=10, cha=10),
-        max_hp=20, armor_class=16, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=20,
+        armor_class=16,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     g = Creature.create(
-        id_=CreatureId("g"), name="G",
+        id_=CreatureId("g"),
+        name="G",
         abilities=AbilityScores.of(str_=8, dex=14, con=10, int_=10, wis=8, cha=8),
-        max_hp=7, armor_class=13, speed_ft=30, equipped_weapon=LONGSWORD,
+        max_hp=7,
+        armor_class=13,
+        speed_ft=30,
+        equipped_weapon=LONGSWORD,
     )
     bf = _open_bf(8, 8)
     bf.place_creature(pc.id, Square(2, 2))
     bf.place_creature(g.id, Square(7, 7))
     # chest есть, но далеко (>5 ft)
-    bf.place_object(InteractableObject(
-        id=ObjectId("far-chest"), kind=ObjectKind.CHEST,
-        pos=Square(7, 6),
-        state={"open": True, "locked": False, "hp": 8, "ac": 14,
-               "contents": [{"item_id": "gold", "qty": 5}]},
-    ))
+    bf.place_object(
+        InteractableObject(
+            id=ObjectId("far-chest"),
+            kind=ObjectKind.CHEST,
+            pos=Square(7, 6),
+            state={
+                "open": True,
+                "locked": False,
+                "hp": 8,
+                "ac": 14,
+                "contents": [{"item_id": "gold", "qty": 5}],
+            },
+        )
+    )
     services = build_default_runtime_services(rng=RealRNG(seed=42))
     deps = services.with_battlefield(bf)
     enc = Encounter(
