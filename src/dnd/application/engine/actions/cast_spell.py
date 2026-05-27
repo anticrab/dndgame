@@ -27,7 +27,7 @@ from dnd.application.engine.turn_context import TurnContext
 from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.direction import Direction
-from dnd.domain.values.ids import ActionId, CreatureId, SpellId
+from dnd.domain.values.ids import ActionId, CreatureId, FeatureId, SpellId
 from dnd.domain.values.spell import OriginMode, Spell, SpellEffect, TargetKind
 from dnd.domain.values.square import Square
 
@@ -83,11 +83,20 @@ class CastSpellAction:
                 origin, params.direction, spec, ctx.battlefield
             )
             # Все живые существа в задетых клетках (friendly fire включён).
-            return tuple(
-                cr
+            in_area = [
+                (cid, cr)
                 for cid, cr in ctx.participants.items()
                 if cr.is_alive and ctx.battlefield.position_of(cid) in squares
-            )
+            ]
+            # T4: Школа Воплощения (Sculpt Spells) — союзники кастера авто-
+            # исключаются из его AoE (PHB-2024; упрощение «все союзники невредимы»).
+            if FeatureId("subclass_evoker") in caster.features:
+                caster_faction = ctx.factions.get(caster.id)
+                in_area = [
+                    (cid, cr) for cid, cr in in_area
+                    if ctx.factions.get(cid) != caster_faction
+                ]
+            return tuple(cr for _cid, cr in in_area)
         # MULTI (P2b): мультимножество выборов — дубли = повторные «попадания».
         # Валидность гарантирует can_perform_against; здесь чистая выборка.
         assert kind is TargetKind.MULTI
