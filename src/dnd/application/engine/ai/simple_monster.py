@@ -77,7 +77,13 @@ def take_monster_turn(
     # 2) Не дотягиваемся — попробуем подойти на расстояние reach.
     path = _path_towards(actor, target, ctx, target_distance_ft=weapon.range_ft)
     if path:
-        MoveAction().execute(actor, MoveParams(path=tuple(path)), ctx)
+        move = MoveAction()
+        move_params = MoveParams(path=tuple(path))
+        # Защитная проверка контракта: если реальная стоимость пути всё же
+        # превышает бюджет (например, неучтённая особенность местности),
+        # не зовём execute вслепую — это роняло бы бой ValueError'ом.
+        if isinstance(move.can_perform_against(actor, move_params, ctx), Allowed):
+            move.execute(actor, move_params, ctx)
         # 3) После движения — повторная попытка атаки.
         params = weapon_attack_params(actor, target.id)
         if isinstance(attack.can_perform_against(actor, params, ctx), Allowed):
@@ -155,6 +161,10 @@ def _path_towards(
     path: list[Square] = []
     current = start
     remaining_ft = ctx.movement_remaining_ft
+    # Занятые клетки: проход сквозь союзника стоит +5 фт (PHB-2024 стр. 24),
+    # как и в MoveAction. Без этого учёта бюджет занижался и execute падал
+    # на середине пути сквозь скучившихся союзников (этап D).
+    occupied = bf.occupied_squares
 
     while current.distance_to(target_pos) > target_squares:
         dx = _sign(target_pos.x - current.x)
@@ -168,6 +178,8 @@ def _path_towards(
         if not terrain.passable:
             break
         cost = 10 if terrain.difficult else 5
+        if step in occupied:
+            cost += 5  # проход сквозь занятую клетку (как difficult)
         if cost > remaining_ft:
             break
         path.append(step)
