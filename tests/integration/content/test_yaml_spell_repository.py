@@ -103,11 +103,11 @@ def test_loads_aoe_spells() -> None:
     assert fb.targeting.kind is TargetKind.AREA
     assert fb.targeting.origin is OriginMode.AT_POINT
     assert fb.targeting.shape is AreaShape.CIRCLE
-    assert fb.targeting.radius_ft == 10
+    assert fb.targeting.radius_ft == 20  # T-REV: PHB-2024 — сфера радиусом 20 фт
     bh = repo.load(SpellId("burning_hands"))
     assert bh.targeting.origin is OriginMode.FROM_CASTER
     assert bh.targeting.shape is AreaShape.CONE
     assert bh.targeting.length_ft == 15
     lb = repo.load(SpellId("lightning_bolt"))
     assert lb.targeting.shape is AreaShape.LINE
-    assert lb.targeting.length_ft == 30
+    assert lb.targeting.length_ft == 100  # T-REV: PHB-2024 — линия 100 фт

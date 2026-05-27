@@ -25,7 +25,11 @@ from dnd.domain.values.rest import RechargeOn
 
 def default_feature_registry() -> FeatureRegistry:
     reg = FeatureRegistry()
-    reg.register(FeatureId("improved_critical"), ImprovedCriticalHandler())
+    # Improved Critical: один экземпляр на оба id — фича Чемпиона (T4
+    # subclass_champion) и legacy-id improved_critical (backward-compat
+    # старых шаблонов). Один объект → логика крита правится в одном месте.
+    improved_critical = ImprovedCriticalHandler()
+    reg.register(FeatureId("improved_critical"), improved_critical)
     reg.register(FeatureId("sneak_attack"), SneakAttackHandler())
     reg.register(FeatureId("second_wind"), SecondWindHandler())
     reg.register(FeatureId("action_surge"), ActionSurgeHandler())
@@ -36,7 +40,7 @@ def default_feature_registry() -> FeatureRegistry:
     reg.register(FeatureId("style_gwf"), NoEffectFeatureHandler())
     reg.register(FeatureId("fighting_style"), FightingStyleHandler(reg))
     # T4: подклассы L3. Конкретные подклассы — до мета-фичи.
-    reg.register(FeatureId("subclass_champion"), ImprovedCriticalHandler())
+    reg.register(FeatureId("subclass_champion"), improved_critical)
     reg.register(FeatureId("subclass_thief"), ThiefHandler())
     reg.register(FeatureId("subclass_evoker"), NoEffectFeatureHandler())
     reg.register(FeatureId("subclass"), SubclassHandler(reg))

@@ -16,17 +16,16 @@
 * ``Unconscious`` — бессознательный (implies Incapacitated + Prone).
 * ``Invisible`` — невидимый.
 
-Некоторые правила (например, «атаки в 5 фут по бессознательному —
-крит», «атаки против невидимого — с помехой») не выражаются
-односторонним модификатором на самом существе: они касаются того,
-**кто** атакует. Этот класс правил будет обработан позже, когда
-появится attack_roll: там ``ModifierApplier.collect`` будет принимать
-не только owner_id, но и target_id, и cross-creature эффекты
-наложатся через специальные модификаторы с разными owner/target.
+Self-эффекты (помехи на свои броски: Poisoned/Frightened/Prone) — через
+``provides_modifiers`` (T3: подмешиваются на момент броска
+``ConditionService.collect_modifiers``).
 
-В этом MVP мы покрываем только **owner-self** эффекты (помехи на
-свои броски, etc) — этого достаточно, чтобы Poisoned/Frightened/
-Prone влияли на собственные атаки. Расширение — задача Encounter.
+Cross-creature правила (атаки **по** носителю, авто-провал спасбросков,
+авто-крит в упор) выражаются декларативными полями состояния (T3):
+``grants_advantage_to_attackers``, ``melee_advantage_ranged_disadvantage``
+(Prone), ``auto_fail_saves`` — их читают ``attack.py`` / ``saving_throw`` через
+``ConditionService`` (``incoming_attack_adjustment`` / ``auto_fails_save``).
+Невидимость как источник cross-creature adv/disadv пока не реализована (задел).
 """
 
 from __future__ import annotations
@@ -166,10 +165,9 @@ class FrightenedCondition:
 class StunnedCondition:
     """Книга 2024 стр. 367, «Ошеломлённый».
 
-    Implies Incapacitated. Автоматический провал спасбросков Силы и
-    Ловкости (модификатор-провал — отдельный механизм, для MVP не
-    реализован; реализуем как «помеху», что не точно по правилам,
-    но компенсируется при появлении SaveAutoFail-эффекта).
+    Implies Incapacitated. Авто-провал спасбросков Силы и Ловкости
+    (T3: через ``auto_fail_saves`` → ``ConditionService.auto_fails_save``).
+    Атаки по ошеломлённому — с преимуществом (``grants_advantage_to_attackers``).
     """
 
     id: ConditionId = STUNNED
@@ -190,9 +188,9 @@ class StunnedCondition:
 class ParalyzedCondition:
     """Книга 2024 стр. 367, «Парализованный».
 
-    Implies Incapacitated. Автопровал спасбросков Силы и Ловкости.
-    Атаки в 5 фут по парализованному — крит (cross-creature, будет
-    в attack_roll). Аналогичный комментарий про SaveAutoFail.
+    Implies Incapacitated. Авто-провал спасбросков Силы и Ловкости (T3:
+    ``auto_fail_saves``). Атаки по парализованному — с преимуществом; в упор
+    ≤5 фт melee — авто-крит (T3: ``attack.py``).
     """
 
     id: ConditionId = PARALYZED

@@ -152,3 +152,101 @@ def test_roll_saving_throw_auto_fails_under_paralyzed() -> None:
         )
         is False
     )
+
+
+def test_auto_fails_save_paralyzed_str_and_dex() -> None:
+    """Paralyzed авто-проваливает И Силу, И Ловкость (PHB-2024 стр. 367)."""
+    from dnd.application.engine.condition_service import ConditionService
+    from dnd.domain.conditions.builtin import PARALYZED, register_default_conditions
+    from dnd.domain.conditions.registry import ConditionRegistry
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import Ability, AbilityScores
+    from dnd.domain.values.ids import CreatureId
+
+    reg = ConditionRegistry()
+    register_default_conditions(reg)
+    svc = ConditionService(reg)
+    c = Creature.create(
+        id_=CreatureId("c"),
+        name="c",
+        abilities=AbilityScores.of(str_=14, dex=14, con=14, int_=10, wis=10, cha=10),
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
+    )
+    c.apply_condition(PARALYZED)
+    assert svc.auto_fails_save(c, Ability.STR) is True
+    assert svc.auto_fails_save(c, Ability.DEX) is True
+    assert svc.auto_fails_save(c, Ability.CON) is False
+    assert svc.auto_fails_save(c, Ability.WIS) is False
+
+
+def _dodge_dex_setup(rolls: list[int]):
+    from dnd.application.engine.condition_service import ConditionService
+    from dnd.composition import build_scripted_dependencies
+    from dnd.domain.conditions.builtin import register_default_conditions
+    from dnd.domain.conditions.registry import ConditionRegistry
+    from dnd.domain.entities.battlefield import Battlefield
+    from dnd.domain.entities.creature import Creature
+    from dnd.domain.values.ability import AbilityScores
+    from dnd.domain.values.ids import CreatureId
+
+    deps, _bus, _ = build_scripted_dependencies(battlefield=Battlefield(1, 1), rolls=rolls)
+    reg = ConditionRegistry()
+    register_default_conditions(reg)
+    c = Creature.create(
+        id_=CreatureId("c"),
+        name="c",
+        abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
+    )
+    return c, deps, ConditionService(reg)
+
+
+def test_dodge_grants_dex_save_advantage() -> None:
+    """Dodge → преимущество на DEX-спасбросок: из [1, 18] берётся больший 18."""
+    from dnd.application.engine.actions.stances import CombatStance
+    from dnd.application.engine.saving_throw import roll_saving_throw_raw
+    from dnd.domain.values.ability import Ability
+
+    c, deps, svc = _dodge_dex_setup([1, 18])  # advantage → 2 d20, берём 18
+    c.combat_stances.add(CombatStance.DODGING.value)
+    # d20=18 (преимущество) + DEX 0 = 18 >= 15 → успех; без advantage был бы 1 → провал.
+    assert (
+        roll_saving_throw_raw(
+            c,
+            Ability.DEX,
+            dc=15,
+            dice_roller=deps.dice_roller,
+            modifier_applier=deps.modifier_applier,
+            condition_service=svc,
+        )
+        is True
+    )
+
+
+def test_dodge_dex_advantage_suppressed_by_incapacitated() -> None:
+    """Incapacitated гасит преимущество Dodge (PHB-2024 стр. 22): один d20."""
+    from dnd.application.engine.actions.stances import CombatStance
+    from dnd.application.engine.saving_throw import roll_saving_throw_raw
+    from dnd.domain.conditions.builtin import INCAPACITATED
+    from dnd.domain.values.ability import Ability
+
+    c, deps, svc = _dodge_dex_setup([1])  # без advantage — один d20=1
+    c.combat_stances.add(CombatStance.DODGING.value)
+    c.apply_condition(INCAPACITATED)  # сам по себе не авто-проваливает DEX
+    # d20=1 + 0 = 1 < 15 → провал; если бы advantage не погасили — нужен 2-й d20
+    # (IndexError при попытке), значит advantage действительно подавлен.
+    assert (
+        roll_saving_throw_raw(
+            c,
+            Ability.DEX,
+            dc=15,
+            dice_roller=deps.dice_roller,
+            modifier_applier=deps.modifier_applier,
+            condition_service=svc,
+        )
+        is False
+    )

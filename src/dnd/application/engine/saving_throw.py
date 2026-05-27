@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.rolls import RollContext, RollPurpose
+from dnd.domain.conditions.builtin import INCAPACITATED
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.modifiers import ModifierTargetKind
@@ -63,10 +64,16 @@ def roll_saving_throw_raw(
     if condition_service is not None:
         mods += condition_service.collect_modifiers(actor, ModifierTargetKind.SAVING_THROW)
     adj = modifier_applier.to_roll_adjustments(mods)
-    # T3: Dodge даёт преимущество на спасброски Ловкости (PHB-2024 стр. 22).
-    # Сюда попадает только дееспособный dodger — авто-провал DEX (Paralyzed/
-    # Unconscious) уже вернул бы False выше.
-    dodge_dex_adv = ability is Ability.DEX and "dodging" in actor.combat_stances
+    # T3: Dodge даёт преимущество на спасброски Ловкости (PHB-2024 стр. 22),
+    # но бонус Dodge пропадает у Incapacitated / speed=0 (стр. 22). Stunned/
+    # Paralyzed/Unconscious implies Incapacitated → проверки INCAPACITATED
+    # достаточно. (Авто-провал DEX уже вернул бы False выше для STR/DEX, но
+    # Incapacitated без авто-провала тоже должен гасить Dodge-преимущество.)
+    dodge_dex_adv = (
+        ability is Ability.DEX
+        and "dodging" in actor.combat_stances
+        and not actor.has_condition(INCAPACITATED)
+    )
     roll = dice_roller.roll(
         DiceExpr.parse(f"d20{bonus + adj.numeric_bonus:+d}"),
         RollContext(

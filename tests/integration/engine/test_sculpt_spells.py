@@ -87,3 +87,45 @@ def test_sculpt_excludes_caster_ally() -> None:
     action.execute(mage, params, ctx)
     assert ally.hit_points.current == ally.hit_points.maximum  # союзник невредим
     assert foe.hit_points.current < foe.hit_points.maximum  # враг получил урон
+
+
+def test_sculpt_excludes_caster_himself_in_blast() -> None:
+    """Эвокатор, стоящий в зоне своего же Fireball, не получает урон."""
+    bf = Battlefield(8, 8)
+    mage = Creature.create(
+        id_=CreatureId("mage"),
+        name="mage",
+        abilities=AbilityScores.of(str_=8, dex=12, con=12, int_=16, wis=10, cha=10),
+        max_hp=14,
+        armor_class=12,
+        speed_ft=30,
+    )
+    mage.spellcasting_ability = Ability.INT
+    mage.known_spells = (SpellId("fireball"),)
+    mage.spell_slots = {3: 1}
+    mage.subclass = FeatureId("subclass_evoker")
+    mage.features = (FeatureId("subclass_evoker"),)
+    foe = Creature.create(
+        id_=CreatureId("foe"),
+        name="foe",
+        abilities=AbilityScores.of(str_=12, dex=10, con=12, int_=10, wis=10, cha=10),
+        max_hp=20,
+        armor_class=12,
+        speed_ft=30,
+    )
+    # Маг и враг — в одной точке зоны (соседние клетки); маг (PARTY) исключён.
+    bf.place_creature(mage.id, Square(4, 4))
+    bf.place_creature(foe.id, Square(5, 4))
+    ctx = _ctx(
+        {"mage": mage, "foe": foe},
+        {"mage": Faction.PARTY, "foe": Faction.MONSTERS},
+        bf,
+        "mage",
+    )
+    spells = YamlSpellRepository(Path("data/content/spells.yaml"))
+    action = CastSpellAction(spell_repository=spells)
+    params = CastSpellParams(spell_id=SpellId("fireball"), target_point=Square(4, 4))
+    assert isinstance(action.can_perform_against(mage, params, ctx), Allowed)
+    action.execute(mage, params, ctx)
+    assert mage.hit_points.current == mage.hit_points.maximum  # кастер невредим
+    assert foe.hit_points.current < foe.hit_points.maximum  # враг получил урон

@@ -64,13 +64,13 @@
   level: 3
   school: evocation
   effect: save
-  targeting: { kind: area, origin: at_point, shape: circle, radius_ft: 10 }
+  targeting: { kind: area, origin: at_point, shape: circle, radius_ft: 20 }
   range_ft: 150
-  dice: "2d6"
+  dice: "8d6"
   damage_type: fire
   save_ability: DEX
   save_for_half: true
-  description: "Снаряд летит в выбранную точку (до 150 фт) и взрывается сферой радиусом 10 фт. Спасбросок Ловкости; провал — 2d6 огнём, успех — половина. Бьёт всех в зоне, включая союзников."
+  description: "Снаряд летит в выбранную точку (до 150 фт) и взрывается сферой радиусом 20 фт. Спасбросок Ловкости; провал — 8d6 огнём, успех — половина. Бьёт всех в зоне, включая союзников."
 
 - id: burning_hands
   name: "Burning Hands"
@@ -90,13 +90,13 @@
   level: 3
   school: evocation
   effect: save
-  targeting: { kind: area, origin: from_caster, shape: line, length_ft: 30 }
+  targeting: { kind: area, origin: from_caster, shape: line, length_ft: 100 }
   range_ft: 0
-  dice: "2d6"
+  dice: "8d6"
   damage_type: lightning
   save_ability: DEX
   save_for_half: true
-  description: "Луч молнии (30 фт, ширина 1) в выбранном направлении. Спасбросок Ловкости; провал — 2d6 электричеством, успех — половина."
+  description: "Луч молнии (100 фт, ширина 1) в выбранном направлении. Спасбросок Ловкости; провал — 8d6 электричеством, успех — половина."
 
 # --- мультитаргет-бафф (этап P2b) ---
 - id: bless
@@ -118,7 +118,7 @@
   level: 1
   school: enchantment
   effect: control
-  targeting: { kind: area, shape: circle, radius_ft: 5, origin: at_point }
+  targeting: { kind: area, shape: circle, radius_ft: 20, origin: at_point }
   range_ft: 90
   condition: unconscious
   hp_pool_dice: "5d8"

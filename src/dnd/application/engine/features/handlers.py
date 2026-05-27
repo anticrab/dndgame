@@ -125,12 +125,15 @@ class SubclassHandler:
 
 
 class ThiefHandler:
-    """Вор L3 (лёгкая версия): Fast Hands — взаимодействие доступно бонусным
-    действием (Interact уже есть). Second-Story Work (лазание) — вне scope,
-    описано в docs/PROGRESSION.md. Флаг подкласса хранится в features."""
+    """Вор L3 — пока флаг-подкласс (хранится в creature.features), без
+    механического эффекта. Fast Hands (Sleight of Hand бонусным действием) и
+    Second-Story Work (скорость лазания) требуют подсистемы навыков/лазания,
+    которой ещё нет, — отложено (см. docs/PROGRESSION.md §8). on_gain — пасс,
+    чтобы не выдавать ложно «бонусное взаимодействие» (Interact и так доступен
+    обычным действием)."""
 
     def on_gain(self, creature: Creature, ctx: TurnContext | None) -> None:
-        _grant_ability(creature, "interact")
+        return
 
 
 class CunningActionHandler:
