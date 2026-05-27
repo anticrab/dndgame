@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from dnd.application.engine.ability_check import ability_check_bonus, skill_bonus
+from dnd.application.engine.ability_check import (
+    ability_check_bonus,
+    passive_score,
+    skill_bonus,
+)
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.ids import CreatureId
@@ -90,3 +94,14 @@ def test_roll_ability_check_poisoned_disadvantage() -> None:
         )
         is False
     )
+
+
+def test_passive_score_base() -> None:
+    c = _c()  # WIS 10 → +0, без владения
+    assert passive_score(c, Skill.PERCEPTION) == 10  # 10 + 0
+
+
+def test_passive_score_proficient() -> None:
+    c = _c()
+    c.skill_proficiencies = frozenset({Skill.PERCEPTION})
+    assert passive_score(c, Skill.PERCEPTION) == 12  # 10 + 0 + prof 2

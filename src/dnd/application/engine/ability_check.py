@@ -86,6 +86,34 @@ def roll_ability_check_raw(
     return roll.total >= dc
 
 
+def passive_score(
+    actor: Creature,
+    skill: Skill,
+    *,
+    modifier_applier: ModifierApplier | None = None,
+    condition_service: ConditionService | None = None,
+) -> int:
+    """Пассивное значение проверки = ``10 + бонус навыка`` (+ numeric-модификаторы,
+    ±5 за преимущество/помеху — PHB-2024 стр. 11). Без броска. Пассивная
+    Внимательность = ``passive_score(actor, Skill.PERCEPTION)``."""
+    score = 10 + skill_bonus(actor, skill)
+    if modifier_applier is not None:
+        mods = list(
+            modifier_applier.collect(
+                owner_id=actor.id, target_kind=ModifierTargetKind.ABILITY_CHECK
+            )
+        )
+        if condition_service is not None:
+            mods += condition_service.collect_modifiers(actor, ModifierTargetKind.ABILITY_CHECK)
+        adj = modifier_applier.to_roll_adjustments(mods)
+        score += adj.numeric_bonus
+        if adj.advantage and not adj.disadvantage:
+            score += 5
+        elif adj.disadvantage and not adj.advantage:
+            score -= 5
+    return score
+
+
 def roll_ability_check(
     actor: Creature,
     *,
@@ -110,6 +138,7 @@ def roll_ability_check(
 
 __all__ = [
     "ability_check_bonus",
+    "passive_score",
     "roll_ability_check",
     "roll_ability_check_raw",
     "skill_bonus",
