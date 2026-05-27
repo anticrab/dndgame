@@ -319,6 +319,28 @@ class ConditionRemoved(EngineEvent):
     reason: str  # "damage" | "save" | "concentration_ended" | "duration" | "manual"
 
 
+class BuffApplied(EngineEvent):
+    """Наложен бафф-модификатор с дедлайном по часам (X0).
+
+    Источник баффа (хендлер заклинания/предмета) публикует это событие после
+    добавления модификатора в ``ModifierApplier``; ``OngoingEffectTracker``
+    запоминает срок и снимает модификатор по достижении ``expires_at_round``.
+    """
+
+    event_type: ClassVar[str] = "buff.applied"
+    owner_id: CreatureId
+    source_id: str
+    expires_at_round: int | None = None  # X0: дедлайн снятия по часам (None = не по времени)
+
+
+class BuffExpired(EngineEvent):
+    """Бафф-модификатор снят по истечении времени (X0)."""
+
+    event_type: ClassVar[str] = "buff.expired"
+    owner_id: CreatureId
+    source_id: str
+
+
 class CreatureDied(EngineEvent):
     """Существо окончательно мертво (3 провала спасбросков либо massive)."""
 

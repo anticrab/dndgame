@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.engine_event import (
+    BuffApplied,
+    BuffExpired,
     ConcentrationBroken,
     ConditionApplied,
     ConditionRemoved,
@@ -75,6 +77,8 @@ class OngoingEffectTracker:
         self._conds = condition_service
         self._clock = clock
         self._effects: list[OngoingConditionEffect] = []
+        # X0: source_id баффа → (владелец, дедлайн в раундах) для снятия по часам.
+        self._buff_expiry: dict[str, tuple[CreatureId, int]] = {}
 
     def subscribe(self) -> None:
         self._bus.subscribe(ConditionApplied, self._on_applied)
@@ -82,6 +86,7 @@ class OngoingEffectTracker:
         self._bus.subscribe(DamageDealt, self._on_damage)
         self._bus.subscribe(ConcentrationBroken, self._on_concentration_broken)
         self._bus.subscribe(RoundEnded, self._on_round_ended)
+        self._bus.subscribe(BuffApplied, self._on_buff_applied)
 
     # --- запись ---------------------------------------------------------
     def _on_applied(self, event: ConditionApplied) -> None:
@@ -100,8 +105,13 @@ class OngoingEffectTracker:
         )
 
     # --- X0: истечение по часам ----------------------------------------
+    def _on_buff_applied(self, event: BuffApplied) -> None:
+        """Запомнить дедлайн баффа-модификатора (если он по времени)."""
+        if event.expires_at_round is not None:
+            self._buff_expiry[event.source_id] = (event.owner_id, event.expires_at_round)
+
     def _on_round_ended(self, event: RoundEnded) -> None:
-        """На границе раунда снять состояния, чей дедлайн по часам достигнут.
+        """На границе раунда снять состояния и баффы, чей дедлайн по часам достигнут.
         Часы двигает Encounter; трекер лишь читает ``clock.now_round``."""
         if self._clock is None:
             return
@@ -109,6 +119,11 @@ class OngoingEffectTracker:
         for effect in list(self._effects):
             if effect.expires_at_round is not None and effect.expires_at_round <= now:
                 self._remove(effect, reason="duration")
+        for source_id, (owner_id, deadline) in list(self._buff_expiry.items()):
+            if deadline <= now:
+                self._mods.remove_by_source(source_id)
+                del self._buff_expiry[source_id]
+                self._bus.publish(BuffExpired(owner_id=owner_id, source_id=source_id))
 
     # --- триггеры снятия ------------------------------------------------
     def _on_turn_ended(self, event: TurnEnded) -> None:
