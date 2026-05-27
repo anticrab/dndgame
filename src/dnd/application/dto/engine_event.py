@@ -20,9 +20,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from dnd.application.dto.initiative import InitiativeEntry
 from dnd.application.dto.rolls import EngineRollResult
+from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
-from dnd.domain.values.ids import CreatureId, ObjectId, RollId
+from dnd.domain.values.ids import ConditionId, CreatureId, ObjectId, RollId, SpellId
 from dnd.domain.values.item import ItemId
 from dnd.domain.values.square import Square
 
@@ -291,6 +292,30 @@ class ConcentrationBroken(EngineEvent):
     spell_id: str
     dc: int
     roll_total: int
+
+
+class ConditionApplied(EngineEvent):
+    """Состояние наложено на цель (T2). Несёт всю мету снятия, чтобы
+    OngoingEffectTracker восстановил активный эффект из события."""
+
+    event_type: ClassVar[str] = "condition.applied"
+    caster_id: CreatureId
+    target_id: CreatureId
+    spell_id: SpellId | None
+    conditions: frozenset[ConditionId]
+    ends_on_damage: bool = False
+    repeat_save_ability: Ability | None = None
+    save_dc: int | None = None
+    concentration: bool = False
+
+
+class ConditionRemoved(EngineEvent):
+    """Состояние(я) снято с цели (T2)."""
+
+    event_type: ClassVar[str] = "condition.removed"
+    target_id: CreatureId
+    conditions: frozenset[ConditionId]
+    reason: str  # "damage" | "save" | "concentration_ended" | "manual"
 
 
 class CreatureDied(EngineEvent):
