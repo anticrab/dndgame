@@ -137,6 +137,26 @@ class CastSpellIntent(_IntentBase):
     direction: Direction | None = None
 
 
+class ShoveIntent(_IntentBase):
+    """Игрок толкает цель (V2): Атлетика vs Атлетика/Акробатика → Prone."""
+
+    kind: Literal["shove"] = "shove"
+    target_id: CreatureId
+
+
+class GrappleIntent(_IntentBase):
+    """Игрок хватает цель (V2): Атлетика vs Атлетика/Акробатика → Grappled."""
+
+    kind: Literal["grapple"] = "grapple"
+    target_id: CreatureId
+
+
+class HideIntent(_IntentBase):
+    """Игрок прячется (V2): Скрытность vs пассивная Внимательность → Hidden."""
+
+    kind: Literal["hide"] = "hide"
+
+
 class SecondWindIntent(_IntentBase):
     """Игрок активирует Second Wind (Воин L1, R1): bonus action, self-heal."""
 
@@ -161,6 +181,9 @@ PlayerIntent = Annotated[
     | PickupIntent
     | StabilizeIntent
     | CastSpellIntent
+    | ShoveIntent
+    | GrappleIntent
+    | HideIntent
     | SecondWindIntent
     | ActionSurgeIntent,
     Field(discriminator="kind"),
@@ -176,10 +199,13 @@ __all__ = [
     "DisengageIntent",
     "DodgeIntent",
     "EndTurnIntent",
+    "GrappleIntent",
+    "HideIntent",
     "InteractIntent",
     "MoveIntent",
     "PickupIntent",
     "PlayerIntent",
     "SecondWindIntent",
+    "ShoveIntent",
     "StabilizeIntent",
 ]

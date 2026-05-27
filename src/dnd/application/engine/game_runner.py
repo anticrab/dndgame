@@ -33,11 +33,14 @@ from dnd.application.dto.player_intent import (
     DisengageIntent,
     DodgeIntent,
     EndTurnIntent,
+    GrappleIntent,
+    HideIntent,
     InteractIntent,
     MoveIntent,
     PickupIntent,
     PlayerIntent,
     SecondWindIntent,
+    ShoveIntent,
     StabilizeIntent,
 )
 from dnd.application.engine.actions.action_surge import (
@@ -56,6 +59,12 @@ from dnd.application.engine.actions.pickup import PickupAction, PickupParams
 from dnd.application.engine.actions.second_wind import (
     SecondWindAction,
     SecondWindParams,
+)
+from dnd.application.engine.actions.skill_actions import (
+    GrappleAction,
+    HideAction,
+    ShoveAction,
+    SkillActionParams,
 )
 from dnd.application.engine.actions.stabilize import StabilizeAction, StabilizeParams
 from dnd.application.engine.actions.stances import (
@@ -220,6 +229,23 @@ class GameRunner:
                 ActionSurgeAction(), ActionSurgeParams(), actor, ctx, "action_surge"
             )
             return
+        if isinstance(intent, ShoveIntent):
+            self._do_skill_action(
+                ShoveAction(), SkillActionParams(target_id=intent.target_id), actor, ctx, "shove"
+            )
+            return
+        if isinstance(intent, GrappleIntent):
+            self._do_skill_action(
+                GrappleAction(),
+                SkillActionParams(target_id=intent.target_id),
+                actor,
+                ctx,
+                "grapple",
+            )
+            return
+        if isinstance(intent, HideIntent):
+            self._do_skill_action(HideAction(), SkillActionParams(), actor, ctx, "hide")
+            return
         # EndTurnIntent обрабатывается в _run_pc_turn до вызова.
         # Защита от расширения PlayerIntent без обновления GameRunner.
         raise TypeError(f"unknown PlayerIntent: {type(intent).__name__}")
@@ -281,6 +307,21 @@ class GameRunner:
             action.execute(actor, params, ctx)
         else:
             self._log_rejected(actor, "stabilize", _avail_reason(avail))
+
+    def _do_skill_action(
+        self,
+        action: ShoveAction | GrappleAction | HideAction,
+        params: SkillActionParams,
+        actor: Creature,
+        ctx: TurnContext,
+        label: str,
+    ) -> None:
+        """Боевая проверка (Shove/Grapple/Hide, V2): валидируем и исполняем."""
+        avail = action.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, label, _avail_reason(avail))
 
     def _do_simple_self_action(
         self,
