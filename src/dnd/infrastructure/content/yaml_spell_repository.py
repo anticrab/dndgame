@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.damage import DamageType

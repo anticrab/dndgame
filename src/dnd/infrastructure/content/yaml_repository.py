@@ -21,7 +21,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TypeVar
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from pydantic import TypeAdapter
 
 from dnd.application.dto.templates import (

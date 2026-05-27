@@ -262,7 +262,7 @@ def export(
     if format_ == "json":
         body = json.dumps(doc.model_dump(mode="json"), ensure_ascii=False, indent=2)
     else:
-        import yaml  # type: ignore[import-untyped]
+        import yaml
 
         body = yaml.safe_dump(doc.model_dump(mode="json"), sort_keys=False, allow_unicode=True)
     if output:
