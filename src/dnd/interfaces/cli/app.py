@@ -124,6 +124,16 @@ def play(
         class_repository=class_repo,  # T1: профициентные спасброски PC из класса
     )
 
+    # T2: трекер контроль-эффектов — снимает Sleep/Hold Person по триггерам
+    # (урон / повторный спасбросок / срыв концентрации). Общий для CLI и TUI.
+    from dnd.application.engine.effects.ongoing_effect_tracker import (
+        OngoingEffectTracker,
+    )
+    OngoingEffectTracker(
+        participants=enc.participants, event_bus=enc.event_bus,
+        dice_roller=services.dice_roller, modifier_applier=services.modifier_applier,
+    ).subscribe()
+
     if tui:
         # Импорт здесь — чтобы --no-tui не тащил textual.
         from dnd.interfaces.tui import run_tui

@@ -32,6 +32,7 @@ from dnd.application.engine.actions.move import MoveAction, MoveParams
 from dnd.application.engine.actions.stances import DodgeAction
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.engine.turn_context import TurnContext
+from dnd.domain.conditions.builtin import INCAPACITATED
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import CreatureId
@@ -54,8 +55,12 @@ def take_monster_turn(
     Side effects: вызывает Action.execute, мутирует Battlefield,
     публикует события.
     """
-    if not actor.is_alive or actor.is_at_zero_hp:
-        return  # ничего не делаем
+    if (
+        not actor.is_alive
+        or actor.is_at_zero_hp
+        or actor.has_condition(INCAPACITATED)
+    ):
+        return  # ничего не делаем (мёртв / при смерти / недееспособен)
 
     target = _find_nearest_hostile(actor, ctx, is_hostile)
     if target is None:

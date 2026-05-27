@@ -72,6 +72,7 @@ from dnd.application.engine.turn_context import TurnContext
 from dnd.application.ports.item_repository import ItemRepository
 from dnd.application.ports.player_intent_provider import PlayerIntentProvider
 from dnd.application.ports.spell_repository import SpellRepository
+from dnd.domain.conditions.builtin import INCAPACITATED
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.faction import Faction
 
@@ -120,7 +121,11 @@ class GameRunner:
             actor = encounter.participants[actor_id]
             ctx = encounter.start_turn()
 
-            if not actor.is_alive or actor.is_at_zero_hp:
+            if (
+                not actor.is_alive
+                or actor.is_at_zero_hp
+                or actor.has_condition(INCAPACITATED)
+            ):
                 encounter.end_turn()
                 continue
 
