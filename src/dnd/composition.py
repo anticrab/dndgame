@@ -24,7 +24,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from dnd.application.engine.condition_service import ConditionService
 from dnd.application.engine.dice_roller import ComputerDiceRoller
@@ -35,6 +35,7 @@ from dnd.application.ports.event_bus import EventBus
 from dnd.domain.conditions.builtin import register_default_conditions
 from dnd.domain.conditions.registry import ConditionRegistry
 from dnd.domain.entities.battlefield import Battlefield
+from dnd.domain.entities.game_clock import GameClock
 from dnd.domain.ports.rng import RNG
 from dnd.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from dnd.infrastructure.rng.real_rng import RealRNG
@@ -55,6 +56,9 @@ class EncounterRuntimeServices:
     condition_service: ConditionService
     event_bus: EventBus
     rng: RNG
+    # X0: общие игровые часы сессии — единый объект на все бои и режим
+    # исследования. Передаётся в EncounterDependencies и трекер эффектов.
+    clock: GameClock = field(default_factory=GameClock)
 
     def with_battlefield(self, battlefield: Battlefield) -> EncounterDependencies:
         """Дополнить услуги конкретной картой → готовый
@@ -66,6 +70,7 @@ class EncounterRuntimeServices:
             condition_service=self.condition_service,
             event_bus=self.event_bus,
             rng=self.rng,
+            clock=self.clock,
         )
 
 

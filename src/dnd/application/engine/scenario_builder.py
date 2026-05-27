@@ -187,6 +187,7 @@ def build_encounter_from_scenario(
             condition_service=deps.condition_service,
             event_bus=deps.event_bus,
             rng=deps.rng,
+            clock=deps.clock,  # X0: сохранить общие часы при смене карты
         )
 
     participants: dict[CreatureId, Creature] = {}

@@ -137,6 +137,7 @@ def play(
         dice_roller=services.dice_roller,
         modifier_applier=services.modifier_applier,
         condition_service=services.condition_service,
+        clock=services.clock,  # X0: те же часы, что двигает Encounter → истечение по времени
     ).subscribe()
 
     if tui:

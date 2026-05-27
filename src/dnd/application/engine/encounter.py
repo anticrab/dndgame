@@ -42,6 +42,7 @@ from dnd.domain.conditions.builtin import (
     STUNNED,
     UNCONSCIOUS,
 )
+from dnd.domain.entities.game_clock import GameClock
 from dnd.domain.entities.interactable import InteractableObject
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.dice import DiceExpr
@@ -81,6 +82,9 @@ class EncounterDependencies:
     condition_service: ConditionService
     event_bus: EventBus
     rng: RNG
+    # X0: общие игровые часы боя. Encounter двигает их на границе раунда;
+    # тот же объект держит GameSession и читает OngoingEffectTracker.
+    clock: GameClock = field(default_factory=GameClock)
 
 
 class EncounterAlreadyStartedError(RuntimeError):
@@ -516,6 +520,7 @@ class Encounter:
             movement_remaining_ft=self._effective_speed_ft(actor),
             round_number=self._state.round_number,
             turn_number_in_round=self._state.current_turn_index,
+            clock=self._deps.clock,
         )
 
         skipped = actor.is_at_zero_hp or not actor.is_alive
@@ -602,6 +607,10 @@ class Encounter:
             return
         # Конец круга — закрыть текущий, открыть следующий.
         closed_round = self._state.round_number
+        # X0: один раунд игрового времени прошёл. Двигаем ДО публикации
+        # RoundEnded, чтобы OngoingEffectTracker сравнивал дедлайны с уже
+        # обновлёнными часами (истечение состояний/баффов по времени).
+        self._deps.clock.advance(1)
         self._deps.event_bus.publish(RoundEnded(round_number=closed_round))
         next_round = self._state.round_number + 1
         if next_round > self.MAX_ROUNDS:
