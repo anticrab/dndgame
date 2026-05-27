@@ -259,12 +259,23 @@ Textual-приложения, MVP-граница, многопоточная с�
   `Ability`/`AbilityRegistry`/`build_keymap`, без правок движка. Предусловие для
   волшебника (выбор из многих заклинаний). Персист биндов (привязка к персонажу)
   и грейинг по ресурсу/слоту — позже (settings; этап мага).
+- ✅ **Этап T1 — Волшебник (ядро).** Третий класс данными (`d6`, ячейки L1–3,
+  спасброски INT/WIS); профициентные спасброски для всех классов через единую
+  `roll_saving_throw` (`engine/saving_throw.py`); `Ability.requires_area` для
+  AoE-заклинаний; заклинания видны и кастуются из меню способностей (`Tab`).
+  `mage_apprentice` = PC-волшебник L1 + e2e-смок. См. `docs/PROGRESSION.md` §7b.
+  - ⏳ **T2 — интересные/контроль-заклинания.** Sleep→Unconscious,
+    Hold Person→Paralyzed; правка уровней Fireball/Lightning Bolt (3-й круг).
+  - ⏳ **T3 — боевые условия.** Cross-creature преимущество, авто-крит,
+    Dodge-спасброски, авто-провалы спасбросков (Paralyzed/Unconscious).
+  - ⏳ **T4 — подклассы L3 + добивка классов.** Школа магии / Чемпион / Вор,
+    Fighting Style, Cunning Action; все классы полно по L1–3.
 - ⏳ **Доработки по аудиту 2026-05-27** (`docs/superpowers/reviews/2026-05-27-audit-findings.md`):
   острые баги (концентрация, UI-рефреш death-save/level-up, неверный intent,
-  Sneak при disadvantage, спам level-up, dying-условия) — чинятся сразу (REV-1..7);
-  отложено в правила/этапы: профициентные спасброски (→ маг/прогрессия),
-  cross-creature преимущество + Dodge-saves + Exhaustion + авто-провалы (→ этап
-  «Условия в бою»), ranged-в-упор, умный pathfinding-AI (обход трупов).
+  Sneak при disadvantage, спам level-up, dying-условия) — исправлены (REV-1..7);
+  профициентные спасброски — **сделано в T1**; отложено в правила/этапы:
+  cross-creature преимущество + Dodge-saves + Exhaustion + авто-провалы (→ T3),
+  ranged-в-упор, умный pathfinding-AI (обход трупов).
 - 🔜 Главное меню, лист персонажа, экран исследования.
 - 🔜 Анимация атаки (mockup C.2).
 

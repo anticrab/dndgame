@@ -29,13 +29,16 @@ class Ability:
     economy_cost: ActionEconomyCost
     requires_target: bool      # True → mode TARGET (Tab-cycle)
     requires_path: bool        # True → mode MOVE (курсор по карте)
+    requires_area: bool        # True → mode AREA (точка/направление AoE), T1
     intent_factory: Callable[..., PlayerIntent]
 ```
 
-`requires_target` и `requires_path` взаимоисключающие — mode-state-
-machine BattleScreen'а поддерживает только один из режимов за раз;
-ability, требующий и того и другого, нельзя выразить текущим
-machine'ом, поэтому `__post_init__` поднимает `ValueError`.
+`requires_target` / `requires_path` / `requires_area` **взаимоисключающие** —
+mode-state-machine BattleScreen'а держит ровно один режим за раз (TARGET /
+MOVE / AREA); ability, требующий двух режимов сразу, нельзя выразить текущим
+machine'ом, поэтому `__post_init__` поднимает `ValueError` (если истинно более
+одного флага). `requires_area` (этап T1) ставится автоматически для
+AoE-заклинаний (`TargetKind.AREA`) в `spell_ability()`.
 
 ## Default-набор (6 умений)
 
@@ -146,9 +149,13 @@ Sneak Attack) ability не выдают — действуют в `AttackAction`
   ресурсу/слоту и персист биндов на диск (привязка к персонажу) — отложены
   (см. спек `docs/superpowers/specs/2026-05-27-s-ability-menu-design.md` §5).
 
-Источник строк — `actor.ability_ids → AbilityRegistry`: новые способности
-(в т.ч. заклинания-как-`Ability` у будущего волшебника) появляются в меню без
-правок UI.
+Источник строк — `actor.ability_ids → AbilityRegistry` **плюс** заклинания.
+Заклинания не лежат в `ability_ids` (они в `keymap` под хоткеями `1–9`), поэтому
+`_open_ability_menu` отдельно добавляет в меню строки-`Ability` для каждого
+заклинания из keymap (`is_spell_ability`). Так волшебник видит и кастует все
+заклинания из одного списка; AoE-заклинание (`requires_area`) при выборе уводит
+BattleScreen в режим **AREA** через тот же `_trigger_ability`. Новые способности
+и заклинания появляются в меню без правок UI.
 
 ## См. также
 
