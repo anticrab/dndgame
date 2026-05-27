@@ -32,3 +32,23 @@ def test_requires_level_1() -> None:
 def test_hit_die_average() -> None:
     # ⌈(sides+1)/2⌉: d10 → 6.
     assert _fighter().hit_die_average() == 6
+
+
+def test_class_progression_has_saving_throw_proficiencies() -> None:
+    from dnd.domain.values.ability import Ability
+
+    prog = ClassProgression(
+        id="x", name="X", hit_die="1d6",
+        levels={1: ClassLevel(proficiency_bonus=2)},
+        saving_throw_proficiencies=frozenset({Ability.INT, Ability.WIS}),
+    )
+    assert Ability.INT in prog.saving_throw_proficiencies
+    assert Ability.STR not in prog.saving_throw_proficiencies
+
+
+def test_class_progression_save_profs_default_empty() -> None:
+    prog = ClassProgression(
+        id="y", name="Y", hit_die="1d6",
+        levels={1: ClassLevel(proficiency_bonus=2)},
+    )
+    assert prog.saving_throw_proficiencies == frozenset()

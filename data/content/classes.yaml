@@ -1,8 +1,9 @@
-# Таблицы прогрессии классов (этап R1). Формат — YamlClassRepository.
-# В R1 указаны только R1-фичи; R2 дополнит уровни Плута и остальные фичи.
+# Таблицы прогрессии классов. Формат — YamlClassRepository.
+# saving_throw_proficiencies — спасброски, в которых класс профициентен (T1).
 - id: fighter
   name: "Воин"
   hit_die: "1d10"
+  saving_throw_proficiencies: [STR, CON]
   levels:
     1: { proficiency_bonus: 2, features: [second_wind] }
     2: { proficiency_bonus: 2, features: [action_surge] }
@@ -10,6 +11,7 @@
 - id: rogue
   name: "Плут"
   hit_die: "1d8"
+  saving_throw_proficiencies: [DEX, INT]
   levels:
     1: { proficiency_bonus: 2, features: [sneak_attack] }
     2: { proficiency_bonus: 2, features: [] }

@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 
+from dnd.domain.values.ability import Ability
 from dnd.domain.values.class_progression import ClassLevel, ClassProgression
 from dnd.domain.values.ids import FeatureId
 
@@ -49,6 +50,9 @@ class YamlClassRepository:
         return ClassProgression(
             id=entry["id"], name=entry["name"],
             hit_die=entry["hit_die"], levels=levels,
+            saving_throw_proficiencies=frozenset(
+                Ability(code) for code in entry.get("saving_throw_proficiencies", [])
+            ),
         )
 
     def load(self, class_id: str) -> ClassProgression:
