@@ -52,6 +52,30 @@
   character_class: fighter   # R1: level-up по таблице Воина
   level: 1
 
+# Этап D: «бывалый» воин для демо-сцены. Тот же воин L1, но со стартовым XP
+# у порога 2 уровня (90 < 100, FastXpCurve) — как после пары стычек по канону
+# SCENARIO_DEMO. В демо-бою первое же добивание гоблина (+25) перешагивает
+# порог → level-up прямо в бою. Отдельный шаблон, чтобы не трогать сценарии,
+# где воин стартует «с нуля».
+- id: warrior_veteran
+  name: Warrior (veteran)
+  abilities:
+    str: 16
+    dex: 12
+    con: 14
+    int: 10
+    wis: 10
+    cha: 10
+  max_hp: 20
+  armor_class: 16
+  speed_ft: 30
+  proficiency_bonus: 2
+  weapon_id: longsword
+  default_faction: party
+  character_class: fighter
+  level: 1
+  xp: 90
+
 - id: mage_apprentice
   name: Apprentice Mage
   abilities:

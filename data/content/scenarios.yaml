@@ -183,48 +183,40 @@
       faction: monsters
 
 # Этап D: курированная демо-сцена для «первичного показа» (TUI-first).
-# Один воин L1 против 5 гоблинов; стены-колонны делят подход врагов на
-# волны, чтобы воин не получал свалку атак. XP-бюджет (5×25=125) с запасом
-# покрывает порог 2 уровня (100, FastXpCurve) — level-up срабатывает в бою
-# на 4-м убийстве, пока жив 5-й гоблин. См. docs/DEMO.md, docs/SCENARIO_DEMO.md.
+# Бывалый воин L1 (warrior_veteran, стартовый XP 90 — у порога 2 уровня)
+# против ДВУХ гоблинов на открытой арене («зал гоблинов»). По правилам книги
+# соло-воину 4–5 гоблинов — смертельный сварм; два — честный, надёжно
+# проходимый бой для «первичного показа». Первое же добивание (+25 XP → 115)
+# даёт level-up ПРЯМО В БОЮ (Action Surge), которым добиваешь второго.
+# Карта без внутренних стен: monster-AI гейтит цели по LoS и не обходит
+# препятствия, поэтому стены между бойцами делали бы гоблинов пассивными;
+# стены только по верх/низ кромке (декор). См. docs/DEMO.md.
 - id: demo_skirmish
-  name: "Демо: Туннель гоблинов"
+  name: "Демо: Зал гоблинов"
   map:
-    width: 11
+    width: 13
     height: 7
     legend:
       ".": floor
       "#": wall
     grid:
-      - "..........."
-      - "...#...#..."
-      - "..........."
-      - "...#...#..."
-      - "..........."
-      - "...#...#..."
-      - "..........."
+      - "#####...#####"
+      - "............."
+      - "............."
+      - "............."
+      - "............."
+      - "............."
+      - "#####...#####"
   spawns:
-    - template_id: warrior_lv1
+    - template_id: warrior_veteran
       instance_id: aelar
-      at: [0, 3]
+      at: [1, 3]
       faction: party
     - template_id: goblin
       instance_id: goblin1
-      at: [10, 3]
-      faction: monsters
-    - template_id: goblin
-      instance_id: goblin2
-      at: [9, 1]
-      faction: monsters
-    - template_id: goblin
-      instance_id: goblin3
-      at: [9, 5]
-      faction: monsters
-    - template_id: goblin
-      instance_id: goblin4
       at: [8, 2]
       faction: monsters
     - template_id: goblin
-      instance_id: goblin5
-      at: [8, 4]
+      instance_id: goblin2
+      at: [9, 4]
       faction: monsters

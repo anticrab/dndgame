@@ -36,37 +36,36 @@ def _build_demo() -> tuple[ScenarioTemplate, Encounter]:
 
 
 @pytest.mark.e2e
-def test_demo_skirmish_loads_with_warrior_vs_five_goblins() -> None:
+def test_demo_skirmish_loads_with_veteran_vs_two_goblins() -> None:
     _scenario, enc = _build_demo()
 
     party = [cid for cid, f in enc.factions.items() if f is Faction.PARTY]
     monsters = [cid for cid, f in enc.factions.items() if f is Faction.MONSTERS]
     assert len(party) == 1, "в демо ровно один PC-воин"
-    assert len(monsters) == 5, "в демо пять гоблинов"
+    assert len(monsters) == 2, "в демо два гоблина (соло-воину 4–5 непроходимо)"
 
     warrior = enc.participants[party[0]]
     assert warrior.character_class == "fighter"
     assert warrior.level == 1
+    assert warrior.xp == 90, "бывалый воин стартует у порога 2 уровня (90<100)"
     assert warrior.uses_death_saves is True  # PARTY → death saves (страховка драмы)
 
 
 @pytest.mark.e2e
-def test_demo_skirmish_xp_budget_reaches_level_two() -> None:
-    """Суммарный XP за всех гоблинов ≥ порога 2 уровня (100 по FastXpCurve)."""
+def test_demo_skirmish_first_kill_crosses_level_threshold() -> None:
+    """Старт 90 XP + одно добивание (CR0.25×100=25) = 115 ≥ порога 2 уровня."""
     _scenario, enc = _build_demo()
-    total_xp = sum(
-        int(enc.participants[cid].challenge_rating * 100)
-        for cid, f in enc.factions.items()
-        if f is Faction.MONSTERS
+    warrior = next(
+        enc.participants[cid] for cid, f in enc.factions.items() if f is Faction.PARTY
     )
-    assert total_xp >= FastXpCurve().threshold(2), (
-        f"XP-бюджет демо ({total_xp}) меньше порога 2 уровня"
+    assert warrior.xp + 25 >= FastXpCurve().threshold(2), (
+        "первого добивания должно хватать на level-up в бою"
     )
 
 
 @pytest.mark.e2e
-def test_demo_skirmish_fourth_kill_triggers_levelup_to_two() -> None:
-    """Смерти 4 гоблинов → 100 XP → LevelUpReady → авто level-up до 2.
+def test_demo_skirmish_first_kill_triggers_levelup_to_two() -> None:
+    """Смерть 1 гоблина → 115 XP → LevelUpReady → авто level-up до 2.
 
     Воспроизводит ровно тот wiring, что в interfaces/cli/app.py (non-TUI):
     XpAwardService.subscribe() + авто-применение LevelUpService на LevelUpReady.
@@ -93,10 +92,9 @@ def test_demo_skirmish_fourth_kill_triggers_levelup_to_two() -> None:
 
     enc.event_bus.subscribe(LevelUpReady, _auto)
 
-    # «Убиваем» первых четырёх гоблинов — публикуем их смерть в шину.
-    for gid in goblin_ids[:4]:
-        enc.event_bus.publish(CreatureDied(actor_id=gid))
+    # «Убиваем» первого гоблина — публикуем его смерть в шину.
+    enc.event_bus.publish(CreatureDied(actor_id=goblin_ids[0]))
 
-    assert warrior.xp == 100, "4 гоблина × CR0.25×100 = 100 XP"
+    assert warrior.xp == 115, "90 (старт) + 25 (CR0.25×100) = 115 XP"
     assert ready and ready[-1].to_level == 2, "LevelUpReady на 2 уровень"
     assert warrior.level == 2, "авто level-up поднял воина до 2"
