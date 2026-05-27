@@ -154,6 +154,7 @@ def play(
     XpAwardService(
         event_bus=enc.event_bus, curve=FastXpCurve(),
         participants=enc.participants, factions=enc.factions,
+        class_repository=class_repo,  # REV-6: не спамить выше макс. уровня класса
     ).subscribe()
     _level_up = LevelUpService(
         class_repository=class_repo,

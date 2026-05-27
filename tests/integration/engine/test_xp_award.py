@@ -58,3 +58,28 @@ def test_pc_death_does_not_award() -> None:
     bus, pc, _gob, ready = _setup()
     bus.publish(CreatureDied(actor_id="hero"))  # умер сам PC (PARTY)
     assert pc.xp == 0 and not ready
+
+
+def test_no_levelup_spam_past_class_max() -> None:
+    """REV-6: XP выше порога недостижимого уровня класса не должен спамить
+    LevelUpReady (Воин в classes.yaml — только L1–3)."""
+    from pathlib import Path
+
+    from dnd.infrastructure.content.yaml_class_repository import YamlClassRepository
+
+    bus = InMemoryEventBus()
+    pc, gob = _pc(), _gob(9.0)  # CR 9 → 900 XP → curve вернёт level 20
+    pc.level = 3  # уже на максимуме таблицы Воина
+    participants = {pc.id: pc, gob.id: gob}
+    factions = {pc.id: Faction.PARTY, gob.id: Faction.MONSTERS}
+    ready: list[LevelUpReady] = []
+    bus.subscribe(LevelUpReady, ready.append)
+    svc = XpAwardService(
+        event_bus=bus, curve=FastXpCurve(),
+        participants=participants, factions=factions,
+        class_repository=YamlClassRepository(Path("data/content/classes.yaml")),
+    )
+    svc.subscribe()
+    bus.publish(CreatureDied(actor_id="gob"))
+    assert pc.xp == 900
+    assert ready == []  # выше макс. уровня класса — без спама

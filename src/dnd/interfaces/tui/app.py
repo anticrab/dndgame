@@ -168,6 +168,7 @@ class TuiApp(App[None]):
             XpAwardService(
                 event_bus=encounter.event_bus, curve=FastXpCurve(),
                 participants=encounter.participants, factions=encounter.factions,
+                class_repository=self._class_repository,  # REV-6
             ).subscribe()
 
         self._renderer = EventRenderer(
