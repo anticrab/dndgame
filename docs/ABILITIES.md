@@ -162,3 +162,12 @@ BattleScreen в режим **AREA** через тот же `_trigger_ability`. �
 * `docs/TUI.md` §6 — mode-state machine, ActionBarWidget;
 * `docs/ACTIONS.md` — серверная сторона: что делает каждое `Action`;
 * `docs/superpowers/specs/2026-05-23-l-inline-ux-and-abilities-design.md` §4.3 — исходный дизайн.
+
+## Cunning Action — бонусные абилки (этап T4)
+
+Плут на L2 получает **Cunning Action**: `cunning_dash` / `cunning_disengage` —
+Dash/Disengage **бонусным действием** (`ActionEconomyCost.BONUS_ACTION`). Их
+выдаёт `CunningActionHandler` (в `ability_ids`) при level-up; в `AbilityRegistry`
+зарегистрированы без дефолтного хоткея (доступ через меню способностей `Tab`).
+Интенты `DashIntent`/`DisengageIntent` несут флаг `bonus_action`; `GameRunner`
+строит `DashAction`/`DisengageAction` с нужной экономикой. Hide — отложен.

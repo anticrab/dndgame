@@ -278,8 +278,12 @@ Textual-приложения, MVP-граница, многопоточная с�
     авто-провал STR/DEX-спасбросков, преимущество на DEX-спасброски в Dodge.
     Декларативные боевые поля на состояниях (data, не switch).
     См. `docs/CONDITIONS.md`.
-  - ⏳ **T4 — подклассы L3 + добивка классов.** Школа магии / Чемпион / Вор,
-    Fighting Style, Cunning Action; все классы полно по L1–3.
+  - ✅ **T4 — подклассы L3 + добивка классов.** Боевой стиль Воина L1
+    (Defense/Archery/Dueling), Cunning Action Плута L2 (Dash/Disengage бонусным
+    действием), подклассы L3: Чемпион (Improved Critical) / Вор (Fast Hands,
+    лёгкая) / Школа Воплощения (Sculpt Spells — союзники вне своей AoE). Выбор —
+    данными шаблона (интерактивный выбор отложен до создания персонажа). Все три
+    класса полно по L1–3. См. `docs/PROGRESSION.md` §7c. **Серия T завершена.**
 - ⏳ **Доработки по аудиту 2026-05-27** (`docs/superpowers/reviews/2026-05-27-audit-findings.md`):
   острые баги (концентрация, UI-рефреш death-save/level-up, неверный intent,
   Sneak при disadvantage, спам level-up, dying-условия) — исправлены (REV-1..7);

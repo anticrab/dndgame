@@ -259,6 +259,30 @@ secrets:
 `mage_apprentice` в `mage_skirmish` — PC-волшебник L1 (две ячейки 1 круга);
 e2e-смок `tests/e2e/test_wizard_play.py` проверяет сборку и сходимость боя.
 
+## 7c. Реализовано в T4 — подклассы, стили, Cunning Action
+
+Этап **T4** довёл классы до полного L1–3 (выбор — данными шаблона, интерактив
+отложен, см. память про интерактивный выбор):
+
+- **Боевой стиль Воина (L1)** — `Creature.fighting_style` из шаблона
+  (`fighting_style: defense`), применяется `FightingStyleHandler`; дефолт —
+  Defense. Реализованы: **Defense** (+1 КД, пассив), **Archery** (+2 к дальней
+  атаке), **Dueling** (+2 к урону рукопашной) — числовые бонусы в helper'е
+  `application/engine/features/fighting_styles.py`, `attack.py` их применяет.
+  Great Weapon Fighting (переброс 1–2 урона) — отложен (нет reroll-хука).
+- **Cunning Action (Плут L2)** — `CunningActionHandler` грантит `cunning_dash`/
+  `cunning_disengage` — **Dash/Disengage бонусным действием** (интенты несут
+  флаг `bonus_action`; `Dash/DisengageAction` принимают экономику). Hide —
+  отложен (стелса нет).
+- **Подклассы (L3)** — `Creature.subclass` из шаблона или автодефолт по классу
+  (`SubclassHandler`): **Чемпион** (Воин → Improved Critical, крит 19–20),
+  **Вор** (Плут → Fast Hands, лёгкая версия; Second-Story Work отложен — нет
+  навыков/лазания), **Школа Воплощения** (Волшебник → **Sculpt Spells**:
+  союзники кастера не получают урон от его AoE).
+
+Выбор/подкласс/стиль — фичи (хендлеры) + данные (`classes.yaml`) + поля выбора
+(domain `Creature`); добавить класс/стиль/подкласс можно без правок движка.
+
 ## 8. Что отложено
 
 - **R2** — подсистема навыков/владений + Expertise, Fighting Style (выбор),
