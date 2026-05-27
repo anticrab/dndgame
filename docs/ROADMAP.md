@@ -437,11 +437,16 @@ Ultima», карта боя читаема на 80×24 (минимум), пол�
   Переиспользует `SpellEffectRegistry`/`ResourceRegistry`. Малый объём, видимый
   результат, без новых подсистем. «Оживляет» готовый инвентарь (этап O).
 - **V — Навыки и проверки характеристик (приоритет 2, фундамент).** `Skill`
-  (18 навыков, данные) + владения/Expertise на `Creature`; `AbilityCheckAction`/
-  служба (`d20 + mod + prof`, advantage/disadvantage от состояний — через
+  (18 навыков, данные) + владения/Expertise на `Creature`; служба
+  `ability_check` (`d20 + mod + prof`, advantage/disadvantage от состояний — через
   `ConditionService`), пассивная Внимательность. Закрывает R2-навыки и
   разблокирует Fast Hands/Second-Story Work (отложено в T4) и проверки в
-  исследовании.
+  исследовании. См. `docs/SKILLS.md`.
+  - ✅ **V1 — фундамент:** `Skill`/`SKILL_ABILITY`, `Creature.skill_proficiencies/
+    skill_expertise`, `skill_bonus`/`ability_check_bonus`/`roll_ability_check[_raw]`/
+    `passive_score`, владения данными класса/шаблона.
+  - 🔜 **V2 — боевые проверки:** `opposed_check` (состязания), состояния
+    Grappled/Hidden, действия Shove/Grapple/Hide.
 - **W — Создание персонажа и экипировка (приоритет 3).** `CharacterBuilder`
   (класс → вид + предыстория → характеристики (стандартный массив/покупка
   очков) → экипировка → стартовые фичи); **интерактивный выбор боевого стиля /
