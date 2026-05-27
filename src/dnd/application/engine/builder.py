@@ -18,7 +18,7 @@ from dnd.application.dto.templates import (
 from dnd.application.ports.content_repository import ContentRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
-from dnd.domain.values.ids import CreatureId, SpellId
+from dnd.domain.values.ids import CreatureId, FeatureId, SpellId
 from dnd.domain.values.weapon import WeaponProfile
 
 if TYPE_CHECKING:
@@ -86,6 +86,11 @@ def build_creature_from_template(
     creature.character_class = template.character_class
     creature.level = template.level
     creature.xp = template.xp
+    # T4: выбор данными шаблона (интерактив отложен) — боевой стиль/подкласс.
+    creature.fighting_style = (
+        FeatureId(template.fighting_style) if template.fighting_style else None
+    )
+    creature.subclass = FeatureId(template.subclass) if template.subclass else None
     # T1: профициентные спасброски из класса (для бросков спасбросков с prof).
     if (
         class_repository is not None

@@ -50,6 +50,7 @@
   weapon_id: longsword
   default_faction: party
   character_class: fighter   # R1: level-up по таблице Воина
+  fighting_style: defense   # T4: выбор данными шаблона
   level: 1
 
 # Этап D: «бывалый» воин для демо-сцены. Тот же воин L1, но со стартовым XP
@@ -73,6 +74,7 @@
   weapon_id: longsword
   default_faction: party
   character_class: fighter
+  fighting_style: defense   # T4: выбор данными шаблона
   level: 1
   xp: 90
 

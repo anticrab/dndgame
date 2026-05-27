@@ -5,17 +5,17 @@
   hit_die: "1d10"
   saving_throw_proficiencies: [STR, CON]
   levels:
-    1: { proficiency_bonus: 2, features: [second_wind] }
+    1: { proficiency_bonus: 2, features: [second_wind, fighting_style] }
     2: { proficiency_bonus: 2, features: [action_surge] }
-    3: { proficiency_bonus: 2, features: [improved_critical] }
+    3: { proficiency_bonus: 2, features: [subclass] }   # T4: Чемпион (Improved Critical)
 - id: rogue
   name: "Плут"
   hit_die: "1d8"
   saving_throw_proficiencies: [DEX, INT]
   levels:
     1: { proficiency_bonus: 2, features: [sneak_attack] }
-    2: { proficiency_bonus: 2, features: [] }
-    3: { proficiency_bonus: 2, features: [] }
+    2: { proficiency_bonus: 2, features: [cunning_action] }   # T4
+    3: { proficiency_bonus: 2, features: [subclass] }          # T4: Вор
 # Волшебник (T1): d6, INT/WIS-спасброски, таблица ячеек L1-3 (PHB-2024).
 # Фичи Spellcasting/Arcane Recovery/подкласс — содержательно на T4; здесь
 # каст обеспечивают ячейки + known_spells.
@@ -26,4 +26,4 @@
   levels:
     1: { proficiency_bonus: 2, features: [], spell_slots: { 1: 2 } }
     2: { proficiency_bonus: 2, features: [], spell_slots: { 1: 3 } }
-    3: { proficiency_bonus: 2, features: [], spell_slots: { 1: 4, 2: 2 } }
+    3: { proficiency_bonus: 2, features: [subclass], spell_slots: { 1: 4, 2: 2 } }  # T4: Эвокатор

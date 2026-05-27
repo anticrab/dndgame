@@ -22,8 +22,11 @@ def test_loads_all_classes() -> None:
 def test_fighter_levels() -> None:
     f = _repo().load("fighter")
     assert f.hit_die == "1d10"
-    assert f.levels[1].features == (FeatureId("second_wind"),)
-    assert f.levels[3].features == (FeatureId("improved_critical"),)
+    # T4: L1 += fighting_style; L3 — подкласс (Чемпион даёт Improved Critical).
+    assert f.levels[1].features == (
+        FeatureId("second_wind"), FeatureId("fighting_style"),
+    )
+    assert f.levels[3].features == (FeatureId("subclass"),)
 
 
 def test_contains_and_unknown() -> None:

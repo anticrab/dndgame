@@ -48,6 +48,10 @@ from dnd.application.dto.engine_event import (
     DamageDealt,
 )
 from dnd.application.dto.rolls import RollContext, RollPurpose
+from dnd.application.engine.features.fighting_styles import (
+    fighting_style_attack_bonus,
+    fighting_style_damage_bonus,
+)
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.conditions.builtin import (
     INCAPACITATED,
@@ -341,8 +345,12 @@ class AttackAction:
             target, distance_ft=distance_ft, attack_kind=params.kind
         )
 
-        # 2) Бросок атаки.
-        total_atk_bonus = params.attack_bonus + atk_adj.numeric_bonus
+        # 2) Бросок атаки. T4: боевой стиль Archery — +2 к ranged-атаке.
+        total_atk_bonus = (
+            params.attack_bonus
+            + atk_adj.numeric_bonus
+            + fighting_style_attack_bonus(actor, params.kind)
+        )
         attack_expr = DiceExpr.parse(f"d20{total_atk_bonus:+d}")
         attack_ctx = RollContext(
             purpose=RollPurpose.ATTACK,
@@ -423,13 +431,17 @@ class AttackAction:
             )
             dmg_adj = ctx.modifier_applier.to_roll_adjustments(dmg_mods)
             base_expr = DiceExpr.parse(params.damage_expr)
+            # T4: боевой стиль Dueling — +2 к урону melee.
+            dmg_numeric = dmg_adj.numeric_bonus + fighting_style_damage_bonus(
+                actor, params.kind
+            )
             # Сборка через dataclasses.replace, не строковая конкатенация —
             # DiceExpr.parse не поддерживает «1d8+3+2» (одно опциональное
             # `[+-]\d+` в паттерне). Аудит 08 AT-R001.
             full_expr = (
                 base_expr
-                if dmg_adj.numeric_bonus == 0
-                else replace(base_expr, modifier=base_expr.modifier + dmg_adj.numeric_bonus)
+                if dmg_numeric == 0
+                else replace(base_expr, modifier=base_expr.modifier + dmg_numeric)
             )
             dmg_ctx = RollContext(
                 purpose=RollPurpose.DAMAGE,

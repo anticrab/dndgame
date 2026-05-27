@@ -285,6 +285,12 @@ class Creature:
     """Обретённые классовые фичи (feature_id). Применяются FeatureRegistry'ем
     при level-up; хранятся для inspect и повторного применения."""
 
+    # T4: выбор данными шаблона (интерактив отложен — см.
+    # project_interactive_choice_deferred). Какой боевой стиль / подкласс выбран;
+    # применяется мета-фичей (FightingStyleHandler/SubclassHandler) на уровне.
+    fighting_style: FeatureId | None = None
+    subclass: FeatureId | None = None
+
     crit_range_min: int = 20
     """Минимальный d20 для крита. По умолчанию 20 (нат-20). Improved Critical
     (Чемпион) ставит 19 — AttackAction читает это поле."""

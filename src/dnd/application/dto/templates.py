@@ -84,6 +84,10 @@ class MonsterTemplate(BaseModel):
     # Накопленный XP на старте (для PC-«ветеранов»: демо-сцена ставит воина
     # у порога уровня, чтобы level-up случился в бою). 0 — обычный старт.
     xp: int = Field(default=0, ge=0)
+    # T4: выбор данными шаблона (интерактив отложен). Боевой стиль (Воин L1) и
+    # подкласс (L3); None → автовыбор дефолта в LevelUpService.
+    fighting_style: str | None = None
+    subclass: str | None = None
 
 
 class SpawnTemplate(BaseModel):
