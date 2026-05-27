@@ -19,6 +19,7 @@ from dnd.application.ports.content_repository import ContentRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.ids import CreatureId, FeatureId, SpellId
+from dnd.domain.values.skill import Skill
 from dnd.domain.values.weapon import WeaponProfile
 
 if TYPE_CHECKING:
@@ -92,14 +93,19 @@ def build_creature_from_template(
     )
     creature.subclass = FeatureId(template.subclass) if template.subclass else None
     # T1: профициентные спасброски из класса (для бросков спасбросков с prof).
+    # V1: владение навыками — из класса И из шаблона (объединение).
+    skills: set[Skill] = set()
     if (
         class_repository is not None
         and template.character_class is not None
         and class_repository.contains(template.character_class)
     ):
-        creature.saving_throw_proficiencies = class_repository.load(
-            template.character_class
-        ).saving_throw_proficiencies
+        progression = class_repository.load(template.character_class)
+        creature.saving_throw_proficiencies = progression.saving_throw_proficiencies
+        skills |= progression.skill_proficiencies
+    skills |= {Skill(code) for code in template.skill_proficiencies}
+    creature.skill_proficiencies = frozenset(skills)
+    creature.skill_expertise = frozenset(Skill(code) for code in template.skill_expertise)
     return creature
 
 

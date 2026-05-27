@@ -15,6 +15,7 @@ import yaml
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.class_progression import ClassLevel, ClassProgression
 from dnd.domain.values.ids import FeatureId
+from dnd.domain.values.skill import Skill
 
 
 class YamlClassRepository:
@@ -53,6 +54,9 @@ class YamlClassRepository:
             levels=levels,
             saving_throw_proficiencies=frozenset(
                 Ability(code) for code in entry.get("saving_throw_proficiencies", [])
+            ),
+            skill_proficiencies=frozenset(
+                Skill(code) for code in entry.get("skill_proficiencies", [])
             ),
         )
 

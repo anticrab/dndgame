@@ -88,6 +88,10 @@ class MonsterTemplate(BaseModel):
     # подкласс (L3); None → автовыбор дефолта в LevelUpService.
     fighting_style: str | None = None
     subclass: str | None = None
+    # V1: владение навыками данными шаблона (поверх базовых навыков класса).
+    # Экспертиза (×2 prof) — для Плута/Барда. Полный выбор навыков — в W.
+    skill_proficiencies: tuple[str, ...] = ()
+    skill_expertise: tuple[str, ...] = ()
 
 
 class SpawnTemplate(BaseModel):

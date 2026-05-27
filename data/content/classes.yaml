@@ -4,6 +4,7 @@
   name: "Воин"
   hit_die: "1d10"
   saving_throw_proficiencies: [STR, CON]
+  skill_proficiencies: [athletics, intimidation]   # V1: профильные навыки (демо)
   levels:
     1: { proficiency_bonus: 2, features: [second_wind, fighting_style] }
     2: { proficiency_bonus: 2, features: [action_surge] }
@@ -12,6 +13,7 @@
   name: "Плут"
   hit_die: "1d8"
   saving_throw_proficiencies: [DEX, INT]
+  skill_proficiencies: [stealth, sleight_of_hand, acrobatics]   # V1
   levels:
     1: { proficiency_bonus: 2, features: [sneak_attack] }
     2: { proficiency_bonus: 2, features: [cunning_action] }   # T4
@@ -25,6 +27,7 @@
   name: "Волшебник"
   hit_die: "1d6"
   saving_throw_proficiencies: [INT, WIS]
+  skill_proficiencies: [arcana, investigation]   # V1
   levels:
     1: { proficiency_bonus: 2, features: [], spell_slots: { 1: 2 } }
     2: { proficiency_bonus: 2, features: [], spell_slots: { 1: 3 } }

@@ -49,6 +49,11 @@ class LevelUpService:
         progression = self._classes.load(creature.character_class)
         # T1: держим профициентные спасброски в синхроне с таблицей класса.
         creature.saving_throw_proficiencies = progression.saving_throw_proficiencies
+        # V1: базовые навыки класса добавляются (объединение — не затираем
+        # навыки, выбранные при создании/шаблоном).
+        creature.skill_proficiencies = (
+            creature.skill_proficiencies | progression.skill_proficiencies
+        )
         con_mod = creature.abilities.modifier(Ability.CON)
         hp_per_level = max(1, progression.hit_die_average() + con_mod)
 

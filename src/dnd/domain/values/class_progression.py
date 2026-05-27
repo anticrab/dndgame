@@ -13,6 +13,7 @@ from math import ceil
 from dnd.domain.values.ability import Ability
 from dnd.domain.values.dice import DiceExpr
 from dnd.domain.values.ids import FeatureId
+from dnd.domain.values.skill import Skill
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +36,9 @@ class ClassProgression:
     # Спасброски, в которых класс профициентен (PHB-2024 стр. 9): d20+mod+prof.
     # Пусто у не-PC. T1: Воин STR/CON, Плут DEX/INT, Маг INT/WIS.
     saving_throw_proficiencies: frozenset[Ability] = frozenset()
+    # Базовые навыки класса (V1). Полный выбор «N навыков из списка» — в W
+    # (создании персонажа); здесь — профильные навыки для демо/дефолта.
+    skill_proficiencies: frozenset[Skill] = frozenset()
 
     def __post_init__(self) -> None:
         if 1 not in self.levels:
