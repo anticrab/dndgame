@@ -54,6 +54,7 @@ from dnd.application.engine.features.fighting_styles import (
 )
 from dnd.application.engine.turn_context import TurnContext
 from dnd.domain.conditions.builtin import (
+    HIDDEN,
     INCAPACITATED,
     PARALYZED,
     STUNNED,
@@ -476,6 +477,10 @@ class AttackAction:
             )
         )
         published.append("attack.resolved")
+
+        # V2: атака раскрывает спрятавшегося — преимущество Hidden уже учтено в
+        # atk_adj (collect_modifiers ATTACK_ROLL), снимаем состояние после удара.
+        actor.remove_condition(HIDDEN)
 
         return ActionOutcome(
             success=True,
