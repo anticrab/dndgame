@@ -22,6 +22,7 @@ from dnd.application.dto.engine_event import (
     ConditionApplied,
     ConditionRemoved,
     DamageDealt,
+    RoundEnded,
     TurnEnded,
 )
 from dnd.application.engine.saving_throw import roll_saving_throw_raw
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
     from dnd.application.ports.dice_roller import DiceRoller
     from dnd.application.ports.event_bus import EventBus
     from dnd.domain.entities.creature import Creature
+    from dnd.domain.entities.game_clock import GameClock
     from dnd.domain.values.ability import Ability
     from dnd.domain.values.ids import ConditionId, CreatureId, SpellId
 
@@ -50,6 +52,7 @@ class OngoingConditionEffect:
     repeat_save_ability: Ability | None
     save_dc: int | None
     concentration: bool
+    expires_at_round: int | None = None  # X0: дедлайн снятия по часам
 
 
 class OngoingEffectTracker:
@@ -63,12 +66,14 @@ class OngoingEffectTracker:
         dice_roller: DiceRoller,
         modifier_applier: ModifierApplier,
         condition_service: ConditionService | None = None,
+        clock: GameClock | None = None,
     ) -> None:
         self._participants = participants
         self._bus = event_bus
         self._dice = dice_roller
         self._mods = modifier_applier
         self._conds = condition_service
+        self._clock = clock
         self._effects: list[OngoingConditionEffect] = []
 
     def subscribe(self) -> None:
@@ -76,6 +81,7 @@ class OngoingEffectTracker:
         self._bus.subscribe(TurnEnded, self._on_turn_ended)
         self._bus.subscribe(DamageDealt, self._on_damage)
         self._bus.subscribe(ConcentrationBroken, self._on_concentration_broken)
+        self._bus.subscribe(RoundEnded, self._on_round_ended)
 
     # --- запись ---------------------------------------------------------
     def _on_applied(self, event: ConditionApplied) -> None:
@@ -89,8 +95,20 @@ class OngoingEffectTracker:
                 repeat_save_ability=event.repeat_save_ability,
                 save_dc=event.save_dc,
                 concentration=event.concentration,
+                expires_at_round=event.expires_at_round,
             )
         )
+
+    # --- X0: истечение по часам ----------------------------------------
+    def _on_round_ended(self, event: RoundEnded) -> None:
+        """На границе раунда снять состояния, чей дедлайн по часам достигнут.
+        Часы двигает Encounter; трекер лишь читает ``clock.now_round``."""
+        if self._clock is None:
+            return
+        now = self._clock.now_round
+        for effect in list(self._effects):
+            if effect.expires_at_round is not None and effect.expires_at_round <= now:
+                self._remove(effect, reason="duration")
 
     # --- триггеры снятия ------------------------------------------------
     def _on_turn_ended(self, event: TurnEnded) -> None:

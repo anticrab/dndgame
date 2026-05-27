@@ -307,6 +307,7 @@ class ConditionApplied(EngineEvent):
     repeat_save_ability: Ability | None = None
     save_dc: int | None = None
     concentration: bool = False
+    expires_at_round: int | None = None  # X0: дедлайн снятия по часам (None = не по времени)
 
 
 class ConditionRemoved(EngineEvent):
@@ -315,7 +316,7 @@ class ConditionRemoved(EngineEvent):
     event_type: ClassVar[str] = "condition.removed"
     target_id: CreatureId
     conditions: frozenset[ConditionId]
-    reason: str  # "damage" | "save" | "concentration_ended" | "manual"
+    reason: str  # "damage" | "save" | "concentration_ended" | "duration" | "manual"
 
 
 class CreatureDied(EngineEvent):
