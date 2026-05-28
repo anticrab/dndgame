@@ -27,6 +27,19 @@
   weight_lb: 0.5
   description: "Восстанавливает 2d4+2 HP при использовании."
   stackable: true
+  use:
+    effect_id: potion_healing
+    economy: bonus_action
+
+- id: potion_of_strength
+  name: "Potion of Strength"
+  kind: consumable
+  weight_lb: 0.5
+  description: "Даёт +2 к проверкам Силы до конца сцены."
+  stackable: true
+  use:
+    effect_id: potion_strength_buff
+    economy: bonus_action
 
 - id: torch
   name: "Torch"

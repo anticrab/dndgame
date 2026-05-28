@@ -140,3 +140,29 @@
   condition_repeat_save: true
   duration: { unit: concentration, amount: 1 }  # до 1 минуты концентрации
   description: "Удерживает гуманоида (спасбросок Мудрости). Парализован; в конце каждого своего хода повторяет спасбросок Мудрости. Требует концентрации."
+
+# --- эффект-пакеты предметов (этап U) ---
+# Сами предметы (зелья/свитки) описаны в items.yaml и ссылаются сюда по effect_id.
+# Сами это «заклинания» только формально — slotless-каст через UseItemAction.
+
+- id: potion_healing
+  name: "Potion of Healing (effect)"
+  level: 0
+  school: "-"
+  effect: heal
+  targeting: { kind: single }
+  range_ft: 5
+  heal_dice: "2d4+2"
+  description: "Эффект зелья лечения: восстанавливает 2d4+2 хитов."
+
+- id: potion_strength_buff
+  name: "Potion of Strength (effect)"
+  level: 0
+  school: "-"
+  effect: buff
+  targeting: { kind: self }
+  range_ft: 0
+  duration: { unit: until_encounter_end }
+  buffs:
+    - { target: ability_check, numeric_bonus: 2 }
+  description: "Эффект зелья силы: +2 к проверкам Силы до конца сцены."
