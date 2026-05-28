@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dnd.application.dto.engine_event import EngineEvent, HealingApplied, SpellCast
+from dnd.application.dto.engine_event import EngineEvent, HealingApplied, ItemUsed, SpellCast
+from dnd.domain.values.item import ItemId
 from dnd.interfaces.cli.event_printer import EventPrinter
 
 
@@ -64,3 +65,34 @@ def test_healing_applied() -> None:
         )
     )
     assert "hero" in out and "7" in out and "9/12" in out
+
+
+def test_item_used_potion() -> None:
+    """U5-2: рендер ItemUsed для зелья — 🧪 «drinks»."""
+    out = _capture(
+        ItemUsed(
+            actor_id="hero",
+            item_id=ItemId("healing_potion"),
+            item_name="Healing Potion",
+            effect="heal",
+            target_id="hero",
+        )
+    )
+    assert "hero" in out and "Healing Potion" in out
+    assert "🧪" in out and "drinks" in out
+    assert "📜" not in out
+
+
+def test_item_used_scroll() -> None:
+    """U5-2: рендер ItemUsed для свитка — 📜 «reads»."""
+    out = _capture(
+        ItemUsed(
+            actor_id="hero",
+            item_id=ItemId("scroll_of_fireball"),
+            item_name="Scroll of Fireball",
+            effect="save",
+        )
+    )
+    assert "hero" in out and "Scroll of Fireball" in out
+    assert "📜" in out and "reads" in out
+    assert "🧪" not in out

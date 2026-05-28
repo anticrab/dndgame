@@ -29,6 +29,7 @@ from dnd.application.dto.engine_event import (
     HelpGranted,
     InitiativeRolled,
     ItemPickedUp,
+    ItemUsed,
     LeveledUp,
     MoveCompleted,
     MoveStepTaken,
@@ -278,6 +279,14 @@ class EventPrinter:
             f"{qty_part}{event.item_name}[/] [dim]from {event.source}[/]"
         )
 
+    def _on_item_used(self, event: ItemUsed) -> None:
+        # U: зелье (🧪) — выпивает, свиток (📜) — читает. Эффект уже
+        # сопровождается HealingApplied/DamageDealt/ConditionApplied.
+        is_scroll = "scroll" in event.item_id.lower()
+        icon = "📜" if is_scroll else "🧪"
+        verb = "reads" if is_scroll else "drinks"
+        self._print(f"  {icon} [cyan]{event.actor_id} {verb} {event.item_name}[/]")
+
     # Карта типов → обработчики. ClassVar т.к. shared, не per-instance.
     _dispatch: ClassVar[dict[type[EngineEvent], Callable[[Any, Any], None]]] = {
         InitiativeRolled: lambda self, e: self._on_initiative(e),
@@ -298,6 +307,7 @@ class EventPrinter:
         ObjectInteracted: lambda self, e: self._on_interacted(e),
         ObjectDamaged: lambda self, e: self._on_obj_damaged(e),
         ItemPickedUp: lambda self, e: self._on_picked_up(e),
+        ItemUsed: lambda self, e: self._on_item_used(e),
         DeathSaveRolled: lambda self, e: self._on_death_save(e),
         CreatureDied: lambda self, e: self._on_died(e),
         CreatureStabilized: lambda self, e: self._on_stabilized(e),
