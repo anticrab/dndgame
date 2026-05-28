@@ -134,7 +134,10 @@ false`).
 
 ### 4.1 `UseItemAction` (`actions/use_item.py`)
 
-`__init__(item_repository, spell_repository, effect_registry?, area_registry?)`.
+`__init__(spell_repository, effect_registry?, area_registry?)`. **ItemRepository
+не нужен**: используемый предмет уже лежит в `actor.inventory`, грузим оттуда
+через `inventory.find_by_id(item_id)` (см. реализацию: post-review, спека
+изначально предполагала `item_repository` — оказалось избыточно).
 
 ```python
 class UseItemParams(ActionParams):

@@ -1002,6 +1002,13 @@ class BattleScreen(Screen[None]):
         экран не открывается, в лог идёт подсказка."""
         if self._concluded or self._current is None:
             return
+        # Guard от двойного нажатия 'u' до закрытия первого окна: Textual без
+        # этого пушит второй PlayerItemsScreen стопкой поверх первого. Также
+        # не открываемся вне NORMAL — модал поверх TARGET/AREA ломает контекст.
+        if self._mode is not BattleMode.NORMAL:
+            return
+        if isinstance(self.app.screen, PlayerItemsScreen):
+            return
         actor, _ctx, _enc = self._current
         if self._spell_repository is None:
             self.log_widget.write("[bold]Use UI requires spell catalog (run via 'dnd play').[/]")
@@ -1079,8 +1086,12 @@ class BattleScreen(Screen[None]):
             return
         self._reachable_targets = [(cid, bf.position_of(cid)) for cid in targets]
         self._pending_ability = None
-        self._pending_target_kind = "attack"  # ставим что-нибудь невалидное —
-        # _submit_target_intent проверит _pending_use_item первым.
+        # Явный маркер ветки use_item: при confirm _submit_target_intent
+        # увидит и `_pending_use_item is not None`, и kind="use_item" —
+        # обе проверки согласуются, и порядок проверок в _submit_target_intent
+        # уже не критичен (раньше хрупко полагались на «use_item первым,
+        # потом attack как fallback»).
+        self._pending_target_kind = "use_item"
         self.enter_mode(BattleMode.TARGET)
 
     def action_intent_end_turn(self) -> None:

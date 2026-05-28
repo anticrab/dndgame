@@ -35,7 +35,9 @@
   name: "Potion of Strength"
   kind: consumable
   weight_lb: 0.5
-  description: "Даёт +2 к проверкам Силы до конца сцены."
+  # Этап U: бафф +2 ко всем проверкам характеристик (упрощение, см. spells.yaml
+  # potion_strength_buff). Точечный «только Сила» — этап W.
+  description: "Даёт +2 ко всем проверкам характеристик до конца сцены."
   stackable: true
   use:
     effect_id: potion_strength_buff

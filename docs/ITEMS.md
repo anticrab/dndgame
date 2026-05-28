@@ -158,6 +158,15 @@ UseItemAction ─────► resolve_and_apply_spell ─► SpellEffectRegis
 * **LIGHT** — этап X (vision/LoS).
 * **Drop/Equip** для используемых предметов — отдельно от U (уже есть
   `PickupAction`; полноценные drop/equip — этап O-8/9).
+* **Очистка `until_encounter_end`-баффов на `EncounterEnded`** — этап X
+  (`GameSession`): сейчас `Encounter` короткоживущий, утечка не
+  воспроизводится. С появлением сессий поверх боёв нужно подписать на
+  `EncounterEnded` чистку `modifier_applier.remove_by_source(...)` для
+  таких баффов. Источник истины — `BuffSpec.duration`.
+* **Узкие BUFF-таргеты по характеристикам** (отдельно «Сила», «Ловкость»,
+  ...) — этап W: сейчас `potion_of_strength` использует `ability_check`
+  (категория «любая проверка характеристик»), что чуть шире классики PHB.
+  Точечный таргет — расширение `ModifierTargetKind` (за рамками U).
 
 ## 9. Что включено в этап U
 

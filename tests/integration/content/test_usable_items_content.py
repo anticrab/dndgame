@@ -5,8 +5,8 @@
 * ``healing_potion`` ссылается на ``potion_healing`` (HEAL, 2d4+2) — выпивание
   восстанавливает HP, расходник списан, ``ItemUsed`` опубликован;
 * ``potion_of_strength`` ссылается на ``potion_strength_buff`` (BUFF, +2 к
-  проверкам Силы) — после выпивания модификатор виден в ``modifier_applier``
-  с per-spell/per-owner source_id (U3-1).
+  проверкам характеристик — упрощение этапа U) — после выпивания модификатор
+  виден в ``modifier_applier`` с per-spell/per-owner source_id (U3-1).
 """
 
 from __future__ import annotations
@@ -95,7 +95,8 @@ def test_potion_of_strength_applies_buff_with_own_source() -> None:
     out = action.execute(hero, UseItemParams(item_id=ItemId("potion_of_strength")), ctx)
     assert out.success
     assert used and used[0].effect == "buff"
-    # Модификатор виден на проверках Силы, source_id — собственный (не concentration).
+    # Модификатор виден на любых проверках характеристик (ABILITY_CHECK
+    # категория — упрощение U), source_id — собственный (не concentration).
     mods = ctx.modifier_applier.collect(
         owner_id=hero.id, target_kind=ModifierTargetKind.ABILITY_CHECK
     )

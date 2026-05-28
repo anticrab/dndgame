@@ -155,6 +155,13 @@
   heal_dice: "2d4+2"
   description: "Эффект зелья лечения: восстанавливает 2d4+2 хитов."
 
+# Упрощение этапа U: модификатор target `ability_check` — это «ЛЮБАЯ проверка
+# характеристики», не только Силы. Точечный таргет «только Сила» появится при
+# расширении ModifierTargetKind (предположительно вместе с этапом W). Сейчас
+# зелье отражает «общий бодрящий эффект» — это известный долг.
+# Срок жизни — `until_encounter_end`; чистка модификатора при `EncounterEnded`
+# отложена до этапа X (GameSession): сейчас Encounter короткоживущий, утечка
+# не воспроизводится. См. docs/ITEMS.md §8.
 - id: potion_strength_buff
   name: "Potion of Strength (effect)"
   level: 0
@@ -165,4 +172,4 @@
   duration: { unit: until_encounter_end }
   buffs:
     - { target: ability_check, numeric_bonus: 2 }
-  description: "Эффект зелья силы: +2 к проверкам Силы до конца сцены."
+  description: "Эффект зелья силы: +2 ко всем проверкам характеристик до конца сцены (упрощение этапа U)."

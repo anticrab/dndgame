@@ -8,6 +8,7 @@ gob#2). Идентификатор инстанса передаётся сна�
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from dnd.application.dto.templates import (
@@ -26,6 +27,8 @@ from dnd.domain.values.weapon import WeaponProfile
 if TYPE_CHECKING:
     from dnd.application.ports.class_repository import ClassRepository
     from dnd.application.ports.item_repository import ItemRepository
+
+_log = logging.getLogger(__name__)
 
 
 def build_weapon_profile(template: WeaponTemplate) -> WeaponProfile:
@@ -114,10 +117,22 @@ def build_creature_from_template(
     creature.skill_proficiencies = frozenset(skills)
     creature.skill_expertise = frozenset(Skill(code) for code in template.skill_expertise)
     # U5-3: стартовый инвентарь — по одной единице каждого предмета из шаблона.
-    if item_repository is not None and template.starting_inventory:
-        for raw_id in template.starting_inventory:
-            item = item_repository.load(ItemId(raw_id))
-            creature.inventory.add(item)
+    if template.starting_inventory:
+        if item_repository is None:
+            # Без репозитория молча игнорировать опасно: это «тихий мисконфиг»,
+            # когда автор шаблона ждёт инвентарь, а его нет (демо-PC без зелий
+            # будет ходить по карте, и непонятно почему). Warning достаточно
+            # информативен и не ломает тесты-без-репозитория.
+            _log.warning(
+                "Template %r declares starting_inventory %s but no item_repository "
+                "is wired — inventory will be empty.",
+                template.id,
+                list(template.starting_inventory),
+            )
+        else:
+            for raw_id in template.starting_inventory:
+                item = item_repository.load(ItemId(raw_id))
+                creature.inventory.add(item)
     return creature
 
 
