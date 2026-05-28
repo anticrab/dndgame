@@ -57,6 +57,7 @@ from dnd.application.dto.player_intent import (
     MoveIntent,
     PickupIntent,
     PlayerIntent,
+    UseItemIntent,
 )
 from dnd.application.engine.actions.attack import AttackAction
 from dnd.application.engine.actions.interact import InteractKind
@@ -70,6 +71,7 @@ from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.values.direction import Direction
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import CreatureId, ObjectId
+from dnd.domain.values.item import ItemId
 from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
 from dnd.domain.values.square import Square
 from dnd.interfaces.tui.screens.battle_modes.area_mode import AreaModeHandler
@@ -82,6 +84,7 @@ from dnd.interfaces.tui.screens.battle_modes.protocol import BattleMode, ModeHan
 from dnd.interfaces.tui.screens.battle_modes.target_mode import TargetModeHandler
 from dnd.interfaces.tui.screens.inventory_screen import InventoryScreen
 from dnd.interfaces.tui.screens.keymap import build_keymap
+from dnd.interfaces.tui.screens.player_items_screen import PlayerItemsScreen
 from dnd.interfaces.tui.widgets import (
     ActionBarWidget,
     InitiativeWidget,
@@ -96,7 +99,6 @@ if TYPE_CHECKING:
     from dnd.application.engine.turn_context import TurnContext
     from dnd.domain.entities.battlefield import Battlefield
     from dnd.domain.entities.creature import Creature
-    from dnd.domain.values.item import ItemId
 
 
 class BattleScreen(Screen[None]):
@@ -126,6 +128,7 @@ class BattleScreen(Screen[None]):
         ("i", "intent_interact", "Interact"),
         ("k", "intent_break", "Break"),
         ("l", "intent_loot", "Loot"),
+        ("u", "intent_use", "Use"),
         ("e", "intent_end_turn", "End turn"),
         # Zoom-toggle (K5-T3, medium ↔ small). Три формы клавиши: `+` и
         # `=` (на большинстве раскладок `+` — это Shift+`=`, но Textual
@@ -202,6 +205,12 @@ class BattleScreen(Screen[None]):
         # Контекст для MultiTargetModeHandler: лимит выборов и повторы.
         self._multi_max_targets: int = 1
         self._multi_allow_repeat: bool = False
+        # --- Use Item (U5-1) ----------------------------------------
+        # ItemId «текущего применяемого предмета» — задаётся при выборе в
+        # PlayerItemsScreen; ненулевой во время TARGET/AREA/MULTI_TARGET,
+        # запускаемых для свитка. `_submit_*_intent` тогда формирует
+        # UseItemIntent вместо CastSpellIntent (и чистит поле).
+        self._pending_use_item: ItemId | None = None
 
     # --- public API для bridge --------------------------------------
 
@@ -459,7 +468,9 @@ class BattleScreen(Screen[None]):
             if h.cancelled:
                 # REV-4: не оставляем висящий _pending_ability — иначе
                 # следующая атака/interact улетит как старая способность.
+                # U5-1: то же для _pending_use_item.
                 self._pending_ability = None
+                self._pending_use_item = None
                 self.enter_mode(BattleMode.NORMAL)
                 return
             if h.confirmed_target is not None:
@@ -471,6 +482,7 @@ class BattleScreen(Screen[None]):
                 # audit MINOR-1: не оставляем висящий контекст зоны.
                 self._pending_area_spec = None
                 self._pending_ability = None
+                self._pending_use_item = None
                 self.enter_mode(BattleMode.NORMAL)
                 return
             if h.confirmed_point is not None or h.confirmed_direction is not None:
@@ -480,6 +492,7 @@ class BattleScreen(Screen[None]):
         elif isinstance(h, MultiTargetModeHandler):
             if h.cancelled:
                 self._pending_ability = None
+                self._pending_use_item = None
                 self.enter_mode(BattleMode.NORMAL)
                 return
             if h.confirmed_picks is not None:
@@ -490,7 +503,17 @@ class BattleScreen(Screen[None]):
         self._refresh_map_overlay()
 
     def _submit_area_intent(self, point: Square | None, direction: Direction | None) -> None:
-        """Построить CastSpellIntent для подтверждённой зоны (P2)."""
+        """Построить ``CastSpellIntent`` (заклинание) или ``UseItemIntent``
+        (свиток-AoE, U5-1) для подтверждённой зоны."""
+        # U5-1: предмет первичнее — если он задан, идём через UseItemIntent.
+        if self._pending_use_item is not None:
+            item_id = self._pending_use_item
+            self._pending_use_item = None
+            self._pending_area_spec = None
+            self._put_intent(
+                UseItemIntent(item_id=item_id, target_point=point, direction=direction)
+            )
+            return
         ab = self._pending_ability
         spell = self._spell_by_ability.get(ab.id) if ab is not None else None
         self._pending_ability = None
@@ -502,7 +525,13 @@ class BattleScreen(Screen[None]):
         )
 
     def _submit_multi_intent(self, picks: tuple[CreatureId, ...]) -> None:
-        """Построить CastSpellIntent для подтверждённого набора целей (P2b)."""
+        """Построить ``CastSpellIntent`` или ``UseItemIntent`` (U5-1) для
+        подтверждённого набора целей."""
+        if self._pending_use_item is not None:
+            item_id = self._pending_use_item
+            self._pending_use_item = None
+            self._put_intent(UseItemIntent(item_id=item_id, target_ids=picks))
+            return
         ab = self._pending_ability
         spell = self._spell_by_ability.get(ab.id) if ab is not None else None
         self._pending_ability = None
@@ -519,6 +548,13 @@ class BattleScreen(Screen[None]):
         ``_pending_target_kind`` (attack/interact/break) — это путь
         через action_intent_attack/interact/break и BINDINGS.
         """
+        # U5-1: предмет первичнее способности — если он задан, ушли в TARGET
+        # из PlayerItemsScreen для SINGLE-эффекта.
+        if self._pending_use_item is not None:
+            item_id = self._pending_use_item
+            self._pending_use_item = None
+            self._put_intent(UseItemIntent(item_id=item_id, target_id=target))
+            return
         if self._pending_ability is not None:
             intent = self._pending_ability.intent_factory(target)
             self._pending_ability = None
@@ -911,6 +947,92 @@ class BattleScreen(Screen[None]):
                 qty=None,
             )
         )
+
+    def action_intent_use(self) -> None:
+        """U5-1: открыть :class:`PlayerItemsScreen` со списком используемых
+        предметов из инвентаря PC. Если в инвентаре нет ``item.use``-предметов —
+        экран не открывается, в лог идёт подсказка."""
+        if self._concluded or self._current is None:
+            return
+        actor, _ctx, _enc = self._current
+        if self._spell_repository is None:
+            self.log_widget.write("[bold]Use UI requires spell catalog (run via 'dnd play').[/]")
+            return
+        screen = PlayerItemsScreen(actor.inventory)
+        if not screen.has_items:
+            self.log_widget.write("[bold]No usable items in inventory.[/]")
+            return
+        self.app.push_screen(screen, self._on_use_item_picked)
+
+    def _on_use_item_picked(self, item_id: ItemId | None) -> None:
+        """Callback от ``PlayerItemsScreen.dismiss(...)``.
+
+        * ``None`` — экран закрыт без выбора (Esc/Q): ничего не делаем.
+        * Иначе — определяем targeting эффект-пакета (``Item.use.effect_id``
+          → ``Spell.targeting``) и:
+          - SELF → формируем ``UseItemIntent(target_id=actor.id)`` сразу;
+          - SINGLE/AREA/MULTI → запоминаем ``_pending_use_item`` и заходим в
+            соответствующий ``BattleMode`` (как у заклинаний). Финальный
+            ``UseItemIntent`` собирается в ``_submit_*_intent`` ниже.
+        """
+        if item_id is None or self._current is None or self._spell_repository is None:
+            return
+        actor, _ctx, encounter = self._current
+        stack = actor.inventory.find_by_id(item_id)
+        if stack is None or stack.item.use is None:
+            return  # инвентарь поменялся за время экрана
+        use = stack.item.use
+        if not self._spell_repository.contains(use.effect_id):
+            self.log_widget.write(
+                f"[bold]Effect {use.effect_id} not in spell catalog — cannot use item.[/]"
+            )
+            return
+        spell = self._spell_repository.load(use.effect_id)
+        kind = spell.targeting.kind
+        if kind is TargetKind.SELF:
+            self._put_intent(UseItemIntent(item_id=item_id, target_id=actor.id))
+            return
+        # Зелье с SINGLE-эффектом (cure_wounds, ...) — семантика «выпил на себя»:
+        # пользователь не целится в союзника, он сам потребитель. Свитки же
+        # просят выбрать цель — там это часть смысла (scroll of cure wounds на
+        # союзника). Развязка по флагу ``is_scroll``.
+        if kind is TargetKind.SINGLE and not use.is_scroll:
+            self._put_intent(UseItemIntent(item_id=item_id, target_id=actor.id))
+            return
+        # Дальше — те же режимы, что и для заклинаний; UseItemIntent соберётся
+        # при подтверждении (см. _submit_*_intent).
+        self._pending_use_item = item_id
+        bf = encounter.battlefield
+        self._current_battlefield = bf
+        self._current_actor_position = bf.position_of(actor.id)
+        if kind is TargetKind.AREA:
+            self._pending_area_spec = spell.targeting
+            self._pending_area_range_ft = spell.range_ft
+            self.enter_mode(BattleMode.AREA)
+            return
+        if kind is TargetKind.MULTI:
+            candidates = self._list_multi_candidates(actor, encounter, spell)
+            if not candidates:
+                self._pending_use_item = None
+                self.log_widget.write(f"[bold]No targets in reach for {spell.name}.[/]")
+                return
+            self._reachable_targets = [(cid, bf.position_of(cid)) for cid in candidates]
+            self._multi_max_targets = spell.targeting.max_targets
+            self._multi_allow_repeat = spell.targeting.allow_repeat_target
+            self.enter_mode(BattleMode.MULTI_TARGET)
+            return
+        # SINGLE — тот же список целей, что и у заклинаний (heal/buff →
+        # союзники, urgent → враги).
+        targets = self._list_spell_targets(actor, _ctx, encounter, spell)
+        if not targets:
+            self._pending_use_item = None
+            self.log_widget.write(f"[bold]No targets in reach for {spell.name}.[/]")
+            return
+        self._reachable_targets = [(cid, bf.position_of(cid)) for cid in targets]
+        self._pending_ability = None
+        self._pending_target_kind = "attack"  # ставим что-нибудь невалидное —
+        # _submit_target_intent проверит _pending_use_item первым.
+        self.enter_mode(BattleMode.TARGET)
 
     def action_intent_end_turn(self) -> None:
         if self._concluded or self._current is None:
