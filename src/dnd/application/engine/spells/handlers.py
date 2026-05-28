@@ -290,9 +290,17 @@ class BuffSpellHandler:
             ctx.modifier_applier.remove_by_source(concentration_source(caster.id))
         if spell.concentration:
             caster.concentration = spell.id
-        source_id = concentration_source(caster.id)
         expires_at_round = _expires_at(spell, ctx)
         for target in targets:
+            # Концентрационный бафф — общий source на кастера (одна концентрация =
+            # один source_id, чтобы срыв/смена концентрации снимали группу разом).
+            # Не-концентрационный (зелье силы, эликсиры) — собственный per-spell/per-owner
+            # source_id: независим от концентрации, не сносится её сменой (U3-1).
+            source_id = (
+                concentration_source(caster.id)
+                if spell.concentration
+                else f"buff:{spell.id}:{target.id}"
+            )
             for buff in spell.buffs:
                 effect = (
                     DiceBonusEffect(dice=buff.dice_bonus)
