@@ -42,6 +42,7 @@ from dnd.application.dto.player_intent import (
     SecondWindIntent,
     ShoveIntent,
     StabilizeIntent,
+    UseItemIntent,
 )
 from dnd.application.engine.actions.action_surge import (
     ActionSurgeAction,
@@ -72,6 +73,7 @@ from dnd.application.engine.actions.stances import (
     DisengageAction,
     DodgeAction,
 )
+from dnd.application.engine.actions.use_item import UseItemAction, UseItemParams
 from dnd.application.engine.actions.weapon_attack import weapon_attack_params
 from dnd.application.engine.ai.simple_monster import (
     is_hostile_from_factions,
@@ -219,6 +221,9 @@ class GameRunner:
         if isinstance(intent, CastSpellIntent):
             self._do_cast(actor, intent, ctx)
             return
+        if isinstance(intent, UseItemIntent):
+            self._do_use_item(actor, intent, ctx)
+            return
         if isinstance(intent, SecondWindIntent):
             self._do_simple_self_action(
                 SecondWindAction(), SecondWindParams(), actor, ctx, "second_wind"
@@ -356,6 +361,29 @@ class GameRunner:
             action.execute(actor, params, ctx)
         else:
             self._log_rejected(actor, "cast_spell", _avail_reason(avail))
+
+    def _do_use_item(self, actor: Creature, intent: UseItemIntent, ctx: TurnContext) -> None:
+        """Зеркало :meth:`_do_cast` для использования предметов (U).
+
+        Эффект-пакет, на который ссылается ``Item.use``, живёт в каталоге
+        заклинаний, поэтому без ``spell_repository`` тоже не обойтись.
+        """
+        if self._spell_repository is None:
+            self._log_rejected(actor, "use_item", "no_spell_repository (runner not wired)")
+            return
+        params = UseItemParams(
+            item_id=intent.item_id,
+            target_id=intent.target_id,
+            target_ids=intent.target_ids,
+            target_point=intent.target_point,
+            direction=intent.direction,
+        )
+        action = UseItemAction(spell_repository=self._spell_repository)
+        avail = action.can_perform_against(actor, params, ctx)
+        if isinstance(avail, Allowed):
+            action.execute(actor, params, ctx)
+        else:
+            self._log_rejected(actor, "use_item", _avail_reason(avail))
 
     def _do_break(self, actor: Creature, intent: BreakIntent, ctx: TurnContext) -> None:
         """Атака по объекту экипированным оружием.

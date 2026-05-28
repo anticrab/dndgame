@@ -137,6 +137,22 @@ class CastSpellIntent(_IntentBase):
     direction: Direction | None = None
 
 
+class UseItemIntent(_IntentBase):
+    """Игрок использует предмет (U): зелье / свиток.
+
+    Реальная экономика берётся из ``Item.use.economy`` (action / bonus_action);
+    проверки (наличие в инвентаре, есть ли use-обвязка, валидность цели/range,
+    хватает ли экономики) — в :class:`UseItemAction`. GameRunner лишь собирает
+    params и логирует Forbidden."""
+
+    kind: Literal["use_item"] = "use_item"
+    item_id: ItemId
+    target_id: CreatureId | None = None
+    target_ids: tuple[CreatureId, ...] = ()
+    target_point: Square | None = None
+    direction: Direction | None = None
+
+
 class ShoveIntent(_IntentBase):
     """Игрок толкает цель (V2): Атлетика vs Атлетика/Акробатика → Prone."""
 
@@ -181,6 +197,7 @@ PlayerIntent = Annotated[
     | PickupIntent
     | StabilizeIntent
     | CastSpellIntent
+    | UseItemIntent
     | ShoveIntent
     | GrappleIntent
     | HideIntent
@@ -208,4 +225,5 @@ __all__ = [
     "SecondWindIntent",
     "ShoveIntent",
     "StabilizeIntent",
+    "UseItemIntent",
 ]
