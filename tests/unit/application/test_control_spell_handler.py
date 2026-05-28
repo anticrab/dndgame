@@ -12,6 +12,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.ids import CreatureId, SpellId
 from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
+from dnd.domain.values.spell_power import SpellPower
 
 
 def _mage() -> Creature:
@@ -80,7 +81,7 @@ def test_sleep_pool_orders_by_hp_and_stops() -> None:
     applied: list[ConditionApplied] = []
     bus.subscribe(ConditionApplied, applied.append)
     # Пул 10 → хватает на low(5), не хватает на high(30): сначала идёт low.
-    ControlSpellHandler().apply(mage, (high, low), _sleep(), ctx)
+    ControlSpellHandler().apply(mage, (high, low), _sleep(), ctx, SpellPower.from_caster(mage))
     assert low.has_condition(UNCONSCIOUS)
     assert not high.has_condition(UNCONSCIOUS)
     assert any(a.target_id == low.id for a in applied)
@@ -109,7 +110,7 @@ def test_hold_person_fail_save_paralyzes_and_sets_concentration() -> None:
     ctx, bus = _ctx([1], [mage, orc])  # d20=1 → провал
     applied: list[ConditionApplied] = []
     bus.subscribe(ConditionApplied, applied.append)
-    ControlSpellHandler().apply(mage, (orc,), _hold(), ctx)
+    ControlSpellHandler().apply(mage, (orc,), _hold(), ctx, SpellPower.from_caster(mage))
     assert orc.has_condition(PARALYZED)
     assert mage.concentration == SpellId("hold_person")
     assert applied[-1].repeat_save_ability is Ability.WIS
@@ -119,7 +120,7 @@ def test_hold_person_success_save_no_effect() -> None:
     mage = _mage()
     orc = _weak("orc", 15)
     ctx, _bus = _ctx([20], [mage, orc])  # d20=20 → успех
-    ControlSpellHandler().apply(mage, (orc,), _hold(), ctx)
+    ControlSpellHandler().apply(mage, (orc,), _hold(), ctx, SpellPower.from_caster(mage))
     assert not orc.has_condition(PARALYZED)
 
 
@@ -133,7 +134,7 @@ def test_hold_person_with_duration_sets_clock_deadline() -> None:
     applied: list[ConditionApplied] = []
     bus.subscribe(ConditionApplied, applied.append)
     hold = _hold_with_duration(Duration.concentration(cap_min=1))  # 10 раундов
-    ControlSpellHandler().apply(mage, (orc,), hold, ctx)
+    ControlSpellHandler().apply(mage, (orc,), hold, ctx, SpellPower.from_caster(mage))
     assert applied[-1].expires_at_round == 15  # 5 + 10
 
 
@@ -143,7 +144,9 @@ def test_sleep_without_duration_has_no_clock_deadline() -> None:
     ctx, bus = _ctx([2, 2, 2, 2, 2], [mage, low])  # 5d8 = 10 пула
     applied: list[ConditionApplied] = []
     bus.subscribe(ConditionApplied, applied.append)
-    ControlSpellHandler().apply(mage, (low,), _sleep(), ctx)  # INSTANT по умолчанию
+    ControlSpellHandler().apply(
+        mage, (low,), _sleep(), ctx, SpellPower.from_caster(mage)
+    )  # INSTANT
     assert applied[-1].expires_at_round is None  # снимается уроном, не по часам
 
 

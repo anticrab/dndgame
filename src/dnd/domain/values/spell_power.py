@@ -50,16 +50,19 @@ class SpellPower:
 
     @staticmethod
     def from_caster(caster: Creature) -> SpellPower:
-        """Сила эффекта из заклинательных параметров кастера (CastSpellAction)."""
-        mod = (
-            caster.abilities.modifier(caster.spellcasting_ability)
-            if caster.spellcasting_ability is not None
-            else 0
-        )
+        """Сила эффекта из заклинательных параметров кастера (CastSpellAction).
+
+        Для не-кастера (``spellcasting_ability is None``) возвращает нули — это
+        корректно для тех хендлеров, что power не читают (BUFF/AUTO); для
+        ATTACK/SAVE/HEAL/CONTROL не-кастер заклинание не сотворит (отсев в
+        ``CastSpellAction.can_perform_against``).
+        """
+        if caster.spellcasting_ability is None:
+            return SpellPower(save_dc=0, attack_bonus=0, ability_mod=0)
         return SpellPower(
             save_dc=caster.spell_save_dc(),
             attack_bonus=caster.spell_attack_bonus(),
-            ability_mod=mod,
+            ability_mod=caster.abilities.modifier(caster.spellcasting_ability),
         )
 
 

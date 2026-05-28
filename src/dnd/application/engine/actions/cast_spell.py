@@ -30,6 +30,7 @@ from dnd.domain.entities.creature import Creature
 from dnd.domain.values.direction import Direction
 from dnd.domain.values.ids import ActionId, CreatureId, FeatureId, SpellId
 from dnd.domain.values.spell import OriginMode, Spell, SpellEffect, TargetKind
+from dnd.domain.values.spell_power import SpellPower
 from dnd.domain.values.square import Square
 
 
@@ -225,7 +226,9 @@ class CastSpellAction:
                 target_ids=params.target_ids,
             )
         )
-        self._effects.get(spell.effect).apply(actor, targets, spell, ctx)
+        self._effects.get(spell.effect).apply(
+            actor, targets, spell, ctx, SpellPower.from_caster(actor)
+        )
         return ActionOutcome(
             success=True,
             consumed=ActionEconomyCost.ACTION,

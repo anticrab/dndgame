@@ -15,6 +15,7 @@ from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import SpellId
 from dnd.domain.values.modifiers import ModifierTargetKind
+from dnd.domain.values.spell_power import SpellPower
 from dnd.domain.values.square import Square
 from dnd.domain.values.weapon import LONGSWORD
 from dnd.infrastructure.content.yaml_spell_repository import YamlSpellRepository
@@ -239,7 +240,7 @@ def test_heal_raises_ally_from_dying() -> None:
     ally.begin_dying()
     assert ally.death_saves is not None
     spell = _repo().load(SpellId("cure_wounds"))
-    HealSpellHandler().apply(mage, (ally,), spell, ctx)
+    HealSpellHandler().apply(mage, (ally,), spell, ctx, SpellPower.from_caster(mage))
     assert ally.death_saves is None
     assert not ally.has_condition(UNCONSCIOUS)
     assert ally.hit_points.current > 0
@@ -274,8 +275,8 @@ def test_recasting_concentration_does_not_stack() -> None:
     _enc, mage, _gob, ctx = _setup([20, 19])
     spell = _repo().load(SpellId("shield_of_faith"))
     handler = BuffSpellHandler()
-    handler.apply(mage, (mage,), spell, ctx)
-    handler.apply(mage, (mage,), spell, ctx)
+    handler.apply(mage, (mage,), spell, ctx, SpellPower.from_caster(mage))
+    handler.apply(mage, (mage,), spell, ctx, SpellPower.from_caster(mage))
     assert _ac_bonus(ctx, mage) == 2  # не +4 — прежний бафф снят
 
 
@@ -307,7 +308,7 @@ def test_buff_handler_applies_dice_bonus_to_attack_and_save() -> None:
             BuffSpec(target=ModifierTargetKind.SAVING_THROW, dice_bonus="1d4"),
         ),
     )
-    BuffSpellHandler().apply(mage, (mage,), spell, ctx)
+    BuffSpellHandler().apply(mage, (mage,), spell, ctx, SpellPower.from_caster(mage))
     atk = ctx.modifier_applier.collect(owner_id=mage.id, target_kind=ModifierTargetKind.ATTACK_ROLL)
     save = ctx.modifier_applier.collect(
         owner_id=mage.id, target_kind=ModifierTargetKind.SAVING_THROW
@@ -322,9 +323,11 @@ def test_concentration_moves_buff_to_new_target() -> None:
     _enc, mage, gob, ctx = _setup([20, 19])
     spell = _repo().load(SpellId("shield_of_faith"))
     handler = BuffSpellHandler()
-    handler.apply(mage, (mage,), spell, ctx)
+    handler.apply(mage, (mage,), spell, ctx, SpellPower.from_caster(mage))
     assert _ac_bonus(ctx, mage) == 2
-    handler.apply(mage, (gob,), spell, ctx)  # новая концентрация на другой цели
+    handler.apply(
+        mage, (gob,), spell, ctx, SpellPower.from_caster(mage)
+    )  # новая концентрация на другой цели
     assert _ac_bonus(ctx, mage) == 0  # прежний бафф снят
     assert _ac_bonus(ctx, gob) == 2
 
@@ -414,5 +417,5 @@ def test_save_for_half_yields_half_damage() -> None:
         save_ability=Ability.DEX,
         save_for_half=True,
     )
-    SaveSpellHandler().apply(mage, (gob,), spell, ctx)
+    SaveSpellHandler().apply(mage, (gob,), spell, ctx, SpellPower.from_caster(mage))
     assert gob.hit_points.current == 9  # 12 - (6//2=3)

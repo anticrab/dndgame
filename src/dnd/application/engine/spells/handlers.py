@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from dnd.application.engine.turn_context import TurnContext
     from dnd.domain.entities.creature import Creature
     from dnd.domain.values.spell import Spell
+    from dnd.domain.values.spell_power import SpellPower
 
 
 def _expires_at(spell: Spell, ctx: TurnContext) -> int | None:
@@ -60,10 +61,11 @@ class AttackSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> None:
         assert spell.dice is not None and spell.damage_type is not None
         for target in targets:
-            atk_bonus = caster.spell_attack_bonus()
+            atk_bonus = power.attack_bonus
             atk_mods = ctx.modifier_applier.collect(
                 owner_id=caster.id, target_kind=ModifierTargetKind.ATTACK_ROLL
             )
@@ -131,13 +133,14 @@ class SaveSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> None:
         assert (
             spell.dice is not None
             and spell.damage_type is not None
             and spell.save_ability is not None
         )
-        dc = caster.spell_save_dc()
+        dc = power.save_dc
         for target in targets:
             dmg_roll = ctx.dice_roller.roll(
                 DiceExpr.parse(spell.dice),
@@ -188,6 +191,7 @@ class AutoSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,  # единый протокол; AUTO power не использует
     ) -> None:
         assert spell.dice is not None and spell.damage_type is not None
         for target in targets:
@@ -218,7 +222,11 @@ class AutoSpellHandler:
 
 
 class HealSpellHandler:
-    """HEAL: восстановление HP = бросок heal_dice + mod заклинательной хар-ки."""
+    """HEAL: восстановление HP = бросок heal_dice + ``power.ability_mod``.
+
+    В спелл-пути ``power`` берётся из кастера (мод заклинательной хар-ки), в
+    item-пути зелья — ``power.potion()`` с ``ability_mod=0`` (зелье лечит ровно
+    по кости, без мода пьющего)."""
 
     def apply(
         self,
@@ -226,9 +234,10 @@ class HealSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> None:
-        assert spell.heal_dice is not None and caster.spellcasting_ability is not None
-        mod = caster.abilities.modifier(caster.spellcasting_ability)
+        assert spell.heal_dice is not None
+        mod = power.ability_mod
         for target in targets:
             heal_roll = ctx.dice_roller.roll(
                 DiceExpr.parse(spell.heal_dice),
@@ -274,6 +283,7 @@ class BuffSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,  # единый протокол; BUFF power не использует
     ) -> None:
         if spell.concentration and caster.concentration is not None:
             # Снять прежний concentration-эффект (заменяется новым).
@@ -328,12 +338,13 @@ class ControlSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> None:
         assert spell.condition is not None
         if spell.hp_pool_dice is not None:
-            affected = self._apply_pool(caster, targets, spell, ctx)
+            affected = self._apply_pool(caster, targets, spell, ctx, power)
         else:
-            affected = self._apply_save(caster, targets, spell, ctx)
+            affected = self._apply_save(caster, targets, spell, ctx, power)
         if affected and spell.concentration:
             caster.concentration = spell.id
 
@@ -343,6 +354,7 @@ class ControlSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> list[Creature]:
         assert spell.hp_pool_dice is not None
         pool_roll = ctx.dice_roller.roll(
@@ -360,7 +372,7 @@ class ControlSpellHandler:
             if need > pool:
                 break  # книга: первый, на кого не хватило пула, не засыпает
             pool -= need
-            if self._apply_condition(caster, cand, spell, ctx):
+            if self._apply_condition(caster, cand, spell, ctx, power):
                 affected.append(cand)
         return affected
 
@@ -370,9 +382,10 @@ class ControlSpellHandler:
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> list[Creature]:
         assert spell.save_ability is not None
-        dc = caster.spell_save_dc()
+        dc = power.save_dc
         affected: list[Creature] = []
         for target in targets:
             if not target.is_alive or target.is_at_zero_hp:
@@ -384,7 +397,7 @@ class ControlSpellHandler:
                 ctx=ctx,
                 tags=("spell_save",),
             )
-            if not saved and self._apply_condition(caster, target, spell, ctx):
+            if not saved and self._apply_condition(caster, target, spell, ctx, power):
                 affected.append(target)
         return affected
 
@@ -394,12 +407,13 @@ class ControlSpellHandler:
         target: Creature,
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> bool:
         assert spell.condition is not None
         result = ctx.condition_service.apply_with_implies(target, spell.condition)
         if not result.applied:
             return False
-        dc = caster.spell_save_dc() if spell.save_ability is not None else None
+        dc = power.save_dc if spell.save_ability is not None else None
         ctx.event_bus.publish(
             ConditionApplied(
                 caster_id=caster.id,

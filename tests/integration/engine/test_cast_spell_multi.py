@@ -15,6 +15,7 @@ from dnd.domain.values.damage import DamageType
 from dnd.domain.values.faction import Faction
 from dnd.domain.values.ids import SpellId
 from dnd.domain.values.spell import Spell, SpellEffect, TargetingSpec, TargetKind
+from dnd.domain.values.spell_power import SpellPower
 from dnd.domain.values.square import Square
 
 _SPELLS = Path(__file__).resolve().parents[3] / "data" / "content" / "spells.yaml"
@@ -214,7 +215,7 @@ def test_bless_adds_d4_to_spell_save() -> None:
         concentration=True,
         buffs=(BuffSpec(target=ModifierTargetKind.SAVING_THROW, dice_bonus="1d4"),),
     )
-    BuffSpellHandler().apply(mage, (a,), bless, ctx)
+    BuffSpellHandler().apply(mage, (a,), bless, ctx, SpellPower.from_caster(mage))
     mods = ctx.modifier_applier.collect(owner_id=a.id, target_kind=ModifierTargetKind.SAVING_THROW)
     assert ctx.modifier_applier.to_roll_adjustments(mods).extra_dice == ("1d4",)
     save_spell = Spell(
@@ -239,7 +240,7 @@ def test_bless_adds_d4_to_spell_save() -> None:
         return orig_roll(expr, rc)  # type: ignore[arg-type]
 
     ctx.dice_roller.roll = _spy  # type: ignore[method-assign]
-    SaveSpellHandler().apply(mage, (a,), save_spell, ctx)
+    SaveSpellHandler().apply(mage, (a,), save_spell, ctx, SpellPower.from_caster(mage))
     save_ctxs = [rc for rc in captured if getattr(rc, "purpose", None) is RollPurpose.SAVE]
     assert save_ctxs and save_ctxs[0].extra_dice == ("1d4",)  # type: ignore[attr-defined]
 
@@ -291,7 +292,7 @@ def test_spell_kill_breaks_concentration() -> None:
         concentration=True,
         buffs=(BuffSpec(target=ModifierTargetKind.ARMOR_CLASS, numeric_bonus=2),),
     )
-    BuffSpellHandler().apply(a, (a,), conc_spell, ctx)
+    BuffSpellHandler().apply(a, (a,), conc_spell, ctx, SpellPower.from_caster(a))
     ac_mods = ctx.modifier_applier.collect(
         owner_id=a.id, target_kind=ModifierTargetKind.ARMOR_CLASS
     )

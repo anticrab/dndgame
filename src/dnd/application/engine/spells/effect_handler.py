@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from dnd.application.engine.turn_context import TurnContext
     from dnd.domain.entities.creature import Creature
     from dnd.domain.values.spell import Spell, SpellEffect
+    from dnd.domain.values.spell_power import SpellPower
 
 
 @runtime_checkable
@@ -29,12 +30,15 @@ class SpellEffectHandler(Protocol):
         targets: tuple[Creature, ...],
         spell: Spell,
         ctx: TurnContext,
+        power: SpellPower,
     ) -> None:
         """Применить эффект ``spell`` от ``caster`` к ``targets``.
 
-        Хендлер сам публикует свои события (урон/хил/бафф) через
-        ``ctx.event_bus``. ``CastSpellAction`` уже опубликовал ``SpellCast`` и
-        списал слот/экономику до вызова.
+        ``power`` (U) — Сл/атака/мод эффекта; в спелл-пути берётся из кастера,
+        в item-пути — фикс по уровню (свиток) или нулевой (зелье). Хендлер сам
+        публикует свои события (урон/хил/бафф) через ``ctx.event_bus``;
+        ``CastSpellAction`` уже опубликовал ``SpellCast`` и списал слот/экономику
+        до вызова.
         """
         ...
 
