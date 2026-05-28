@@ -123,6 +123,7 @@ def play(
         map_repository=map_repo,
         sprite_registry=sprite_reg,
         class_repository=class_repo,  # T1: профициентные спасброски PC из класса
+        item_repository=item_repo,  # U5-3: стартовый инвентарь из шаблона
     )
 
     # T2: трекер контроль-эффектов — снимает Sleep/Hold Person по триггерам

@@ -40,6 +40,7 @@ from dnd.domain.values.tile import Tile
 
 if TYPE_CHECKING:
     from dnd.application.ports.class_repository import ClassRepository
+    from dnd.application.ports.item_repository import ItemRepository
     from dnd.composition import EncounterRuntimeServices
 
 # Имя в YAML legend → канонический Terrain. Расширяется по мере роста
@@ -137,6 +138,7 @@ def build_encounter_from_scenario(
     map_repository: MapRepository | None = None,
     sprite_registry: SpriteRegistry | None = None,
     class_repository: ClassRepository | None = None,
+    item_repository: ItemRepository | None = None,
 ) -> Encounter:
     """Из сценария — готовый Encounter (не запущенный).
 
@@ -200,6 +202,7 @@ def build_encounter_from_scenario(
             instance_id=instance_id,
             content=content,
             class_repository=class_repository,
+            item_repository=item_repository,
         )
         # Q-11: существа фракции PARTY используют спасброски от смерти
         # (PHB-2024 стр. 27) — при 0 HP уходят в dying, а не умирают сразу.

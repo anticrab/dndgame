@@ -19,11 +19,13 @@ from dnd.application.ports.content_repository import ContentRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.ability import Ability, AbilityScores
 from dnd.domain.values.ids import CreatureId, FeatureId, SpellId
+from dnd.domain.values.item import ItemId
 from dnd.domain.values.skill import Skill
 from dnd.domain.values.weapon import WeaponProfile
 
 if TYPE_CHECKING:
     from dnd.application.ports.class_repository import ClassRepository
+    from dnd.application.ports.item_repository import ItemRepository
 
 
 def build_weapon_profile(template: WeaponTemplate) -> WeaponProfile:
@@ -51,6 +53,7 @@ def build_creature_from_template(
     instance_id: CreatureId,
     content: ContentRepository,
     class_repository: ClassRepository | None = None,
+    item_repository: ItemRepository | None = None,
 ) -> Creature:
     """Собрать ``Creature`` из шаблона.
 
@@ -59,6 +62,10 @@ def build_creature_from_template(
 
     ``class_repository`` (T1) — чтобы выставить профициентные спасброски из
     класса PC; None → пусто (обычные монстры).
+
+    ``item_repository`` (U5-3) — чтобы заполнить стартовый инвентарь по
+    ``template.starting_inventory`` (list of item-id). Без репозитория поле
+    игнорируется (backward-compat: тесты, не работающие с предметами).
     """
     weapon: WeaponProfile | None = None
     if template.weapon_id is not None:
@@ -106,6 +113,11 @@ def build_creature_from_template(
     skills |= {Skill(code) for code in template.skill_proficiencies}
     creature.skill_proficiencies = frozenset(skills)
     creature.skill_expertise = frozenset(Skill(code) for code in template.skill_expertise)
+    # U5-3: стартовый инвентарь — по одной единице каждого предмета из шаблона.
+    if item_repository is not None and template.starting_inventory:
+        for raw_id in template.starting_inventory:
+            item = item_repository.load(ItemId(raw_id))
+            creature.inventory.add(item)
     return creature
 
 

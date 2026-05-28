@@ -92,6 +92,10 @@ class MonsterTemplate(BaseModel):
     # Экспертиза (×2 prof) — для Плута/Барда. Полный выбор навыков — в W.
     skill_proficiencies: tuple[str, ...] = ()
     skill_expertise: tuple[str, ...] = ()
+    # U5-3: стартовый инвентарь по item-id (по 1 единице каждого). Грузится в
+    # ``build_creature_from_template`` при наличии ``item_repository``. Пусто →
+    # без стартового инвентаря (обычный путь для монстров).
+    starting_inventory: tuple[str, ...] = ()
 
 
 class SpawnTemplate(BaseModel):

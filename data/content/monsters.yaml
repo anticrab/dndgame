@@ -77,6 +77,11 @@
   fighting_style: defense   # T4: выбор данными шаблона
   level: 1
   xp: 90
+  # U5-3: демо-набор используемых предметов — зелье на «выжить» и свиток
+  # как «джокер» против скопления. Загружаются builder'ом из items.yaml.
+  starting_inventory:
+    - healing_potion
+    - scroll_of_fireball
 
 - id: mage_apprentice
   name: Apprentice Mage
