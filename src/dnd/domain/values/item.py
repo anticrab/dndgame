@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import NewType
 
+from dnd.domain.values.item_use import ItemUseSpec
+
 ItemId = NewType("ItemId", str)
 
 
@@ -51,6 +53,11 @@ class Item:
     """Можно ли объединять в стак. Монеты/зелья/факелы — True;
     оружие/броня — False (даже два меча в инвентаре — два отдельных
     стака по 1). Стакование делается в Inventory.add (O-3)."""
+    use: ItemUseSpec | None = None
+    """Обвязка доставки эффекта (U). ``None`` → предмет не используемый
+    (оружие/броня/монета/квестовый); иначе — ссылка на запись эффект-пакета
+    в каталоге заклинаний + метаданные (экономика, расходник, свиток).
+    ``UseItemAction`` зовёт slotless-ядро по этой ссылке."""
 
     def __post_init__(self) -> None:
         if self.weight_lb < 0:

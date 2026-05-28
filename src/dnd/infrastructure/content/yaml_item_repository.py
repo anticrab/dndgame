@@ -29,7 +29,9 @@ from typing import Any
 
 import yaml
 
+from dnd.domain.values.ids import SpellId
 from dnd.domain.values.item import Item, ItemId, ItemKind
+from dnd.domain.values.item_use import ItemUseSpec
 
 
 class YamlItemRepository:
@@ -53,6 +55,17 @@ class YamlItemRepository:
             self._by_id[item.id] = item
 
     def _parse(self, entry: dict[str, Any]) -> Item:
+        raw_use = entry.get("use")
+        use = (
+            None
+            if raw_use is None
+            else ItemUseSpec(
+                effect_id=SpellId(raw_use["effect_id"]),
+                economy=str(raw_use.get("economy", "action")),
+                consumed=bool(raw_use.get("consumed", True)),
+                is_scroll=bool(raw_use.get("is_scroll", False)),
+            )
+        )
         return Item(
             id=ItemId(entry["id"]),
             name=entry["name"],
@@ -60,6 +73,7 @@ class YamlItemRepository:
             weight_lb=float(entry.get("weight_lb", 0.0)),
             description=entry.get("description", ""),
             stackable=bool(entry.get("stackable", False)),
+            use=use,
         )
 
     def list_ids(self) -> tuple[ItemId, ...]:
