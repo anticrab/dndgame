@@ -24,12 +24,13 @@ from dnd.application.engine.spells.area import (
 )
 from dnd.application.engine.spells.defaults import default_spell_effect_registry
 from dnd.application.engine.spells.effect_handler import SpellEffectRegistry
+from dnd.application.engine.spells.resolve import resolve_and_apply_spell
 from dnd.application.engine.turn_context import TurnContext
 from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.direction import Direction
-from dnd.domain.values.ids import ActionId, CreatureId, FeatureId, SpellId
-from dnd.domain.values.spell import OriginMode, Spell, SpellEffect, TargetKind
+from dnd.domain.values.ids import ActionId, CreatureId, SpellId
+from dnd.domain.values.spell import OriginMode, SpellEffect, TargetKind
 from dnd.domain.values.spell_power import SpellPower
 from dnd.domain.values.square import Square
 
@@ -59,52 +60,6 @@ class CastSpellAction:
         self._spells = spell_repository
         self._effects = effect_registry or default_spell_effect_registry()
         self._areas = area_registry or default_area_shape_registry()
-
-    # --- helpers -------------------------------------------------------
-
-    def _resolve_targets(
-        self,
-        spell: Spell,
-        caster: Creature,
-        params: CastSpellParams,
-        ctx: TurnContext,
-    ) -> tuple[Creature, ...]:
-        spec = spell.targeting
-        kind = spec.kind
-        if kind is TargetKind.SELF:
-            return (caster,)
-        if kind is TargetKind.SINGLE:
-            assert params.target_id is not None
-            return (ctx.participants[params.target_id],)
-        if kind is TargetKind.AREA:
-            assert spec.shape is not None
-            origin = (
-                ctx.battlefield.position_of(caster.id)
-                if spec.origin is OriginMode.FROM_CASTER
-                else params.target_point
-            )
-            assert origin is not None
-            squares = self._areas.get(spec.shape).squares(
-                origin, params.direction, spec, ctx.battlefield
-            )
-            # Все живые существа в задетых клетках (friendly fire включён).
-            in_area = [
-                (cid, cr)
-                for cid, cr in ctx.participants.items()
-                if cr.is_alive and ctx.battlefield.position_of(cid) in squares
-            ]
-            # T4: Школа Воплощения (Sculpt Spells) — союзники кастера авто-
-            # исключаются из его AoE (PHB-2024; упрощение «все союзники невредимы»).
-            if FeatureId("subclass_evoker") in caster.features:
-                caster_faction = ctx.factions.get(caster.id)
-                in_area = [
-                    (cid, cr) for cid, cr in in_area if ctx.factions.get(cid) != caster_faction
-                ]
-            return tuple(cr for _cid, cr in in_area)
-        # MULTI (P2b): мультимножество выборов — дубли = повторные «попадания».
-        # Валидность гарантирует can_perform_against; здесь чистая выборка.
-        assert kind is TargetKind.MULTI
-        return tuple(ctx.participants[cid] for cid in params.target_ids)
 
     # --- availability --------------------------------------------------
 
@@ -211,8 +166,6 @@ class CastSpellAction:
             return ActionOutcome(success=False, consumed=ActionEconomyCost.FREE)
 
         spell = self._spells.load(params.spell_id)
-        targets = self._resolve_targets(spell, actor, params, ctx)
-
         actor.consume_spell_slot(spell.level)
         ctx.spend(ActionEconomyCost.ACTION)
 
@@ -226,8 +179,17 @@ class CastSpellAction:
                 target_ids=params.target_ids,
             )
         )
-        self._effects.get(spell.effect).apply(
-            actor, targets, spell, ctx, SpellPower.from_caster(actor)
+        resolve_and_apply_spell(
+            actor,
+            spell,
+            ctx=ctx,
+            power=SpellPower.from_caster(actor),
+            target_id=params.target_id,
+            target_ids=params.target_ids,
+            target_point=params.target_point,
+            direction=params.direction,
+            effect_registry=self._effects,
+            area_registry=self._areas,
         )
         return ActionOutcome(
             success=True,

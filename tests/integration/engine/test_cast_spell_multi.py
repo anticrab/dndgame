@@ -104,12 +104,22 @@ class _OneSpellRepo:
 
 
 def test_resolve_multi_preserves_duplicates_and_order() -> None:
+    from dnd.application.engine.spells.area import default_area_shape_registry
+    from dnd.application.engine.spells.resolve import _resolve_targets
+
     _enc, mage, a, b, ctx = _setup([20, 19, 19])
     spell = _mm()
     mage.known_spells = (spell.id,)
-    action = CastSpellAction(_OneSpellRepo(spell))
-    params = CastSpellParams(spell_id=spell.id, target_ids=(a.id, a.id, b.id))
-    resolved = action._resolve_targets(spell, mage, params, ctx)
+    resolved = _resolve_targets(
+        spell,
+        mage,
+        ctx=ctx,
+        area_registry=default_area_shape_registry(),
+        target_id=None,
+        target_ids=(a.id, a.id, b.id),
+        target_point=None,
+        direction=None,
+    )
     assert [c.id for c in resolved] == [a.id, a.id, b.id]
 
 
