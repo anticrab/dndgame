@@ -41,6 +41,31 @@
     effect_id: potion_strength_buff
     economy: bonus_action
 
+# --- свитки (этап U) ---
+# Свиток ссылается на запись эффект-пакета в spells.yaml и кастуется
+# slotless (без траты слота, фикс-Сл/атака по уровню заклинания, PHB-2024).
+- id: scroll_of_cure_wounds
+  name: "Scroll of Cure Wounds"
+  kind: consumable
+  weight_lb: 0.1
+  description: "Свиток: сотворить Cure Wounds (1d8), без траты слота."
+  stackable: true
+  use:
+    effect_id: cure_wounds
+    economy: action
+    is_scroll: true
+
+- id: scroll_of_fireball
+  name: "Scroll of Fireball"
+  kind: consumable
+  weight_lb: 0.1
+  description: "Свиток: сотворить Fireball (сфера 20 фт), Сл 15 по уровню свитка."
+  stackable: true
+  use:
+    effect_id: fireball
+    economy: action
+    is_scroll: true
+
 - id: torch
   name: "Torch"
   kind: consumable
