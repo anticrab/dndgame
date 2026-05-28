@@ -526,3 +526,19 @@ class ItemUnequipped(EngineEvent):
     actor_id: CreatureId
     item_id: ItemId
     item_name: str
+
+
+class ItemUsed(EngineEvent):
+    """Существо использовало предмет (U): зелье/свиток.
+
+    ``effect`` — тип эффект-пакета (``heal``/``buff``/``attack``/...) для
+    рендера лога; ``target_id`` — None для SELF-эффектов (зелье на себя).
+    ``consumed`` — списан ли расходник из инвентаря (``ItemUseSpec.consumed``)."""
+
+    event_type: ClassVar[str] = "inventory.item_used"
+    actor_id: CreatureId
+    item_id: ItemId
+    item_name: str
+    effect: str
+    target_id: CreatureId | None = None
+    consumed: bool = True
