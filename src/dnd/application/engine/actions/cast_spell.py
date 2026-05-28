@@ -25,12 +25,12 @@ from dnd.application.engine.spells.area import (
 from dnd.application.engine.spells.defaults import default_spell_effect_registry
 from dnd.application.engine.spells.effect_handler import SpellEffectRegistry
 from dnd.application.engine.spells.resolve import resolve_and_apply_spell
+from dnd.application.engine.spells.targeting_validation import validate_spell_targeting
 from dnd.application.engine.turn_context import TurnContext
 from dnd.application.ports.spell_repository import SpellRepository
 from dnd.domain.entities.creature import Creature
 from dnd.domain.values.direction import Direction
 from dnd.domain.values.ids import ActionId, CreatureId, SpellId
-from dnd.domain.values.spell import OriginMode, SpellEffect, TargetKind
 from dnd.domain.values.spell_power import SpellPower
 from dnd.domain.values.square import Square
 
@@ -88,72 +88,18 @@ class CastSpellAction:
                 reason=ForbiddenReason.CUSTOM,
                 details=f"no spell slot of level {spell.level}",
             )
-        # Цель.
-        if spell.targeting.kind is TargetKind.SINGLE:
-            if params.target_id is None or params.target_id not in ctx.participants:
-                return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
-            target = ctx.participants[params.target_id]
-            # audit MAJOR-2: liveness-guard в Action, а не только в UI.
-            # Урон-заклинания (ATTACK/SAVE/AUTO) — только по живой цели
-            # (нельзя бить труп). Heal/buff — по живой ИЛИ умирающей (dying),
-            # но не по окончательно мёртвой.
-            offensive = spell.effect in (SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO)
-            if offensive:
-                if not target.is_alive:
-                    return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
-            elif not target.is_alive and not (
-                target.death_saves is not None and not target.death_saves.is_dead
-            ):
-                return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
-            actor_pos = ctx.battlefield.position_of(actor.id)
-            target_pos = ctx.battlefield.position_of(params.target_id)
-            if actor_pos.distance_to_feet(target_pos) > spell.range_ft:
-                return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
-        elif spell.targeting.kind is TargetKind.AREA:
-            shape = spell.targeting.shape
-            if shape is None or shape not in self._areas:
-                return Forbidden(
-                    reason=ForbiddenReason.CUSTOM,
-                    details=f"area shape not supported: {shape}",
-                )
-            if spell.targeting.origin is OriginMode.AT_POINT:
-                if params.target_point is None:
-                    return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
-                actor_pos = ctx.battlefield.position_of(actor.id)
-                if actor_pos.distance_to_feet(params.target_point) > spell.range_ft:
-                    return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
-            elif params.direction is None:  # FROM_CASTER требует направления
-                return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
-        elif spell.targeting.kind is TargetKind.MULTI:
-            spec = spell.targeting
-            if not params.target_ids:
-                return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
-            if len(params.target_ids) > spec.max_targets:
-                return Forbidden(
-                    reason=ForbiddenReason.CUSTOM,
-                    details=f"too many targets (max {spec.max_targets})",
-                )
-            unique = set(params.target_ids)
-            if not spec.allow_repeat_target and len(unique) != len(params.target_ids):
-                return Forbidden(
-                    reason=ForbiddenReason.CUSTOM,
-                    details="repeat targets not allowed",
-                )
-            actor_pos = ctx.battlefield.position_of(actor.id)
-            offensive = spell.effect in (SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO)
-            for cid in unique:
-                if cid not in ctx.participants:
-                    return Forbidden(reason=ForbiddenReason.NO_VALID_TARGETS)
-                target = ctx.participants[cid]
-                if offensive:
-                    if not target.is_alive:
-                        return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
-                elif not target.is_alive and not (
-                    target.death_saves is not None and not target.death_saves.is_dead
-                ):
-                    return Forbidden(reason=ForbiddenReason.TARGET_DOWN)
-                if actor_pos.distance_to_feet(ctx.battlefield.position_of(cid)) > spell.range_ft:
-                    return Forbidden(reason=ForbiddenReason.OUT_OF_RANGE)
+        targeting_err = validate_spell_targeting(
+            actor,
+            spell,
+            ctx,
+            target_id=params.target_id,
+            target_ids=params.target_ids,
+            target_point=params.target_point,
+            direction=params.direction,
+            areas=self._areas,
+        )
+        if targeting_err is not None:
+            return targeting_err
         return Allowed()
 
     # --- execution -----------------------------------------------------
