@@ -125,3 +125,152 @@ def test_use_item_forbidden_if_no_use_spec() -> None:
     params = UseItemParams(item_id=ItemId("gold"))
     avail = action.can_perform_against(hero, params, ctx)
     assert isinstance(avail, Forbidden)
+
+
+# === Forbidden-ветки can_perform_against (U-post-review #3) ===
+
+
+def _item_with_use(effect_id: SpellId, *, economy: str = "bonus_action") -> Item:
+    return Item(
+        id=ItemId("custom_use"),
+        name="Custom",
+        kind=ItemKind.CONSUMABLE,
+        weight_lb=0.0,
+        stackable=True,
+        use=ItemUseSpec(effect_id=effect_id, economy=economy, consumed=True, is_scroll=False),
+    )
+
+
+def test_forbidden_unknown_effect() -> None:
+    """``ItemUseSpec.effect_id`` отсутствует в каталоге — Forbidden."""
+    hero, ctx = _setup(rolls=[1])
+    hero.inventory.add(_item_with_use(SpellId("nonexistent_spell")))
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero, UseItemParams(item_id=ItemId("custom_use"), target_id=hero.id), ctx
+    )
+    assert isinstance(avail, Forbidden)
+    assert "unknown effect" in avail.details
+
+
+def test_forbidden_no_economy_left() -> None:
+    """Бонусное действие уже потрачено в этом ходу — Forbidden."""
+    hero, ctx = _setup(rolls=[1])
+    ctx.spend(ActionEconomyCost.BONUS_ACTION)  # съели бонусное наперёд
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero, UseItemParams(item_id=ItemId("healing_potion"), target_id=hero.id), ctx
+    )
+    assert isinstance(avail, Forbidden)
+    assert avail.reason.value == "no_economy_left"
+
+
+def test_forbidden_single_no_target_id() -> None:
+    """SINGLE без target_id — NO_VALID_TARGETS."""
+    hero, ctx = _setup(rolls=[1])
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero, UseItemParams(item_id=ItemId("healing_potion"), target_id=None), ctx
+    )
+    assert isinstance(avail, Forbidden)
+    assert avail.reason.value == "no_valid_targets"
+
+
+def test_forbidden_single_target_not_in_participants() -> None:
+    """SINGLE с target_id, отсутствующим в encounter — NO_VALID_TARGETS."""
+    hero, ctx = _setup(rolls=[1])
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero,
+        UseItemParams(item_id=ItemId("healing_potion"), target_id="ghost"),
+        ctx,
+    )
+    assert isinstance(avail, Forbidden)
+    assert avail.reason.value == "no_valid_targets"
+
+
+def test_forbidden_target_down_dead() -> None:
+    """Лечение/бафф мёртвой (не dying) цели — TARGET_DOWN."""
+    hero, ctx = _setup(rolls=[1])
+    # ally в encounter, но мёртв окончательно
+    ally = Creature.create(
+        id_="ally",
+        name="Ally",
+        abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
+    )
+    ally.hit_points = ally.hit_points.take_damage(100)  # 0 HP
+    ctx.participants[ally.id] = ally  # type: ignore[index]
+    ctx.battlefield.place_creature(ally.id, Square(3, 3))
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero,
+        UseItemParams(item_id=ItemId("healing_potion"), target_id=ally.id),
+        ctx,
+    )
+    assert isinstance(avail, Forbidden)
+    assert avail.reason.value == "target_down"
+
+
+def test_forbidden_out_of_range_single() -> None:
+    """SINGLE-цель за пределами range (cure_wounds = 5 ft) — OUT_OF_RANGE."""
+    hero, ctx = _setup(rolls=[1])
+    ally = Creature.create(
+        id_="ally",
+        name="Ally",
+        abilities=AbilityScores.of(str_=10, dex=10, con=10, int_=10, wis=10, cha=10),
+        max_hp=10,
+        armor_class=10,
+        speed_ft=30,
+    )
+    ctx.participants[ally.id] = ally  # type: ignore[index]
+    ctx.battlefield.place_creature(ally.id, Square(4, 4))  # 2 клетки = 10 ft > 5
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero,
+        UseItemParams(item_id=ItemId("healing_potion"), target_id=ally.id),
+        ctx,
+    )
+    assert isinstance(avail, Forbidden)
+    assert avail.reason.value == "out_of_range"
+
+
+def test_forbidden_area_no_target_point() -> None:
+    """AREA AT_POINT без target_point — NO_VALID_TARGETS."""
+    hero, ctx = _setup(rolls=[1])
+    # Свиток fireball: AREA AT_POINT, требует target_point.
+    hero.inventory.add(
+        Item(
+            id=ItemId("scroll"),
+            name="Scroll",
+            kind=ItemKind.CONSUMABLE,
+            weight_lb=0.0,
+            stackable=True,
+            use=ItemUseSpec(effect_id=SpellId("fireball"), economy="action", is_scroll=True),
+        )
+    )
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero, UseItemParams(item_id=ItemId("scroll"), target_point=None), ctx
+    )
+    assert isinstance(avail, Forbidden)
+    assert avail.reason.value == "no_valid_targets"
+
+
+def test_forbidden_multi_too_many_targets() -> None:
+    """MULTI с числом целей > max_targets — CUSTOM (too many targets).
+
+    magic_missile в каталоге — MULTI с max_targets=3."""
+    hero, ctx = _setup(rolls=[1])
+    hero.inventory.add(
+        Item(
+            id=ItemId("scroll_mm"),
+            name="Scroll MM",
+            kind=ItemKind.CONSUMABLE,
+            weight_lb=0.0,
+            stackable=True,
+            use=ItemUseSpec(effect_id=SpellId("magic_missile"), economy="action", is_scroll=True),
+        )
+    )
+    # 4 цели > 3 max
+    targets = (hero.id, hero.id, hero.id, hero.id)
+    avail = UseItemAction(_repo()).can_perform_against(
+        hero, UseItemParams(item_id=ItemId("scroll_mm"), target_ids=targets), ctx
+    )
+    assert isinstance(avail, Forbidden)
+    assert "too many" in avail.details

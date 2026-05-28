@@ -612,6 +612,54 @@ class BattleScreen(Screen[None]):
                 result.append(cid)
         return result
 
+    def _list_use_item_targets(
+        self,
+        actor: Creature,
+        ctx: TurnContext,
+        encounter: Encounter,
+        spell: Spell,
+    ) -> list[CreatureId]:
+        """SINGLE-цели для **свитка**: ту же фракционную логику что и
+        ``_list_spell_targets``, но валидируем через общий
+        ``validate_spell_targeting`` (не через ``CastSpellAction``, которому
+        у не-кастера сразу даёт Forbidden 'not a spellcaster')."""
+        from dnd.application.engine.spells.targeting_validation import (
+            validate_spell_targeting,
+        )
+
+        offensive = spell.effect in (SpellEffect.ATTACK, SpellEffect.SAVE, SpellEffect.AUTO)
+        actor_faction = encounter.factions.get(actor.id)
+        result: list[CreatureId] = []
+        for cid, cr in encounter.participants.items():
+            if offensive:
+                if cid == actor.id or encounter.factions.get(cid) == actor_faction:
+                    continue
+                if encounter.factions.get(cid) is Faction.NEUTRAL:
+                    continue
+                if not cr.is_alive:
+                    continue
+            else:
+                # heal/buff — на себя и союзников (та же фракция); dying тоже.
+                if encounter.factions.get(cid) != actor_faction:
+                    continue
+                if not cr.is_alive and not (
+                    cr.death_saves is not None and not cr.death_saves.is_dead
+                ):
+                    continue
+            err = validate_spell_targeting(
+                actor,
+                spell,
+                ctx,
+                target_id=cid,
+                target_ids=(),
+                target_point=None,
+                direction=None,
+                areas=self._area_registry,
+            )
+            if err is None:
+                result.append(cid)
+        return result
+
     def _list_multi_candidates(
         self,
         actor: Creature,
@@ -1021,9 +1069,10 @@ class BattleScreen(Screen[None]):
             self._multi_allow_repeat = spell.targeting.allow_repeat_target
             self.enter_mode(BattleMode.MULTI_TARGET)
             return
-        # SINGLE — тот же список целей, что и у заклинаний (heal/buff →
-        # союзники, urgent → враги).
-        targets = self._list_spell_targets(actor, _ctx, encounter, spell)
+        # SINGLE — союзники для heal/buff, враги для offensive. Валидация —
+        # через общий validate_spell_targeting, не CastSpellAction (у не-кастера
+        # CastSpellAction даёт Forbidden 'not a spellcaster' до проверки целей).
+        targets = self._list_use_item_targets(actor, _ctx, encounter, spell)
         if not targets:
             self._pending_use_item = None
             self.log_widget.write(f"[bold]No targets in reach for {spell.name}.[/]")
