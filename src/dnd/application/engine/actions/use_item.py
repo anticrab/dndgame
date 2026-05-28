@@ -165,6 +165,7 @@ class UseItemAction:
                 effect=str(spell.effect.value),
                 target_id=params.target_id,
                 consumed=use.consumed,
+                is_scroll=use.is_scroll,
             )
         )
         return ActionOutcome(

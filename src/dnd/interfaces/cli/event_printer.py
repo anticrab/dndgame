@@ -280,11 +280,11 @@ class EventPrinter:
         )
 
     def _on_item_used(self, event: ItemUsed) -> None:
-        # U: зелье (🧪) — выпивает, свиток (📜) — читает. Эффект уже
-        # сопровождается HealingApplied/DamageDealt/ConditionApplied.
-        is_scroll = "scroll" in event.item_id.lower()
-        icon = "📜" if is_scroll else "🧪"
-        verb = "reads" if is_scroll else "drinks"
+        # U: зелье (🧪) — выпивает, свиток (📜) — читает. Источник истины —
+        # ItemUsed.is_scroll (приходит из ItemUseSpec.is_scroll, данные), не
+        # парсинг id предмета — иначе локализация/ребрендинг id ломал бы UX.
+        icon = "📜" if event.is_scroll else "🧪"
+        verb = "reads" if event.is_scroll else "drinks"
         self._print(f"  {icon} [cyan]{event.actor_id} {verb} {event.item_name}[/]")
 
     # Карта типов → обработчики. ClassVar т.к. shared, не per-instance.

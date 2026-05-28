@@ -533,7 +533,10 @@ class ItemUsed(EngineEvent):
 
     ``effect`` — тип эффект-пакета (``heal``/``buff``/``attack``/...) для
     рендера лога; ``target_id`` — None для SELF-эффектов (зелье на себя).
-    ``consumed`` — списан ли расходник из инвентаря (``ItemUseSpec.consumed``)."""
+    ``consumed`` — списан ли расходник из инвентаря (``ItemUseSpec.consumed``).
+    ``is_scroll`` — отличает «читает свиток» от «пьёт зелье» в логе/рендере
+    (заполняется из ``ItemUseSpec.is_scroll`` — данных, не парсинга id).
+    """
 
     event_type: ClassVar[str] = "inventory.item_used"
     actor_id: CreatureId
@@ -542,3 +545,4 @@ class ItemUsed(EngineEvent):
     effect: str
     target_id: CreatureId | None = None
     consumed: bool = True
+    is_scroll: bool = False
